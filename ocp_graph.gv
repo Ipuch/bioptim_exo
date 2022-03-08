@@ -1,0 +1,24 @@
+digraph ocp_graph {
+	node [shape=plaintext]
+	OCP [shape=Mdiamond]
+	subgraph cluster_0 {
+		node [color=white style=filled]
+		color=lightgrey style=filled
+		label=<<u><b>Phase #0</b></u>>
+		nlp_node_0 [label=<<b>Model</b>: KINOVA_arm_reverse.bioMod<br/><b>Phase duration</b>: 0.5 s<br/><b>Shooting nodes</b>: 30<br/><b>Dynamics</b>: CUSTOM<br/><b>ODE</b>: RK4<br/><b>Control type</b>: CONSTANT>]
+		param_00 [label=<<u><b>Parameters</b></u><br/> No parameter set>]
+		lagrange_0 [label=<<u><b>Lagrange</b></u><br/>(MINIMIZE_CONTROL)<sup>2</sup><br/><b>Weight</b>: 100<br/><b>key</b>: tau<br/><b>Index in list</b>: 0<br/><br/>(MINIMIZE_STATE)<sup>2</sup><br/><b>Weight</b>: 2<br/><b>key</b>: q<br/><b>Index in list</b>: 1<br/><br/>(MINIMIZE_STATE)<sup>2</sup><br/><b>Weight</b>: 5<br/><b>key</b>: qdot<br/><b>Index in list</b>: 2<br/><br/>>]
+		mayer_node_0 [label=<<u><b>Mayer</b></u><br/>No Mayer set>]
+		constraints_node_0 [label=<<u><b>Constraints</b></u><br/>SUPERIMPOSE_MARKERS<br/><b>Min bound</b>: 0<br/><b>Max bound</b>: 0<br/><b>first_marker</b>: mg1<br/><b>second_marker</b>: md0<br/><b>Index in list</b>: 0<br/><b>Shooting nodes index</b>: 0<br/><br/>SUPERIMPOSE_MARKERS<br/><b>Min bound</b>: 0<br/><b>Max bound</b>: 0<br/><b>first_marker</b>: mg2<br/><b>second_marker</b>: md0<br/><b>Index in list</b>: 1<br/><b>Shooting nodes index</b>: 30<br/><br/>SUPERIMPOSE_MARKERS<br/><b>Min bound</b>: 0<br/><b>Max bound</b>: 0<br/><b>first_marker</b>: grd_contact1<br/><b>second_marker</b>: Contact_mk1<br/><b>Index in list</b>: 2<br/><b>Shooting nodes index</b>: 0<br/><br/>SUPERIMPOSE_MARKERS<br/><b>Min bound</b>: 0<br/><b>Max bound</b>: 0<br/><b>first_marker</b>: grd_contact2<br/><b>second_marker</b>: Contact_mk2<br/><b>Index in list</b>: 3<br/><b>Shooting nodes index</b>: all<br/><br/>>]
+	}
+	OCP -> nlp_node_0
+	nlp_node_0 -> param_00 [color=lightgrey]
+	param_00 -> lagrange_0 [color=lightgrey]
+	lagrange_0 -> mayer_node_0 [color=lightgrey]
+	mayer_node_0 -> constraints_node_0 [color=lightgrey]
+	subgraph cluster_phase_transitions {
+		node [color=grey style=filled]
+		color=invis style=""
+		label=<<u><b>Phase transitions</b></u>>
+	}
+}

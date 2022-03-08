@@ -1,0 +1,9 @@
+1) Make one control optimal converge ?
+2) Does the three-link chain troubles the convergence ? (test on a smaller exemple)
+3) Add the passive stiffness on the concerned dof.
+4) Add a human arm
+5) Automatic merge, between arm and kinova models
+6) make it converge for a trajectory
+7) minimize fatigue.
+8) Optimize parameters that minimize fatigue
+
