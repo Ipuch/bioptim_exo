@@ -34,11 +34,12 @@ import IK_Kinova
 import CustomDynamics
 import spring
 
+
 def prepare_ocp(
-        biorbd_model_path: str = "KINOVA_arm_reverse.bioMod",
-        q0: np.ndarray = np.zeros((12, 1)),
-        qfin: np.ndarray = np.zeros((12, 1)),
-        springs: list = [],
+    biorbd_model_path: str = "KINOVA_arm_reverse_left.bioMod",
+    q0: np.ndarray = np.zeros((12, 1)),
+    qfin: np.ndarray = np.zeros((12, 1)),
+    springs: list = [],
 ) -> OptimalControlProgram:
     """
     Prepare the ocp
@@ -55,17 +56,20 @@ def prepare_ocp(
     The OptimalControlProgram ready to be solved
     """
 
-    biorbd_model = biorbd.Model(biorbd_model_path),
+    biorbd_model = (biorbd.Model(biorbd_model_path),)
     nbQ = biorbd_model[0].nbQ()
 
-    n_shooting = 30,
-    final_time = 0.5,
+    n_shooting = (30,)
+    final_time = (0.5,)
 
     tau_min, tau_max, tau_init = -30, 30, 0
 
-    dynamics = Dynamics(CustomDynamics.dynamic_config, with_contact=True,
-                        dynamic_function=CustomDynamics.custom_dynamic,
-                        springs=springs)
+    dynamics = Dynamics(
+        CustomDynamics.dynamic_config,
+        with_contact=True,
+        dynamic_function=CustomDynamics.custom_dynamic,
+        springs=springs,
+    )
 
     objective_functions = ObjectiveList()
     objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=100, phase=0)
@@ -89,8 +93,7 @@ def prepare_ocp(
     x_bounds[0].max[-3:, -2:] = 10 * 2 * np.pi
 
     u_bounds = BoundsList()
-    u_bounds.add([tau_min] * nbQ,
-                 [tau_max] * nbQ)
+    u_bounds.add([tau_min] * nbQ, [tau_max] * nbQ)
 
     u_bounds[0][6:, :] = 0
 
@@ -106,10 +109,12 @@ def prepare_ocp(
     constraints.add(ConstraintFcn.SUPERIMPOSE_MARKERS, node=Node.START, first_marker="mg1", second_marker="md0")
     constraints.add(ConstraintFcn.SUPERIMPOSE_MARKERS, node=Node.END, first_marker="mg2", second_marker="md0")
 
-    constraints.add(ConstraintFcn.SUPERIMPOSE_MARKERS, node=Node.START, first_marker="grd_contact1",
-                    second_marker="Contact_mk1")
-    constraints.add(ConstraintFcn.SUPERIMPOSE_MARKERS, node=Node.ALL, first_marker="grd_contact2",
-                    second_marker="Contact_mk2")
+    constraints.add(
+        ConstraintFcn.SUPERIMPOSE_MARKERS, node=Node.START, first_marker="grd_contact1", second_marker="Contact_mk1"
+    )
+    constraints.add(
+        ConstraintFcn.SUPERIMPOSE_MARKERS, node=Node.ALL, first_marker="grd_contact2", second_marker="Contact_mk2"
+    )
 
     return OptimalControlProgram(
         biorbd_model,
@@ -124,12 +129,11 @@ def prepare_ocp(
         constraints=constraints,
         ode_solver=OdeSolver.RK4(),
         n_threads=8,
-
     )
 
 
 if __name__ == "__main__":
-    model = "KINOVA_arm_reverse.bioMod"
+    model = "KINOVA_arm_reverse_left.bioMod"
     q0 = np.array((0.0, 0.0, 0.0, 0.0, -0.1709, 0.0515, -0.2892, 0.6695, 0.721, 0.0, 0.0, 0.0))
 
     m = biorbd_eigen.Model(model)
@@ -146,15 +150,19 @@ if __name__ == "__main__":
     springParam = dict(s=-1, k1=-1, k2=10, q0=0)
     springs[10] = spring.assignParam(springParam)
     springs[11] = spring.assignParam(springParam)
-    springs[8] = spring.linearSpring(6380, 0.15, 0.12506, 1.16056, 0.07844, 5*np.pi/6)
+    springs[8] = spring.linearSpring(6380, 0.15, 0.12506, 1.16056, 0.07844, 5 * np.pi / 6)
 
     ocp = prepare_ocp(model, pos_init, pos_fin, springs)
     ocp.print(to_console=False, to_graph=True)
     # Custom plots
     ocp.add_plot_penalty(CostType.ALL)
     NP = "PassiveTorquePlot"
-    ocp.add_plot(NP, lambda t, x, u, p: CustomDynamics.plot_passive_torque(x, u, p, ocp.nlp[0], springs, [8, 10, 11]),
-                 plot_type=PlotType.INTEGRATED, axes_idx=[0, 1, 2])
+    ocp.add_plot(
+        NP,
+        lambda t, x, u, p: CustomDynamics.plot_passive_torque(x, u, p, ocp.nlp[0], springs, [8, 10, 11]),
+        plot_type=PlotType.INTEGRATED,
+        axes_idx=[0, 1, 2],
+    )
     # --- Solve the program --- #
     show_options = dict(show_bounds=True)
     solver_options = {

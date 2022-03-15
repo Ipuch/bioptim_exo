@@ -1,0 +1,161 @@
+version 4
+
+gravity 0 0 -9.81
+
+segment ground
+endsegment
+
+segment part7
+    parent    ground
+    translations xyz
+    rotations xyz
+    ranges 	-1 1
+            -1 1
+            -1 1
+            -pi 2*pi
+            -pi pi
+            -pi pi
+    mass 0.35022
+    inertia
+        0.00264324  -0.00042419  -0.00019927
+        -0.00042419  0.00140645  0.00094020
+        -0.00019927 0.00094020 0.00188114
+    com 0.03432946 -0.02995415 -0.06284127
+    meshfile geom/Reverse_Piece7_right.STL
+endsegment
+
+segment part6
+    parent    part7
+	rtinmatrix 0
+    rt 0     0     0 xyz 0 0 0 // we'll see later
+    rotations z
+    ranges 	-pi/4 pi/4
+    mass 0.08658
+    inertia
+        0.00010362 0.00000247 0.00005709
+        0.00000247 0.00015371 0.00000945
+        0.00005709 0.00000945 0.00006956
+    com  -0.05369029 0.00776230 -0.03169498
+    meshfile geom\Reverse_Piece6_right.STL
+endsegment
+
+segment part5
+    parent    part6
+	rtinmatrix 0
+    rt 0    -2*pi/3     0 xyz -0.07097 0 -0.07828
+    rotations z
+    ranges 	pi/12 3*pi/4
+    mass 0.51119
+    inertia
+        0.00012720  -0.00002201 -0.00002644
+        -0.00002201  0.00700069 -0.00000344
+        -0.00002644 -0.00000344 0.00700400
+    com  -0.15597894  0.00143925  0.01848738
+    meshfile geom\Reverse_Piece5_right.STL
+endsegment
+
+segment part4
+    parent    part5
+	rtinmatrix 0
+    rt -pi/6    0     -pi/6 xyz  -0.25360 -0.00772 0.02422
+    rotations z
+    ranges 	-2*pi 2*pi
+    mass 0.338
+    inertia
+        0.00078841  0.00002960  0
+        0.00002960  0.00025806  0
+        0           0           0.00084184
+    com 0.01854824 -0.06316296  0
+    meshfile geom\Reverse_Piece4.STL
+endsegment
+
+segment part3
+    parent    part4
+	rtinmatrix 0
+    rt -pi/2   0     0 xyz -0.01354 -0.14202 0
+    rotations z
+    ranges 	-pi pi
+    mass 0.172
+    inertia
+        0.00001545 0 0
+        0 0.00032826 0
+        0 0 0.00032966
+    com -0.06110784 0 0
+    meshfile geom\Reverse_Piece3.STL
+endsegment
+
+segment part2
+    parent    part3
+    rtinmatrix 0
+    rt 0   0   0  xyz -0.120 0 0 // ajouter rot
+    rotations z
+    ranges 	-pi/6 2*pi/3 // 0 2*pi/3
+    mass 0.164
+    inertia
+        0.04434446 0.04527663 0
+        0.04527663 0.20118726 0
+        0 0 0.020546857
+    com -0.04769250 0.00114713 0
+    meshfile geom\Reverse_Piece2_right.STL
+endsegment
+
+segment part1
+    parent    part2
+    rtinmatrix 0
+    rt 0   0   pi/6 xyz -0.08842 -0.02369 0 // ajouter rot
+    rotations z
+    ranges 	-pi/6 2*pi/3 // 0 2*pi/3
+    mass 0.172
+    inertia
+        0.00001545 0 0
+        0 0.00032826 0
+        0 0 0.00032966
+    com -0.05889216 0 0
+    meshfile geom\Reverse_Piece1.STL
+endsegment
+
+// Contact
+    contact    Contact_pt1
+        parent    part1
+        position  -0.120 0 0
+        axis    xyz
+    endcontact
+    // Contact
+    contact    Contact_pt2
+        parent    part1
+        position  -0.120 0 0.1
+        axis    xy
+    endcontact
+
+// Marker
+    marker    Contact_mk1
+        parent    part1
+        position  -0.120 0 0
+    endmarker
+        marker    Contact_mk2
+        parent    part1
+        position  -0.120 0 0.1
+    endmarker
+    marker     grd_contact1
+        parent ground
+        position 0  0 0
+    endmarker
+    marker     grd_contact2
+        parent ground
+        position 0  0   0.1
+    endmarker
+
+    marker      mg1
+        parent ground
+        position -0.027  0.40 -0.10
+    endmarker
+
+    marker      mg2
+        parent ground
+        position -0.030 0.40 0 // position -0.035 0.35 0
+    endmarker
+
+    marker      md0
+        parent part7
+        position 0.01 0.01 0.01
+    endmarker
