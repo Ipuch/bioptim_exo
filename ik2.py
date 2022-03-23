@@ -4,7 +4,7 @@ import numpy as np
 import IK_Kinova
 
 # model_name = "KINOVA_arm_deprecated.bioMod"
-model = "KINOVA_arm_reverse.bioMod"
+model = "KINOVA_arm_reverse_left.bioMod"
 
 q0 = np.array((0.0, 0.0, 0.0, 0.0, -0.1709, 0.0515, -0.2892, 0.6695, 0.721, 0.0, 0.0, 0.0))
 targetd = np.zeros((1, 3))

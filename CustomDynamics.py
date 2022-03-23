@@ -28,8 +28,9 @@ from bioptim import (
 import spring
 
 
-def dispatch_q_qdot_tau(states: MX.sym, controls: MX.sym, parameters: MX.sym, nlp, with_contact,
-                        springs: list) -> tuple:
+def dispatch_q_qdot_tau(
+    states: MX.sym, controls: MX.sym, parameters: MX.sym, nlp, with_contact, springs: list
+) -> tuple:
     """
      Forward dynamics driven by joint torques with springs.
 
@@ -97,8 +98,9 @@ def custom_contact(states, controls, parameters, nlp, with_contact: bool, spring
     return contact
 
 
-def custom_dynamic(states: MX.sym, controls: MX.sym, parameters: MX.sym, nlp, with_contact: bool,
-                   springs: list) -> tuple:
+def custom_dynamic(
+    states: MX.sym, controls: MX.sym, parameters: MX.sym, nlp, with_contact: bool, springs: list
+) -> tuple:
     """
      Forward dynamics driven by joint torques with springs.
 
@@ -132,15 +134,15 @@ def dynamic_config(ocp: OptimalControlProgram, nlp: NonLinearProgram, with_conta
     ConfigureProblem.configure_q(nlp, as_states=True, as_controls=False)
     ConfigureProblem.configure_qdot(nlp, as_states=True, as_controls=False)
     ConfigureProblem.configure_tau(nlp, as_states=False, as_controls=True)
-    ConfigureProblem.configure_dynamics_function(ocp, nlp, custom_dynamic,
-                                                 with_contact=with_contact, springs=springs)
+    ConfigureProblem.configure_dynamics_function(ocp, nlp, custom_dynamic, with_contact=with_contact, springs=springs)
 
     if with_contact:
-        ConfigureProblem.configure_contact_function(ocp, nlp, custom_contact,
-                                                    with_contact=with_contact, springs=springs)
+        ConfigureProblem.configure_contact_function(
+            ocp, nlp, custom_contact, with_contact=with_contact, springs=springs
+        )
 
 
-def plot_passive_torque(states: MX.sym, controls: MX.sym, parameters: MX.sym, nlp, springs,idx) -> ndarray:
+def plot_passive_torque(states: MX.sym, controls: MX.sym, parameters: MX.sym, nlp, springs, idx) -> ndarray:
     """
     Create a used defined plot function with extra_parameters
 

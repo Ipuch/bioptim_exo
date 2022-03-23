@@ -32,9 +32,17 @@ def IK_Kinova(model_path: str, q0: np.ndarray, targetd: np.ndarray, targetp: np.
         # print(out1)
         return 10 * out1 + out2 + 10 * out3
 
-    pos = optimize.least_squares(objective_function, args=(m, targetd, targetp), x0=q0,
-                                 bounds=bounds, verbose=2, method='trf',
-                                 jac='3-point', ftol=2.22e-16, gtol=2.22e-16)
+    pos = optimize.least_squares(
+        objective_function,
+        args=(m, targetd, targetp),
+        x0=q0,
+        bounds=bounds,
+        verbose=2,
+        method="trf",
+        jac="3-point",
+        ftol=2.22e-16,
+        gtol=2.22e-16,
+    )
     # print(pos)
     # print(f"Optimal q for the assistive arm at {target} is:\n{pos.x}\n"
     #       f"with cost function = {objective_function(pos.x)}")
@@ -76,9 +84,17 @@ def IK_Kinova_RT(model_path: str, q0: np.ndarray, targetd: np.ndarray, targetp: 
         # print(out1)
         return 10 * out1 + out2 + 10 * out3 + out4
 
-    pos = optimize.least_squares(objective_function, args=(m, targetd, targetp), x0=q0,
-                                 bounds=bounds, verbose=2, method='trf',
-                                 jac='3-point', ftol=2.22e-16, gtol=2.22e-16)
+    pos = optimize.least_squares(
+        objective_function,
+        args=(m, targetd, targetp),
+        x0=q0,
+        bounds=bounds,
+        verbose=2,
+        method="trf",
+        jac="3-point",
+        ftol=2.22e-16,
+        gtol=2.22e-16,
+    )
     # print(pos)
     # print(f"Optimal q for the assistive arm at {target} is:\n{pos.x}\n"
     #       f"with cost function = {objective_function(pos.x)}")

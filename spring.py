@@ -3,12 +3,11 @@ import matplotlib.pyplot as plt
 
 
 def assignParam(springParam):
-    S = yamaguchiSpring(springParam['s'],
-                        springParam['k1'], springParam['k2'], springParam["q0"])
+    S = yamaguchiSpring(springParam["s"], springParam["k1"], springParam["k2"], springParam["q0"])
     return S
 
 
-class yamaguchiSpring():
+class yamaguchiSpring:
     def __init__(self, s: int, k1: float, k2, q0: float):
         """
         Parameters
@@ -65,7 +64,7 @@ class yamaguchiSpring():
         return self.q0
 
 
-class linearSpring():
+class linearSpring:
     def __init__(self, k: float, l0: float, a: float, qa: float, b: float, qb: float):
         """
         Parameters
@@ -114,12 +113,12 @@ class linearSpring():
         k = self.k
         l0 = self.l0
 
-        return - k * (self.length(q) - l0)
+        return -k * (self.length(q) - l0)
 
     def momentArm(self, q):
         den = self.length(q)
-        num = - self.a * self.b * np.sin( q + self.qa + self.qb)
-        return - num / den
+        num = -self.a * self.b * np.sin(q + self.qa + self.qb)
+        return -num / den
 
     def torque(self, q):
         R = self.momentArm(q)
