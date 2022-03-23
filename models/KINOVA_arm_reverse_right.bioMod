@@ -21,7 +21,7 @@ segment part7
         -0.00042419  0.00140645  0.00094020
         -0.00019927 0.00094020 0.00188114
     com 0.03432946 -0.02995415 -0.06284127
-    meshfile Geometry/Reverse_Piece7_right.STL
+    meshfile geometry/Reverse_Piece7_right.STL
 endsegment
 
 segment part6
@@ -36,7 +36,7 @@ segment part6
         0.00000247 0.00015371 0.00000945
         0.00005709 0.00000945 0.00006956
     com  -0.05369029 0.00776230 -0.03169498
-    meshfile Geometry\Reverse_Piece6_right.STL
+    meshfile geometry\Reverse_Piece6_right.STL
 endsegment
 
 segment part5
@@ -51,7 +51,7 @@ segment part5
         -0.00002201  0.00700069 -0.00000344
         -0.00002644 -0.00000344 0.00700400
     com  -0.15597894  0.00143925  0.01848738
-    meshfile Geometry\Reverse_Piece5_right.STL
+    meshfile geometry\Reverse_Piece5_right.STL
 endsegment
 
 segment part4
@@ -66,7 +66,7 @@ segment part4
         0.00002960  0.00025806  0
         0           0           0.00084184
     com 0.01854824 -0.06316296  0
-    meshfile Geometry\Reverse_Piece4.STL
+    meshfile geometry\Reverse_Piece4.STL
 endsegment
 
 segment part3
@@ -81,7 +81,7 @@ segment part3
         0 0.00032826 0
         0 0 0.00032966
     com -0.06110784 0 0
-    meshfile Geometry\Reverse_Piece3.STL
+    meshfile geometry\Reverse_Piece3.STL
 endsegment
 
 segment part2
@@ -96,7 +96,7 @@ segment part2
         0.04527663 0.20118726 0
         0 0 0.020546857
     com -0.04769250 0.00114713 0
-    meshfile Geometry\Reverse_Piece2_right.STL
+    meshfile geometry\Reverse_Piece2_right.STL
 endsegment
 
 segment part1
@@ -111,7 +111,7 @@ segment part1
         0 0.00032826 0
         0 0 0.00032966
     com -0.05889216 0 0
-    meshfile Geometry\Reverse_Piece1.STL
+    meshfile geometry\Reverse_Piece1.STL
 endsegment
 
 // Contact

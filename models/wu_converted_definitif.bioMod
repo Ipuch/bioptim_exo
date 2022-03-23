@@ -66,7 +66,7 @@ gravity	0 -9.8000000000000007 0
             0.0    1.1110036620680397    0.0
             0.0    0.0    1.7008287803341005
         com    -0.033440718675358687 0.32700989683991893 0
-        meshfile Geometry/thorax.vtp
+        meshfile geometry/thorax.vtp
     endsegment
 
     // Markers
@@ -170,7 +170,7 @@ gravity	0 -9.8000000000000007 0
             0.0    0.0    0.0
             0.0    0.0    0.0
         com    -0.016256208808519496 0.010856739819502741 0.084325257320595551
-        meshfile Geometry/clavicle.vtp
+        meshfile geometry/clavicle.vtp
     endsegment
 
     // Markers
@@ -245,7 +245,7 @@ gravity	0 -9.8000000000000007 0
             0.0    0.0    0.0
             0.0    0.0    0.0
         com    -0.0793326510181704 -0.040670349563165432 -0.066897010353895586
-        meshfile Geometry/scapula.vtp
+        meshfile geometry/scapula.vtp
     endsegment
 
     // Markers
@@ -354,7 +354,7 @@ gravity	0 -9.8000000000000007 0
             0.0    0.003797217603708719    0.0
             0.0    0.0    0.013189000303006999
         com    0 -0.17580303285787971 0
-        meshfile Geometry/humerus.vtp
+        meshfile geometry/humerus.vtp
     endsegment
 
     // Markers
@@ -454,7 +454,7 @@ gravity	0 -9.8000000000000007 0
             0.0    0.0006210011991976967    0.0
             0.0    0.0    0.003228603322042394
         com    0 -0.12081729890042356 0
-        meshfile Geometry/ulna.vtp
+        meshfile geometry/ulna.vtp
     endsegment
 
     // Markers
@@ -545,7 +545,7 @@ gravity	0 -9.8000000000000007 0
             0.0    0.0006210011991976967    0.0
             0.0    0.0    0.003228603322042394
         com    0 -0.12081729890042356 0
-        meshfile Geometry/radius.vtp
+        meshfile geometry/radius.vtp
     endsegment
 
     // Markers
@@ -574,7 +574,7 @@ gravity	0 -9.8000000000000007 0
             0.0    0.0007462674052703907    0.0
             0.0    0.0    0.0012195100744696698
         com    0 -0.079657585356472591 0
-        meshfile Geometry/pisiform.vtp
+        meshfile geometry/pisiform.vtp
     endsegment
 
     // Markers
