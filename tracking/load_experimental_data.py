@@ -57,6 +57,19 @@ class C3dData:
         idx_stop = len(self.trajectories[0, 0, :])
         return [idx_start, idx_stop]
 
+    def get_final_time(self):
+        """
+        find phase duration
+        """
+        # todo: plz shrink the function
+        freq = self.c3d["parameters"]["POINT"]["RATE"]["value"][0]
+
+        index = self.get_indices()
+        phase_time = []
+        for i in range(len(index) - 1):
+            phase_time.append((1 / freq * (index[i + 1] - index[i] + 1)))
+        return phase_time[0]
+
 
 class LoadData:
     def __init__(self, model, c3d_file):
@@ -94,6 +107,8 @@ class LoadData:
 
     def get_marker_ref(self,
             nb_shooting: list,
-            phase_time: list) -> list:
+            phase_time: list,
+            type: str) -> list:
+        #todo: add an argument if "all" all markers and if "hand" only markers of hand if "MET5" only MET5
 
         return self.dispatch_data(self.c3d_data.trajectories, nb_shooting=nb_shooting, phase_time=phase_time)

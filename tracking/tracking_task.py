@@ -21,6 +21,7 @@ from bioptim import (
     OdeSolver,
     Node,
     Solver,
+    CostType,
 )
 
 
@@ -54,7 +55,8 @@ def prepare_ocp(
 
     # Add objective functions
     objective_functions = ObjectiveList()
-    objective_functions.add(ObjectiveFcn.Lagrange.TRACK_MARKERS, node=Node.ALL, weight=100, target=markers_ref)
+    objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=10)
+    objective_functions.add(ObjectiveFcn.Mayer.TRACK_MARKERS, weight=100, target=markers_ref, node=Node.ALL)
 
     # Dynamics
     dynamics = DynamicsList()
@@ -100,12 +102,11 @@ def main():
 
     # Define the problem
     c3d_path = "../data/F0_dessiner_05.c3d"
-
     model_path = "../models/wu_converted_definitif.bioMod"
 
     biorbd_model = biorbd.Model(model_path)
     data = C3dData(c3d_path)
-    final_time = 4.82
+    final_time = data.get_final_time()
     n_shooting_points = 30
 
     # Marker ref
