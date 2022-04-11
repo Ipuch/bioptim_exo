@@ -111,10 +111,11 @@ def main():
 
     # Marker ref
     data_loaded = LoadData(biorbd_model, c3d_path)
-    markers_ref = data_loaded.get_marker_ref(nb_shooting=[n_shooting_points], phase_time=[final_time])
+    markers_ref = data_loaded.get_marker_ref(nb_shooting=[n_shooting_points], phase_time=[final_time], type="all")
 
     ocp = prepare_ocp(biorbd_model, final_time, n_shooting_points, markers_ref[0])
 
+    ocp.add_plot_penalty(CostType.CONSTRAINTS)
     # --- Solve the program --- #
     sol = ocp.solve(Solver.IPOPT(show_online_optim=False))
 

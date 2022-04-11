@@ -2,7 +2,7 @@ version 4
 
 // File extracted from C:/Users/remi6/Desktop/S5/Wu_shoulder_model/Wu_Shoulder_Model_kinova_definitif.osim
 
-gravity	0 -9.8000000000000007 0
+gravity	0 -9.81 0
 
 // SEGMENT DEFINITION
 
