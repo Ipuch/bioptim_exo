@@ -72,20 +72,25 @@ class C3dData:
 
 
 class LoadData:
-    def __init__(self, model, c3d_file):
+    def __init__(self, model, c3d_file, q_file, qdot_file):
         def load_txt_file(file_path, size):
             data_tp = np.loadtxt(file_path)
-            nb_frame = int(len(data_tp) / size)
-            out = np.zeros((size, nb_frame))
-            for n in range(nb_frame):
-                out[:, n] = data_tp[n * size: n * size + size]
-            return out
+            # # nb_frame = int(len(data_tp) / size)
+            # nb_frame = data_tp.shape[1]
+            # out = np.zeros((size, nb_frame))
+            # for n in range(nb_frame):
+            #     out[:, n] = data_tp[n * size: n * size + size]
+            return data_tp
 
         self.model = model
+        self.nb_q = model.nbQ()
+        self.nb_qdot = model.nbQdot()
         self.nb_markers = model.nbMarkers()
 
         # files path
         self.c3d_data = C3dData(c3d_file)
+        self.q = load_txt_file(q_file, self.nb_q)
+        self.qdot = load_txt_file(qdot_file, self.nb_qdot)
 
     def dispatch_data(self, data, nb_shooting: list, phase_time: list):
         """
@@ -112,3 +117,10 @@ class LoadData:
         #todo: add an argument if "all" all markers and if "hand" only markers of hand if "MET5" only MET5
 
         return self.dispatch_data(self.c3d_data.trajectories, nb_shooting=nb_shooting, phase_time=phase_time)
+
+    def get_experimental_data(self, number_shooting_points, phase_time):
+        q_ref = self.dispatch_data(data=self.q, nb_shooting=number_shooting_points, phase_time=phase_time)
+        qdot_ref = self.dispatch_data(data=self.qdot, nb_shooting=number_shooting_points, phase_time=phase_time)
+        markers_ref = self.dispatch_data(data=self.c3d_data.trajectories, nb_shooting=number_shooting_points,
+                                         phase_time=phase_time)
+        return q_ref, qdot_ref, markers_ref
