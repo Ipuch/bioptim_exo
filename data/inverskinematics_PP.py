@@ -17,12 +17,15 @@ import ezc3d
 from pyomeca import Markers
 import glob
 import os
+import matplotlib.pyplot as plt
+
 try:
     import bioviz
 
     biorbd_viz_found = True
 except ModuleNotFoundError:
     biorbd_viz_found = False
+
 
 def get_unit_division_factor(c3d_file):
     """
@@ -77,7 +80,9 @@ qfinal = np.array([0, 0, -0.3, 0.35, 1.15, -0.35, 1.15, 0, 0, 0, 0, 0, 0])
 target_q = np.concatenate((np.linspace(qinit, qmid, n_frames).T, np.linspace(qmid, qfinal, n_frames).T), axis=1)
 
 file_list = []
-for file in glob.glob("*.c3d"):  # We get the files names with a .c3d extension
+# for file in glob.glob("*.c3d"):  # We get the files names with a .c3d extension
+#     file_list.append(file)
+for file in glob.glob("*F0_manger_05.c3d"):  # We get the files names with a .c3d extension
     file_list.append(file)
 
 for file in file_list:
@@ -98,8 +103,8 @@ for file in file_list:
 
     # retrieve markers from c3d file and load them with ezc3d
     Xmarkers = Markers.from_c3d(file, usecols=marker_names)
-    markers = Xmarkers.values[:3, :, :] / get_unit_division_factor(c3d)   # We converted the units of c3d to units of
-    # biomod
+    # We converted the units of c3d to units of biomod
+    markers = Xmarkers.values[:3, :, :] / get_unit_division_factor(c3d)
 
     # reshape marker data
     markersOverFrames = []
@@ -116,13 +121,31 @@ for file in file_list:
         q_recons[:, i] = Q.to_array()
         qdot_recons[:, i] = Qdot.to_array()
 
+    # snippet to handle conversion of angles -pi and pi
+    # todo : afficher tous les ddl avant et apres la modification et plotnles bounds pour chaque ddl, verifier les discontinuites
+
+    q_recons_old = q_recons.copy()
+    q_recons[3:, :] = q_recons[3:, :] % (4 * np.pi)
+    model.segment(1).QRanges()[0].min()
+    count = 0
+
+    # for i in range(len(q_recons[3:, :])+1):  # we excluded the 3 first dof which correspond to 3 translation
+    #     if model.segment(3).nbDof() > 0:
+    #         count += 1
+    #     plt.plot(q_recons_old[i+3, :], label="old")
+    #     plt.plot(q_recons[i+3, :], label=str(i+3))
+    #     plt.plot(model.segment(i+3).QRanges()[0].min())
+    #     plt.plot(model.segment(i+3).QRanges()[0].max())
+    #     plt.legend()
+    #     plt.show()
+
     np.savetxt(os.path.splitext(file)[0] + '_q.txt', q_recons)
     np.savetxt(os.path.splitext(file)[0] + '_qdot.txt', qdot_recons)
 
 print(Xmarkers)
 
-# if biorbd_viz_found:
-#     b = bioviz.Viz(loaded_model=model, show_muscles=False)
-#     b.load_experimental_markers(markers)
-#     b.load_movement(q_recons)
-#     b.exec()
+if biorbd_viz_found:
+    b = bioviz.Viz(loaded_model=model, show_muscles=False)
+    b.load_experimental_markers(markers)
+    b.load_movement(q_recons)
+    b.exec()
