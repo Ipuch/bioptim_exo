@@ -102,7 +102,7 @@ class linearSpring:
 
     def length(self, q):
         # return np.sqrt(self.a ** 2 + self.b ** 2 + 2 * self.a * self.b * np.cos(q + self.qa + self.qb))
-        return np.sqrt(self.a ** 2 + self.b ** 2 - 2 * self.a * self.b * np.cos(self.qTriangle(q)))
+        return np.sqrt(self.a**2 + self.b**2 - 2 * self.a * self.b * np.cos(self.qTriangle(q)))
 
     def force(self, q: float):
         """

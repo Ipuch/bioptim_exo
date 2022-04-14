@@ -101,26 +101,24 @@ class LoadData:
         out = []
         for i in range(len(nb_shooting)):
             if len(data.shape) == 3:
-                x = data[:, :, index[i]: index[i + 1] + 1]
+                x = data[:, :, index[i] : index[i + 1] + 1]
             else:
-                x = data[:, index[i]: index[i + 1] + 1]
+                x = data[:, index[i] : index[i + 1] + 1]
             t_init = np.linspace(0, phase_time[i], (index[i + 1] - index[i]))
             t_node = np.linspace(0, phase_time[i], nb_shooting[i] + 1)
             f = interp1d(t_init, x, kind="cubic")
             out.append(f(t_node))
         return out
 
-    def get_marker_ref(self,
-            nb_shooting: list,
-            phase_time: list,
-            type: str) -> list:
-        #todo: add an argument if "all" all markers and if "hand" only markers of hand if "MET5" only MET5
+    def get_marker_ref(self, nb_shooting: list, phase_time: list, type: str) -> list:
+        # todo: add an argument if "all" all markers and if "hand" only markers of hand if "MET5" only MET5
 
         return self.dispatch_data(self.c3d_data.trajectories, nb_shooting=nb_shooting, phase_time=phase_time)
 
     def get_experimental_data(self, number_shooting_points, phase_time):
         q_ref = self.dispatch_data(data=self.q, nb_shooting=number_shooting_points, phase_time=phase_time)
         qdot_ref = self.dispatch_data(data=self.qdot, nb_shooting=number_shooting_points, phase_time=phase_time)
-        markers_ref = self.dispatch_data(data=self.c3d_data.trajectories, nb_shooting=number_shooting_points,
-                                         phase_time=phase_time)
+        markers_ref = self.dispatch_data(
+            data=self.c3d_data.trajectories, nb_shooting=number_shooting_points, phase_time=phase_time
+        )
         return q_ref, qdot_ref, markers_ref
