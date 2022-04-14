@@ -37,14 +37,14 @@ def get_phase_time_shooting_numbers(data, dt):
 
 
 def prepare_ocp(
-        biorbd_model: biorbd.Model,
-        final_time: float,
-        n_shooting: int,
-        markers_ref: np.ndarray,  # to check
-        q_ref: list,
-        qdot_ref: list,
-        nb_threads: int,
-        ode_solver: OdeSolver = OdeSolver.RK4(),
+    biorbd_model: biorbd.Model,
+    final_time: float,
+    n_shooting: int,
+    markers_ref: np.ndarray,  # to check
+    q_ref: list,
+    qdot_ref: list,
+    nb_threads: int,
+    ode_solver: OdeSolver = OdeSolver.RK4(),
 ) -> OptimalControlProgram:
     """
     Prepare the ocp to solve
@@ -98,7 +98,7 @@ def prepare_ocp(
 
     init_x = np.zeros((nb_q + nb_qdot, n_shooting + 1))
     init_x[:nb_q, :] = q_ref[0]
-    init_x[nb_q: nb_q + nb_qdot, :] = qdot_ref[0]
+    init_x[nb_q : nb_q + nb_qdot, :] = qdot_ref[0]
     x_init.add(init_x, interpolation=InterpolationType.EACH_FRAME)
 
     # Define control path constraint
@@ -106,7 +106,8 @@ def prepare_ocp(
     u_init = InitialGuessList()
     tau_min, tau_max, tau_init = -100, 100, 0
     u_bounds.add(
-        [tau_min] * biorbd_model.nbGeneralizedTorque(), [tau_max] * biorbd_model.nbGeneralizedTorque(),
+        [tau_min] * biorbd_model.nbGeneralizedTorque(),
+        [tau_max] * biorbd_model.nbGeneralizedTorque(),
     )
     u_init.add([tau_init] * biorbd_model.nbGeneralizedTorque())
 
@@ -149,14 +150,15 @@ def main():
     # phase_time, number_shooting_points = get_phase_time_shooting_numbers(data_loaded, 0.01)
     q_ref, qdot_ref, markers_ref = data_loaded.get_experimental_data([n_shooting_points], [final_time])
 
-    ocp = prepare_ocp(biorbd_model=biorbd_model,
-                      final_time=final_time,
-                      n_shooting=n_shooting_points,
-                      markers_ref=markers_ref[0],
-                      q_ref=q_ref,
-                      qdot_ref=qdot_ref,
-                      nb_threads=8
-                      )
+    ocp = prepare_ocp(
+        biorbd_model=biorbd_model,
+        final_time=final_time,
+        n_shooting=n_shooting_points,
+        markers_ref=markers_ref[0],
+        q_ref=q_ref,
+        qdot_ref=qdot_ref,
+        nb_threads=8,
+    )
 
     ocp.add_plot_penalty(CostType.CONSTRAINTS)
     # --- Solve the program --- #
