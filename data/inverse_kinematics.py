@@ -82,9 +82,93 @@ def plot_dof(q_old, q, biorbd_model):
                 plt.plot([biorbd_model.segment(i).QRanges()[j].min()] * q.shape[1])
                 plt.plot([biorbd_model.segment(i).QRanges()[j].max()] * q.shape[1])
                 count += 1
-                print(count)
                 plt.legend()
     plt.show()
+
+
+def get_segment_and_dof_id_from_global_dof(biorbd_model, global_dof):
+    # """
+    # Allow the users to get the segment id which correspond to a dof of the model and the id of this dof in the segment
+    #
+    # Parameters
+    # ----------
+    # biorbd_model: biorbd.Model
+    #     The biorbd model
+    # global_dof: int
+    #     The global id of the dof in the model
+    #
+    # Returns
+    # -------
+    # seg_id: int
+    #     The id of the segment which correspond to the dof
+    # count_dof: int
+    #      The dof id in this segment
+    # """
+    for j, seg in enumerate(biorbd_model.segments()):
+        complete_seg_name = model.nameDof()[global_dof].to_string()  # We get "Segment_Name_DofName"
+        seg_name = complete_seg_name.replace("_RotX", "")  # We remove "_DofName"
+        seg_name = seg_name.replace("_RotY", "")
+        seg_name = seg_name.replace("_RotZ", "")
+        seg_name = seg_name.replace("_TransX", "")
+        seg_name = seg_name.replace("_TransY", "")
+        seg_name = seg_name.replace("_TransZ", "")
+
+        if seg.name().to_string() == seg_name:
+            seg_name_new = seg_name
+            seg_id = j
+
+    dof = model.nameDof()[global_dof].to_string().replace(seg_name_new, "")
+    dof = dof.replace("_", "")  # we remove the _ "_DofName"
+    count_dof = 0
+    while model.segment(seg_id).nameDof(count_dof).to_string() != dof:
+        count_dof += 1
+
+    return seg_id, count_dof
+
+
+def apply_offset(biorbd_model, dof_nb, offset):
+    """
+    Allow the users to apply an offset on a dof in the model if this dof is out of is range
+
+    Parameters
+    ----------
+    biorbd_model: biorbd.Model
+        The biorbd model
+    dof_nb: int
+        The global number of the dof
+    offset: float
+        The minimum offset that we wanted to apply on the dof
+
+    Returns
+    -------
+    """
+    seg_id, dof_id = get_segment_and_dof_id_from_global_dof(biorbd_model, dof_nb)
+    range_min = model.segment(seg_id).QRanges()[dof_id].min()
+    range_max = model.segment(seg_id).QRanges()[dof_id].max()
+    value = q_recons[dof_nb, :].mean()
+    delta_range_max = value - range_max
+    delta_range_min = value - range_min
+
+    offset = np.pi
+    compteur = 0
+
+    if delta_range_min > 0 and delta_range_max > 0:  # if the value is above range max
+        while (delta_range_min > 0 and delta_range_max > 0) and compteur < 100:
+            compteur += 1
+            q_recons[dof_nb, :] = q_recons[dof_nb, :] - offset
+            value = q_recons[dof_nb, :].mean()
+            delta_range_max = value - range_max
+            delta_range_min = value - range_min
+
+    elif delta_range_min < 0 and delta_range_max < 0:  # if the value is below range min
+        while (delta_range_min < 0 and delta_range_max < 0) and compteur < 100:
+            compteur += 1
+            q_recons[dof_nb, :] = q_recons[dof_nb, :] + offset
+            value = q_recons[dof_nb, :].mean()
+            delta_range_max = value - range_max
+            delta_range_min = value - range_min
+    else:
+        print("Nothing has to be done.")
 
 
 # Load a predefined model
@@ -134,60 +218,9 @@ for file in file_list:
         qdot_recons[:, i] = Qdot.to_array()
 
     q_recons_old = q_recons.copy()
-    q_recons[11, :] = np.mod(q_recons[11, :], 2 * np.pi)
-    count = 0
-    # for i in range(model.nbSegment()):  # we excluded the 3 first dof which correspond to 3 translation
-    #     if model.segment(i).nbDof() > 0:
-    #         print(model.segment(i))
-    #         for j in range(model.segment(i).nbDof()):
-    #             range_min = model.segment(i).QRanges()[j].min()
-    #             range_max = model.segment(i).QRanges()[j].max()
-    #             average_range = (range_max + range_min) / 2
-    #             value = q_recons[count, 0]
-    #             delta = value-average_range
-    #             modulo = np.pi
-    #             if delta > range_max or delta < range_min:
-    #                 while range_max > delta > range_min:
-    #                     modulo += np.pi
-    #                     q_recons[13, :] = q_recons[13, :] - modulo
-    #             count += 1
-    #             print(count)
-    range_min = model.segment(21).QRanges()[0].min()
-    range_max = model.segment(21).QRanges()[0].max()
-    value = q_recons[13, :].mean()
-    delta_range_max = value - range_max
-    delta_range_min = value - range_min
 
-    offset = 0
-    compteur = 0
-
-    if delta_range_min > 0 and delta_range_max > 0:  # if the value is above range max
-        while (delta_range_min > 0 and delta_range_max > 0) and compteur < 100:
-            print("au dessus")
-            compteur += 1
-            print(compteur)
-            offset += np.pi
-            print("offset ", offset)
-            q_recons[13, :] = q_recons[13, :] - offset
-            value = q_recons[13, :].mean()
-            delta_range_max = value - range_max
-            delta_range_min = value - range_min
-
-    elif delta_range_min < 0 and delta_range_max < 0:  # if the value is below range min
-        while (delta_range_min < 0 and delta_range_max < 0) and compteur < 100:
-            print("en dessous")
-            compteur += 1
-            print(compteur)
-            offset += np.pi
-            print("offset ", offset)
-            q_recons[13, :] = q_recons[13, :] + offset
-            value = q_recons[13, :].mean()
-            delta_range_max = value - range_max
-            delta_range_min = value - range_min
-    else:
-        print("Nothing has to be done.")
-
-    # q_recons[13, :] = q_recons[13, :] - 4 * np.pi
+    apply_offset(model, 11, 2 * np.pi)
+    apply_offset(model, 13, 2 * np.pi)
 
     plot_dof(q_recons_old, q_recons, model)
 
