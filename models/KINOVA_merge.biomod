@@ -2,7 +2,7 @@ version 4
 
 // File extracted from C:/Users/remi6/Desktop/S5/Wu_shoulder_model/Wu_Shoulder_Model_kinova_definitif.osim
 
-gravity	0 -9.8000000000000007 0
+gravity	0 -9.81 0
 
 // SEGMENT DEFINITION
 
@@ -121,8 +121,9 @@ gravity	0 -9.8000000000000007 0
             -0.6406235    -0.767855146    -6.9262e-05    0
             0.542796665    -0.452920435    0.707272832    0
             0    0    0    1
-        rotations z
-        ranges		-1.570796326795	1.570796326795
+        // rotations z
+        // ranges		-1.570796326795	1.570796326795
+        // 13 april 2022 : We removed this rotation which is unpratictal for inverse kinematics using kalman
     endsegment
 
     // Segment to cancel transformation bases effect.
@@ -242,7 +243,7 @@ gravity	0 -9.8000000000000007 0
             0.0001    0.97951422    0.20137498    0
             0    0    0    1
         rotations x
-        ranges		-1.9	0.35
+        ranges		-1.92	1.5
     endsegment
     // Segment
     segment humerus_shoulder_ele
@@ -266,7 +267,8 @@ gravity	0 -9.8000000000000007 0
             0.060042519    0.959314972    -0.275879829    0
             0    0    0    1
         rotations z
-        ranges		0.0	3.0
+        // ranges		0.0	3.0
+        ranges		-1.9	0.35
     endsegment
 
     // Segment to cancel transformation bases effect.
@@ -347,7 +349,8 @@ gravity	0 -9.8000000000000007 0
             -0.006469738    -0.114683666    0.993380994    0
             0    0    0    1
         rotations z
-        ranges		0.0	2.268928027593
+        //ranges		0.0	2.268928027593
+        ranges		-pi	pi
     endsegment
 
     // Segment to cancel transformation bases effect.
