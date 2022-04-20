@@ -115,10 +115,13 @@ class LoadData:
 
         return self.dispatch_data(self.c3d_data.trajectories, nb_shooting=nb_shooting, phase_time=phase_time)
 
-    def get_experimental_data(self, number_shooting_points, phase_time):
+    def get_experimental_data(self, number_shooting_points, phase_time, with_floating_base: bool):
         q_ref = self.dispatch_data(data=self.q, nb_shooting=number_shooting_points, phase_time=phase_time)
         qdot_ref = self.dispatch_data(data=self.qdot, nb_shooting=number_shooting_points, phase_time=phase_time)
         markers_ref = self.dispatch_data(
             data=self.c3d_data.trajectories, nb_shooting=number_shooting_points, phase_time=phase_time
         )
+        q_ref[0] = q_ref[0][6:] if not with_floating_base else q_ref[0]
+        qdot_ref[0] = qdot_ref[0][6:] if not with_floating_base else qdot_ref[0]
+
         return q_ref, qdot_ref, markers_ref

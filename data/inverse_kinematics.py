@@ -87,23 +87,23 @@ def plot_dof(q_old, q, biorbd_model):
 
 
 def get_segment_and_dof_id_from_global_dof(biorbd_model, global_dof):
-    # """
-    # Allow the users to get the segment id which correspond to a dof of the model and the id of this dof in the segment
-    #
-    # Parameters
-    # ----------
-    # biorbd_model: biorbd.Model
-    #     The biorbd model
-    # global_dof: int
-    #     The global id of the dof in the model
-    #
-    # Returns
-    # -------
-    # seg_id: int
-    #     The id of the segment which correspond to the dof
-    # count_dof: int
-    #      The dof id in this segment
-    # """
+    """
+    Allow the users to get the segment id which correspond to a dof of the model and the id of this dof in the segment
+
+    Parameters
+    ----------
+    biorbd_model: biorbd.Model
+        The biorbd model
+    global_dof: int
+        The global id of the dof in the model
+
+    Returns
+    -------
+    seg_id: int
+        The id of the segment which correspond to the dof
+    count_dof: int
+         The dof id in this segment
+    """
     for j, seg in enumerate(biorbd_model.segments()):
         complete_seg_name = model.nameDof()[global_dof].to_string()  # We get "Segment_Name_DofName"
         seg_name = complete_seg_name.replace("_RotX", "")  # We remove "_DofName"

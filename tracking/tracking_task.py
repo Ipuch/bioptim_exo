@@ -5,6 +5,7 @@ import biorbd_casadi as biorbd
 from casadi import MX, vertcat
 from matplotlib import pyplot as plt
 import os
+from viz_tracking import add_custom_plots
 from scipy.interpolate import interp1d
 
 from bioptim import (
@@ -25,6 +26,7 @@ from bioptim import (
     Node,
     Solver,
     CostType,
+    PlotType,
 )
 
 
@@ -83,6 +85,8 @@ def prepare_ocp(
     objective_functions = ObjectiveList()
     objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=10)
     objective_functions.add(ObjectiveFcn.Mayer.TRACK_MARKERS, weight=100, target=markers_ref, node=Node.ALL)
+    # todo add a if with_floating base
+    objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, weight=10, key="qdot", index=[0, 1, 2, 3, 4, 5])
 
     # Dynamics
     dynamics = DynamicsList()
@@ -93,12 +97,11 @@ def prepare_ocp(
     x_bounds.add(bounds=QAndQDotBounds(biorbd_model))
 
     # Initial guess
-    x_init = InitialGuessList()
-    x_init.add([0] * (biorbd_model.nbQ() + biorbd_model.nbQdot()))
-
     init_x = np.zeros((nb_q + nb_qdot, n_shooting + 1))
     init_x[:nb_q, :] = q_ref[0]
-    init_x[nb_q : nb_q + nb_qdot, :] = qdot_ref[0]
+    init_x[nb_q: nb_q + nb_qdot, :] = qdot_ref[0]
+
+    x_init = InitialGuessList()
     x_init.add(init_x, interpolation=InterpolationType.EACH_FRAME)
 
     # Define control path constraint
@@ -114,15 +117,15 @@ def prepare_ocp(
     # ------------- #
 
     return OptimalControlProgram(
-        biorbd_model,
-        dynamics,
-        n_shooting,
-        final_time,
-        x_init,
-        u_init,
-        x_bounds,
-        u_bounds,
-        objective_functions,
+        biorbd_model=biorbd_model,
+        dynamics=dynamics,
+        n_shooting=n_shooting,
+        phase_time=final_time,
+        x_init=x_init,
+        u_init=u_init,
+        x_bounds=x_bounds,
+        u_bounds=u_bounds,
+        objective_functions=objective_functions,
         ode_solver=ode_solver,
     )
 
@@ -133,8 +136,13 @@ def main():
     """
 
     # Define the problem
-    c3d_path = "../data/F0_aisselle_05.c3d"
-    model_path = "../models/wu_converted_definitif.bioMod"
+    with_floating_base = True
+    # c3d_path = "../data/F0_aisselle_05.c3d"
+    c3d_path = "../data/F0_aisselle_05_crop.c3d"
+
+    model_path = "../models/wu_converted_definitif.bioMod" if with_floating_base \
+        else "../models/wu_converted_definitif_without_floating_base_and_thorax_markers.bioMod"
+
     q_file = os.path.splitext(c3d_path)[0] + "_q.txt"
     qdot_file = os.path.splitext(c3d_path)[0] + "_qdot.txt"
 
@@ -142,13 +150,15 @@ def main():
     data = C3dData(c3d_path)
 
     final_time = data.get_final_time()
-    n_shooting_points = 30
+    # final_time = 0.3
+    n_shooting_points = 50
 
     # Marker ref
     data_loaded = LoadData(biorbd_model, c3d_path, q_file, qdot_file)
-    # markers_ref = data_loaded.get_marker_ref(nb_shooting=[n_shooting_points], phase_time=[final_time], type="all")
-    # phase_time, number_shooting_points = get_phase_time_shooting_numbers(data_loaded, 0.01)
-    q_ref, qdot_ref, markers_ref = data_loaded.get_experimental_data([n_shooting_points], [final_time])
+
+    q_ref, qdot_ref, markers_ref = data_loaded.get_experimental_data([n_shooting_points],
+                                                                     [final_time],
+                                                                     with_floating_base=with_floating_base)
 
     ocp = prepare_ocp(
         biorbd_model=biorbd_model,
@@ -160,9 +170,20 @@ def main():
         nb_threads=8,
     )
 
-    ocp.add_plot_penalty(CostType.CONSTRAINTS)
+    ocp.add_plot_penalty(CostType.ALL)
+    ocp = add_custom_plots(ocp, 0, 19)
+
     # --- Solve the program --- #
-    sol = ocp.solve(Solver.IPOPT(show_online_optim=False))
+    solver = Solver.IPOPT(show_online_optim=True, show_options=dict(show_bounds=True))
+    solver.set_maximum_iterations(1000)
+    sol = ocp.solve(solver)
+
+    # --- Save --- #
+    ocp.save(sol, save_path)
+
+    # --- Plot --- #
+    sol.graphs(show_bounds=True)
+    sol.animate(n_frames=100)
 
     # --- Show the results --- #
     q = sol.states["q"]
@@ -184,11 +205,7 @@ def main():
     plt.xlabel("Time")
     plt.ylabel("Markers Position")
 
-    # --- Plot --- #
     plt.show()
-    sol.print()
-    sol.graphs(show_bounds=True)
-    sol.animate(n_frames=100)
 
 
 if __name__ == "__main__":
