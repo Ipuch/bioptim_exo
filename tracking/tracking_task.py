@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 import os
 from viz_tracking import add_custom_plots
 from scipy.interpolate import interp1d
+from datetime import datetime
 
 from bioptim import (
     OptimalControlProgram,
@@ -175,10 +176,16 @@ def main():
 
     # --- Solve the program --- #
     solver = Solver.IPOPT(show_online_optim=True, show_options=dict(show_bounds=True))
-    solver.set_maximum_iterations(1000)
+    solver.set_maximum_iterations(100)
     sol = ocp.solve(solver)
 
     # --- Save --- #
+    save_path = f"{'save/tracking_task'} {datetime.now()}"
+    # save_path = "custom_name"  # custom the name for the assay
+    save_path = save_path.replace(" ", "_")
+    save_path = save_path.replace("-", "_")
+    save_path = save_path.replace(":", "_")
+    save_path = save_path.replace(".", "_")
     ocp.save(sol, save_path)
 
     # --- Plot --- #
