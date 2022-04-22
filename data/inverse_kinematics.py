@@ -222,10 +222,11 @@ for file in file_list:
     apply_offset(model, 11, 2 * np.pi)
     apply_offset(model, 13, 2 * np.pi)
 
-    plot_dof(q_recons_old, q_recons, model)
+    # plot_dof(q_recons_old, q_recons, model)
 
     np.savetxt(os.path.splitext(file)[0] + "_q.txt", q_recons)
     np.savetxt(os.path.splitext(file)[0] + "_qdot.txt", qdot_recons)
+
 
 print(Xmarkers)
 
