@@ -5,32 +5,55 @@ import biorbd
 
 
 class C3dData:
-    def __init__(self, file_path):
+    """
+       The base class for the ODE solvers
+
+       Attributes
+       ----------
+       steps: int
+           The number of integration steps
+       steps_scipy: int
+           Number of steps while integrating with scipy
+       rk_integrator: Union[RK4, RK8, IRK]
+           The corresponding integrator class
+       is_direct_collocation: bool
+           indicating if the ode solver is direct collocation method
+       is_direct_shooting: bool
+           indicating if the ode solver is direct shooting method
+       Methods
+       -------
+       integrator(self, ocp, nlp) -> list
+           The interface of the OdeSolver to the corresponding integrator
+       prepare_dynamic_integrator(ocp, nlp)
+           Properly set the integration in an nlp
+       """
+    def __init__(self, file_path, biorbd_model):
         self.c3d = c3d(file_path)
-        self.marker_names = [
-            "MAN",  # check 1
-            "XYP",  # check 2
-            "C7",  # check 3
-            "T10",  # check 4
-            "CLAV_SC",  # check 5
-            "CLAV_AC",  # check 6
-            # "SCAP_Cor",  # check 7
-            "SCAP_IA",  # check 8
-            # "SCAP_AA",  # check 9
-            "SCAP_AC",  # check 10
-            "SCAP_BACK",  # check 11
-            "SCAP_FRONT",  # check 12
-            "EPI_lat",  # check 13
-            "EPI_med",  # check 14
-            "DELT",  # check 15
-            "ARM",  # check 16
-            "ULNA",  # check 17
-            "ELB",  # check 18
-            "RADIUS",  # check 19
-            "SEML",  # check 20
-            "MET2",  # check 21
-            "MET5",  # check 22
-        ]
+        self.marker_names = [biorbd_model.markerNames()[i].to_string() for i in range(len(biorbd_model.markerNames()))]
+        # self.marker_names = [
+        #     "MAN",  # check 1
+        #     "XYP",  # check 2
+        #     "C7",  # check 3
+        #     "T10",  # check 4
+        #     "CLAV_SC",  # check 5
+        #     "CLAV_AC",  # check 6
+        #     # "SCAP_Cor",  # check 7
+        #     "SCAP_IA",  # check 8
+        #     # "SCAP_AA",  # check 9
+        #     "SCAP_AC",  # check 10
+        #     "SCAP_BACK",  # check 11
+        #     "SCAP_FRONT",  # check 12
+        #     "EPI_lat",  # check 13
+        #     "EPI_med",  # check 14
+        #     "DELT",  # check 15
+        #     "ARM",  # check 16
+        #     "ULNA",  # check 17
+        #     "ELB",  # check 18
+        #     "RADIUS",  # check 19
+        #     "SEML",  # check 20
+        #     "MET2",  # check 21
+        #     "MET5",  # check 22
+        # ]
 
         self.trajectories = self.get_marker_trajectories(self.c3d, self.marker_names)
 
@@ -88,7 +111,7 @@ class LoadData:
         self.nb_markers = model.nbMarkers()
 
         # files path
-        self.c3d_data = C3dData(c3d_file)
+        self.c3d_data = C3dData(c3d_file, model)
         self.q = load_txt_file(q_file, self.nb_q)
         self.qdot = load_txt_file(qdot_file, self.nb_qdot)
 
@@ -106,7 +129,7 @@ class LoadData:
                 x = data[:, index[i] : index[i + 1] + 1]
             t_init = np.linspace(0, phase_time[i], (index[i + 1] - index[i]))
             t_node = np.linspace(0, phase_time[i], nb_shooting[i] + 1)
-            f = interp1d(t_init, x, kind="cubic")
+            f = interp1d(t_init, x, kind="linear")
             out.append(f(t_node))
         return out
 

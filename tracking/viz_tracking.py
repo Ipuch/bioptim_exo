@@ -51,7 +51,7 @@ def marker_ref(t, x, nlp: NonLinearProgram, index_marker):
     return nlp.J[1].target[:, index_marker, n_list]
 
 
-def add_custom_plots(ocp: OptimalControlProgram, id_marker_1: int, id_marker_2: int):
+def add_custom_plots(ocp: OptimalControlProgram, list_markers: list):
     """
     Add extra plots to the OCP.
 
@@ -63,44 +63,31 @@ def add_custom_plots(ocp: OptimalControlProgram, id_marker_1: int, id_marker_2: 
         :param id_marker_1:
     """
     nlp = ocp.nlp
-    ocp.add_plot(
-        # f"{nlp[0].model.segment(id_marker_1).name().to_string()}",
-        f"{'Marker'} {id_marker_1}",
-        lambda t, x, u, p: marker_ref(t, x, nlp[0], id_marker_1),
-        legend=[f"{'Marker'} {id_marker_1} {'x'}",
-                f"{'Marker'} {id_marker_1} {'y'}",
-                f"{'Marker'} {id_marker_1} {'z'}"],
-        plot_type=PlotType.STEP,
-        node_idx=[nlp[0].dt * i for i in range(0, nlp[0].ns + 1)]
-    )
-    ocp.add_plot(
-        # f"{nlp[0].model.segment(id_marker_1).name().to_string()}",
-        f"{'Marker'} {id_marker_1}",
-        lambda t, x, u, p: marker_model(x, nlp[0], id_marker_1),
-        legend=[f"{'Marker'} {id_marker_1} {'x'}",
-                f"{'Marker'} {id_marker_1} {'y'}",
-                f"{'Marker'} {id_marker_1} {'z'}"],
-        plot_type=PlotType.PLOT,
-        node_idx=None,
-    )
-    ocp.add_plot(
-        # f"{nlp[0].model.segment(id_marker_2).name().to_string()} ",
-        f"{'Marker'} {id_marker_2}",
-        lambda t, x, u, p: marker_ref(t, x, nlp[0], id_marker_2),
-        legend=[f"{'Marker'} {id_marker_2} {'x'}",
-                f"{'Marker'} {id_marker_2} {'y'}",
-                f"{'Marker'} {id_marker_2} {'z'}"],
-        plot_type=PlotType.STEP,
-        node_idx=[nlp[0].dt * i for i in range(0, nlp[0].ns + 1)]
-    )
-    ocp.add_plot(
-        # f"{nlp[0].model.segment(id_marker_2).name().to_string()}",
-        f"{'Marker'} {id_marker_2}",
-        lambda t, x, u, p: marker_model(x, nlp[0], id_marker_2),
-        legend=[f"{'Marker'} {id_marker_2} {'x'}",
-                f"{'Marker'} {id_marker_2} {'y'}",
-                f"{'Marker'} {id_marker_2} {'z'}"],
-        plot_type=PlotType.PLOT,
-        node_idx=None,
-    )
+    list_id_markers = []
+    for j, markers_model in enumerate(nlp[0].model.markerNames()):
+        for marker in list_markers:
+            if markers_model.to_string() == marker:
+                list_id_markers.append(j)
+
+    for id_marker in list_id_markers:
+        ocp.add_plot(
+            # f"{nlp[0].model.segment(id_marker_1).name().to_string()}",
+            f"{'Marker'} {id_marker}",
+            lambda t, x, u, p: marker_ref(t, x, nlp[0], id_marker),
+            legend=[f"{'Marker'} {id_marker} {'x'}",
+                    f"{'Marker'} {id_marker} {'y'}",
+                    f"{'Marker'} {id_marker} {'z'}"],
+            plot_type=PlotType.STEP,
+            node_idx=[nlp[0].dt * i for i in range(0, nlp[0].ns + 1)]
+        )
+        ocp.add_plot(
+            # f"{nlp[0].model.segment(id_marker_1).name().to_string()}",
+            f"{'Marker'} {id_marker}",
+            lambda t, x, u, p: marker_model(x, nlp[0], id_marker),
+            legend=[f"{'Marker'} {id_marker} {'x'}",
+                    f"{'Marker'} {id_marker} {'y'}",
+                    f"{'Marker'} {id_marker} {'z'}"],
+            plot_type=PlotType.PLOT,
+            node_idx=None,
+        )
     return ocp
