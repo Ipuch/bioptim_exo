@@ -11,7 +11,8 @@ gravity	0 -9.81 0
     segment thorax_parent_offset
         parent ground 
         RTinMatrix    0
-        RT	0.0 0.0 0.0	xyz	0.0 0.0 0.0
+        //RT	0.0 0.0 0.0	xyz	0.0 0.0 0.0
+        RT 1.5136279122166798 0.02508004601838823 -0.12026902121482706 xyz -0.5902166829985935 0.6147618471392384 0.35577136570126267
     endsegment
 
     // Segments to define transformation axis.
@@ -29,35 +30,12 @@ gravity	0 -9.81 0
 	//-2.0	4.0
 	//-5.0	5.0
     endsegment
-// Rotation transform was initially an orthogonal basis
-    // Segment
-    segment thorax_rotation_transform
-        parent thorax_translation 
-        RTinMatrix    1
-        RT
-            0.0    1.0    0.0    0
-            0.0    0.0    1.0    0
-            1.0    0.0    0.0    0
-            0    0    0    1
-      //  rotations xyz
-    endsegment
-
-    // Segment to cancel transformation bases effect.
-    // Segment
-    segment thorax_reset_axis
-        parent thorax_rotation_transform 
-        RTinMatrix    1
-        RT
-            0.0    0.0    1.0    0
-            1.0    0.0    0.0    0
-            0.0    1.0    0.0    0
-            0    0    0    1
-    endsegment
+// The following segment were removed: thorax_rotation_transform, thorax_reset_axis
 
     //True segment where are applied inertial values.
     // Segment
     segment thorax
-        parent thorax_reset_axis 
+        parent thorax_translation
         RTinMatrix    0
         RT	-0.0 -0.0 -0.0	xyz	0.0 0.0 0.0
         mass 20
