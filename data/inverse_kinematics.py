@@ -220,6 +220,7 @@ for file in file_list:
     q_recons_old = q_recons.copy()
 
     apply_offset(model, 11, 2 * np.pi)
+    apply_offset(model, 12, 2 * np.pi)
     apply_offset(model, 13, 2 * np.pi)
 
     # plot_dof(q_recons_old, q_recons, model)

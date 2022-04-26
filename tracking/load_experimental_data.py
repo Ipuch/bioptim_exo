@@ -30,31 +30,6 @@ class C3dData:
     def __init__(self, file_path, biorbd_model):
         self.c3d = c3d(file_path)
         self.marker_names = [biorbd_model.markerNames()[i].to_string() for i in range(len(biorbd_model.markerNames()))]
-        # self.marker_names = [
-        #     "MAN",  # check 1
-        #     "XYP",  # check 2
-        #     "C7",  # check 3
-        #     "T10",  # check 4
-        #     "CLAV_SC",  # check 5
-        #     "CLAV_AC",  # check 6
-        #     # "SCAP_Cor",  # check 7
-        #     "SCAP_IA",  # check 8
-        #     # "SCAP_AA",  # check 9
-        #     "SCAP_AC",  # check 10
-        #     "SCAP_BACK",  # check 11
-        #     "SCAP_FRONT",  # check 12
-        #     "EPI_lat",  # check 13
-        #     "EPI_med",  # check 14
-        #     "DELT",  # check 15
-        #     "ARM",  # check 16
-        #     "ULNA",  # check 17
-        #     "ELB",  # check 18
-        #     "RADIUS",  # check 19
-        #     "SEML",  # check 20
-        #     "MET2",  # check 21
-        #     "MET5",  # check 22
-        # ]
-
         self.trajectories = self.get_marker_trajectories(self.c3d, self.marker_names)
 
     @staticmethod
@@ -86,7 +61,6 @@ class C3dData:
         """
         # todo: plz shrink the function
         freq = self.c3d["parameters"]["POINT"]["RATE"]["value"][0]
-
         index = self.get_indices()
         phase_time = []
         for i in range(len(index) - 1):
@@ -98,11 +72,6 @@ class LoadData:
     def __init__(self, model, c3d_file, q_file, qdot_file):
         def load_txt_file(file_path, size):
             data_tp = np.loadtxt(file_path)
-            # # nb_frame = int(len(data_tp) / size)
-            # nb_frame = data_tp.shape[1]
-            # out = np.zeros((size, nb_frame))
-            # for n in range(nb_frame):
-            #     out[:, n] = data_tp[n * size: n * size + size]
             return data_tp
 
         self.model = model
