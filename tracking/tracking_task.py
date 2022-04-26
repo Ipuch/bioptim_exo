@@ -5,6 +5,7 @@ from bioptim import (
     Solver,
     CostType,
 )
+import os
 
 
 def main():
@@ -16,10 +17,10 @@ def main():
     with_floating_base = False
 
     # c3d_path = "../data/F0_aisselle_05.c3d"
-    c3d_path = "../data/F0_aisselle_05_crop.c3d"
-
-    n_shooting_points = 50
-    nb_iteration = 0
+    # c3d_path = "../data/F0_aisselle_05_crop.c3d"
+    c3d_path = "../data/F0_aisselle_05_crop_2s.c3d"
+    n_shooting_points = 100
+    nb_iteration = 1000
 
     my_ocp = TrackingOcp(with_floating_base, c3d_path, n_shooting_points, nb_iteration)
 
@@ -34,10 +35,9 @@ def main():
     # sol.print_cost()
 
     # --- Save --- #
-    # todo : find a better way to save results
-    # save_path = f"save/{c3d}_{datetime.now()}"
-    save_path = f"save/_{datetime.now()}"
-    # save_path = "save/test_RT_pi_sur_2_x"  # custom the name for the assay
+    c3d_str = c3d_path.split("/")
+    c3d_name = os.path.splitext(c3d_str[-1])[0]
+    save_path = f"save/{c3d_name}_{datetime.now()}"
     save_path = save_path.replace(" ", "_").replace("-", "_").replace(":", "_").replace(".", "_")
     my_ocp.ocp.save(sol, save_path)
 

@@ -1,58 +1,70 @@
 from load_experimental_data import LoadData, C3dData
-from scipy.integrate import solve_ivp
 import numpy as np
 import biorbd_casadi as biorbd
-from casadi import MX, vertcat
 from matplotlib import pyplot as plt
 import os
-from viz_tracking import add_custom_plots
-from scipy.interpolate import interp1d
-from datetime import datetime
 
 from bioptim import (
     OptimalControlProgram,
-    NonLinearProgram,
-    BiMapping,
     DynamicsList,
     DynamicsFcn,
-    DynamicsFunctions,
     ObjectiveList,
     ObjectiveFcn,
     InterpolationType,
     BoundsList,
-    Bounds,
     QAndQDotBounds,
     InitialGuessList,
     OdeSolver,
     Node,
-    Solver,
-    CostType,
-    PlotType,
 )
 
 
 class TrackingOcp:
     """
-       The base class for the ODE solvers
+        The base class for the ODE solvers
 
-       Attributes
-       ----------
-       steps: int
-           The number of integration steps
-       steps_scipy: int
-           Number of steps while integrating with scipy
-       rk_integrator: Union[RK4, RK8, IRK]
-           The corresponding integrator class
-       is_direct_collocation: bool
-           indicating if the ode solver is direct collocation method
-       is_direct_shooting: bool
-           indicating if the ode solver is direct shooting method
+        Attributes
+        ----------
+        with_floating_base: bool
+            True if there is the 6 dof of thorax
+        ode_solver: ode_solver = OdeSolver.RK4()
+            Which type of OdeSolver to use
+        model_path: str
+            Path to BioMod file
+        biorbd_model: biorbd.Model
+            The loaded biorbd model
+        q_file: str
+            Path to q file
+        qdot_file: str
+            Path to qdot file
+        data: C3dData
+            The date extract from c3D file
+        final_time: float
+            The time at final node
+        n_shooting_points: int
+            The number of shooting point
+        nb_iteration: int
+            The Number of iteration for the OCP
+        data_loaded: LoadData
+            The date from c3d, q and qdot files
+        q_ref: list
+            List of the array of joint trajectories.
+            Those trajectories were computed using Kalman filter
+            They are used as initial guess
+        qdot_ref: list
+            List of the array of joint velocities.
+            Those velocities were computed using Kalman filter
+            They are used as initial guess
+        markers_ref: List
+            The list of Markers position at each shooting points
+        ocp: OptimalControlProgram
+
        Methods
        -------
-       integrator(self, ocp, nlp) -> list
-           The interface of the OdeSolver to the corresponding integrator
-       prepare_dynamic_integrator(ocp, nlp)
-           Properly set the integration in an nlp
+       prepare_ocp(self) -> OptimalControlProgram:
+           Prepare the ocp to solve
+       plot_c3d_markers_and_model_markers(self, c3d_path):
+           Plot the positions of each Markers before and after interpolation
        """
 
     def __init__(self,
@@ -67,7 +79,7 @@ class TrackingOcp:
         model_path_without_floating_base = "../models/" \
                                            "wu_converted_definitif_without_floating_base_and_thorax_markers.bioMod"
         model_path_with_floating_base = "../models/wu_converted_definitif.bioMod"
-        self.ode_solver = OdeSolver.RK4()
+        self.ode_solver = ode_solver
         self.model_path = model_path_with_floating_base if self.with_floating_base \
             else model_path_without_floating_base
         self.biorbd_model = biorbd.Model(self.model_path)
@@ -82,50 +94,21 @@ class TrackingOcp:
         self.nb_iteration = nb_iteration
         self.data_loaded = LoadData(self.biorbd_model, c3d_path, self.q_file, self.qdot_file)
 
-        self.q_ref, self.qdot_ref, self.markers_ref = self.data_loaded.get_experimental_data([self.n_shooting_points],
-                                                                                             [self.final_time],
-                                                                                          with_floating_base=with_floating_base)
+        self.q_ref, self.qdot_ref, self.markers_ref = self.data_loaded.get_experimental_data(
+                                                                                [self.n_shooting_points],
+                                                                                [self.final_time],
+                                                                                with_floating_base=with_floating_base)
+        self.ocp = None
         self.prepare_ocp()
-        # self.solve_ocp()
 
-    def prepare_ocp(self) -> OptimalControlProgram:
-        """
-        Prepare the ocp to solve
-
-        Parameters
-        ----------
-        biorbd_model: biorbd.Model
-            The loaded biorbd model
-        final_time: float
-            The time at final node
-        n_shooting: int
-            The number of shooting points
-        markers_ref: np.ndarray
-            The marker to track if 'markers' is chosen in kin_data_to_track
-        q_ref: list
-            List of the array of joint trajectories.
-            Those trajectories were computed using Kalman filter
-            They are used as initial guess
-        qdot_ref: list
-            List of the array of joint velocities.
-            Those velocities were computed using Kalman filter
-            They are used as initial guess
-        nb_threads:int
-            The number of threads used
-        ode_solver: OdeSolver
-            The ode solver to use
-
-        Returns
-        -------
-        The OptimalControlProgram ready to solve
-        """
+    def prepare_ocp(self):
         nb_q = self.biorbd_model.nbQ()
         nb_qdot = self.biorbd_model.nbQdot()
 
         # Add objective functions
         objective_functions = ObjectiveList()
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=10)
-        objective_functions.add(ObjectiveFcn.Mayer.TRACK_MARKERS, weight=100, target=self.markers_ref[0], node=Node.ALL)
+        objective_functions.add(ObjectiveFcn.Mayer.TRACK_MARKERS, weight=100000, target=self.markers_ref[0], node=Node.ALL)
         if self.with_floating_base:
             objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, weight=10, key="qdot",
                                     index=[0, 1, 2, 3, 4, 5])
@@ -170,6 +153,7 @@ class TrackingOcp:
             u_bounds=u_bounds,
             objective_functions=objective_functions,
             ode_solver=self.ode_solver,
+            n_threads=6
         )
 
     def plot_c3d_markers_and_model_markers(self, c3d_path):
@@ -177,7 +161,7 @@ class TrackingOcp:
         xp_data.c3d_data.trajectories
         tf = self.final_time
         list_dir = ["X", "Y", "Z"]
-        for j in range(0,16):
+        for j in range(0, 16):
             for i, direction in enumerate(list_dir):
                 plt.figure(j)
                 a = 311+i
