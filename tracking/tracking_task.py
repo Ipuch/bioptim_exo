@@ -16,10 +16,10 @@ def main():
     # Define the problem
     with_floating_base = False
 
-    # c3d_path = "../data/F0_aisselle_05.c3d"
+    c3d_path = "../data/F0_aisselle_05.c3d"
     # c3d_path = "../data/F0_aisselle_05_crop.c3d"
-    c3d_path = "../data/F0_aisselle_05_crop_2s.c3d"
-    n_shooting_points = 100
+    # c3d_path = "../data/F0_aisselle_05_crop_3s.c3d"
+    n_shooting_points = 450
     nb_iteration = 1000
 
     my_ocp = TrackingOcp(with_floating_base, c3d_path, n_shooting_points, nb_iteration)
