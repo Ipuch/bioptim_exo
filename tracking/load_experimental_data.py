@@ -6,27 +6,28 @@ import biorbd
 
 class C3dData:
     """
-       The base class for the ODE solvers
+    The base class for the ODE solvers
 
-       Attributes
-       ----------
-       steps: int
-           The number of integration steps
-       steps_scipy: int
-           Number of steps while integrating with scipy
-       rk_integrator: Union[RK4, RK8, IRK]
-           The corresponding integrator class
-       is_direct_collocation: bool
-           indicating if the ode solver is direct collocation method
-       is_direct_shooting: bool
-           indicating if the ode solver is direct shooting method
-       Methods
-       -------
-       integrator(self, ocp, nlp) -> list
-           The interface of the OdeSolver to the corresponding integrator
-       prepare_dynamic_integrator(ocp, nlp)
-           Properly set the integration in an nlp
-       """
+    Attributes
+    ----------
+    steps: int
+        The number of integration steps
+    steps_scipy: int
+        Number of steps while integrating with scipy
+    rk_integrator: Union[RK4, RK8, IRK]
+        The corresponding integrator class
+    is_direct_collocation: bool
+        indicating if the ode solver is direct collocation method
+    is_direct_shooting: bool
+        indicating if the ode solver is direct shooting method
+    Methods
+    -------
+    integrator(self, ocp, nlp) -> list
+        The interface of the OdeSolver to the corresponding integrator
+    prepare_dynamic_integrator(ocp, nlp)
+        Properly set the integration in an nlp
+    """
+
     def __init__(self, file_path, biorbd_model):
         self.c3d = c3d(file_path)
         self.marker_names = [biorbd_model.markerNames()[i].to_string() for i in range(len(biorbd_model.markerNames()))]
