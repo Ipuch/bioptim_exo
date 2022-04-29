@@ -21,6 +21,7 @@ def run_ocp(with_floating_base, c3d_path, n_shooting_points, nb_iteration):
 
     # --- Solve the program --- #
     solver = Solver.IPOPT(show_online_optim=True, show_options=dict(show_bounds=True))
+    solver.set_linear_solver("ma57")
     solver.set_maximum_iterations(nb_iteration)
     sol = my_ocp.ocp.solve(solver)
     # sol.print_cost()
