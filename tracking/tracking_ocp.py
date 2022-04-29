@@ -81,7 +81,7 @@ class TrackingOcp:
     ):
         self.with_floating_base = with_floating_base
         if model_path is None:
-            model_path_without_floating_base = "../models/wu_converted_definitif_without_floating_base_and_thorax_markers.bioMod"
+            model_path_without_floating_base = "../models/wu_converted_definitif_without_floating_base.bioMod"
             model_path_with_floating_base = "../models/wu_converted_definitif.bioMod"
             self.model_path = model_path_with_floating_base if self.with_floating_base \
                                                             else model_path_without_floating_base
@@ -121,11 +121,11 @@ class TrackingOcp:
 
         # Add objective functions
         objective_functions = ObjectiveList()
-        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=10) #100
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=100) #100
         objective_functions.add(
             ObjectiveFcn.Mayer.TRACK_MARKERS, weight=100000, target=self.markers_ref[0], node=Node.ALL
         )
-        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, weight=1, key="qdot") #10
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, weight=10, key="qdot") #10
 
         # Dynamics
         dynamics = DynamicsList()

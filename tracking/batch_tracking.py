@@ -50,6 +50,7 @@ def main():
     file_list = glob.glob("../data/*.c3d")  # We get the files names with a .c3d extension
 
     for file in file_list:
+        print(file)
         c3d = ezc3d.c3d(file)
         c3d_path = f"../data/{file}"
         freq = c3d["parameters"]["POINT"]["RATE"]["value"][0]
