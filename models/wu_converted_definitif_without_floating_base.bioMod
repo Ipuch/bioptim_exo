@@ -13,6 +13,7 @@ gravity	0 -9.81 0
         RTinMatrix    0
         //RT	0.0 0.0 0.0	xyz	0.0 0.0 0.0
         RT 1.5136279122166798 0.02508004601838823 -0.12026902121482706 xyz -0.5902166829985935 0.6147618471392384 0.35577136570126267
+        // this position correspond to the c3d: "F0_aisselle_05.c3d"
     endsegment
 
     // Segments to define transformation axis.

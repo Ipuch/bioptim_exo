@@ -77,7 +77,7 @@ def plot_marker(id_marker: int, ocp: OptimalControlProgram, nlp: list[NonLinearP
     """
     ocp.add_plot(
         f"{'Marker'} {id_marker}",
-        lambda t, x, u, p: marker_ref(t, x, nlp[0], id_marker),
+        lambda t, x, u, p: marker_ref(t, nlp[0], id_marker),
         legend=[f"Marker {id_marker} x", f"{'Marker'} {id_marker} {'y'}", f"{'Marker'} {id_marker} {'z'}"],
         plot_type=PlotType.STEP,
         node_idx=[nlp[0].dt * i for i in range(0, nlp[0].ns + 1)],
