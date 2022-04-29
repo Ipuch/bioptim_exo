@@ -12,6 +12,7 @@ from pathlib import Path
 
 
 def run_ocp(with_floating_base, c3d_path, n_shooting_points, nb_iteration):
+
     my_ocp = TrackingOcp(with_floating_base, c3d_path, n_shooting_points, nb_iteration)
 
     my_ocp.ocp.add_plot_penalty(CostType.ALL)

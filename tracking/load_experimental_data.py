@@ -6,37 +6,36 @@ import biorbd
 
 class C3dData:
     """
-    The base class for the ODE solvers
+    The base class for managing c3d file
 
     Attributes
     ----------
-    steps: int
-        The number of integration steps
-    steps_scipy: int
-        Number of steps while integrating with scipy
-    rk_integrator: Union[RK4, RK8, IRK]
-        The corresponding integrator class
-    is_direct_collocation: bool
-        indicating if the ode solver is direct collocation method
-    is_direct_shooting: bool
-        indicating if the ode solver is direct shooting method
+    c3d: ezc3d.c3d
+        The c3d file
+    marker_names: list
+        The list of all marker names in the biorbd model.
+    trajectories: ndarray
+        The position of the markers
     Methods
     -------
-    integrator(self, ocp, nlp) -> list
-        The interface of the OdeSolver to the corresponding integrator
-    prepare_dynamic_integrator(ocp, nlp)
-        Properly set the integration in an nlp
+    get_marker_trajectories(loaded_c3d: c3d, marker_names: list) -> np.ndarray
+        Get markers trajectories
+    get_indices(self)
+        Get the indices of start and end
+    get_final_time(self)
+        Get the final time of c3d
     """
 
-    def __init__(self, file_path, biorbd_model):
+    def __init__(self, file_path: str, biorbd_model: biorbd.Model):
         self.c3d = c3d(file_path)
         self.marker_names = [biorbd_model.markerNames()[i].to_string() for i in range(len(biorbd_model.markerNames()))]
         self.trajectories = self.get_marker_trajectories(self.c3d, self.marker_names)
 
     @staticmethod
-    def get_marker_trajectories(loaded_c3d, marker_names):
+    def get_marker_trajectories(loaded_c3d: c3d, marker_names: list) -> np.ndarray:
         """
         get markers trajectories
+
         """
 
         # LOAD C3D FILE
@@ -70,8 +69,36 @@ class C3dData:
 
 
 class LoadData:
-    def __init__(self, model, c3d_file, q_file, qdot_file):
-        def load_txt_file(file_path, size):
+    """
+    The base class for managing c3d data
+
+    Attributes
+    ----------
+    model: biorbd.Model
+        The biorbd Model
+    nb_q: int
+        The number of generalized coordinates in the model
+    nb_qdot: int
+        The number of generalized velocities in the model
+    nb_markers: int
+        The number of markers in the model
+    c3d_data: C3dData
+        The data from c3d
+    q: numpy.ndarray
+        The array of all values of the q
+    qdot: numpy.ndarray
+        The array of all values of the qdot
+    Methods
+    -------
+    dispatch_data(self, data, nb_shooting: list, phase_time: list)
+        divide and adjust data dimensions to match number of shooting point for each phase
+    get_marker_ref(self, nb_shooting: list, phase_time: list, type: str) -> list:
+        Give the position of the markers from the c3d
+    get_experimental_data(self, number_shooting_points, phase_time, with_floating_base: bool)
+        Give the values of q, qdot and the position of the markers from the c3d
+        """
+    def __init__(self, model: biorbd.Model, c3d_file: str, q_file: str, qdot_file: str):
+        def load_txt_file(file_path: str):
             data_tp = np.loadtxt(file_path)
             return data_tp
 
@@ -82,12 +109,23 @@ class LoadData:
 
         # files path
         self.c3d_data = C3dData(c3d_file, model)
-        self.q = load_txt_file(q_file, self.nb_q)
-        self.qdot = load_txt_file(qdot_file, self.nb_qdot)
+        self.q = load_txt_file(q_file)
+        self.qdot = load_txt_file(qdot_file)
 
-    def dispatch_data(self, data, nb_shooting: list, phase_time: list):
+    def dispatch_data(self, data: np.ndarray, nb_shooting: list, phase_time: list):
         """
         divide and adjust data dimensions to match number of shooting point for each phase
+
+        Parameters:
+        data: np.ndarray
+            The data we want to adjust
+        nb_shooting: list
+            The list of nb_shooting for each phases
+        phase_time: list
+            The list of duration for each phases4
+
+        Returns:
+            Data adjusted
         """
 
         index = self.c3d_data.get_indices()
@@ -104,11 +142,38 @@ class LoadData:
         return out
 
     def get_marker_ref(self, nb_shooting: list, phase_time: list, type: str) -> list:
+        """
+        divide and adjust the dimensions to match number of shooting point for each phase
+
+        Parameters:
+        nb_shooting: list
+            The list of nb_shooting for each phases
+        phase_time: list
+            The list of duration for each phases4
+        type: str
+
+        Returns:
+            The array of marker's position adjusted
+        """
         # todo: add an argument if "all" all markers and if "hand" only markers of hand if "MET5" only MET5
 
         return self.dispatch_data(self.c3d_data.trajectories, nb_shooting=nb_shooting, phase_time=phase_time)
 
     def get_experimental_data(self, number_shooting_points, phase_time, with_floating_base: bool):
+        """
+        Give all the data from c3d file
+
+        Parameters:
+        number_shooting_points: list
+            The list of nb_shooting for each phases
+        phase_time: list
+            The list of duration for each phases4
+        with_floating_base: bool
+            True if there is a floating base in the biorbd model
+
+        Returns:
+            The values of q, qdot and the positions of the markers from the c3d
+        """
         q_ref = self.dispatch_data(data=self.q, nb_shooting=number_shooting_points, phase_time=phase_time)
         qdot_ref = self.dispatch_data(data=self.qdot, nb_shooting=number_shooting_points, phase_time=phase_time)
         markers_ref = self.dispatch_data(

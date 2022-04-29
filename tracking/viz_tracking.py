@@ -7,16 +7,20 @@ import biorbd_casadi as biorbd
 from bioptim import PlotType, NonLinearProgram, OptimalControlProgram
 
 
-def marker_model(x, nlp: NonLinearProgram, idx):
+def marker_model(x: list, nlp: NonLinearProgram, idx: int):
     """
-    Compute the linear momentum of the system.
+    Get the position of the model's markers
 
     Parameters
     ----------
-    x
-        State vector
+    x: list
+        values of the states
     nlp: NonLinearProgram
         Non linear program
+    idx: int
+        Index of the marker
+    Returns:
+        position of the markers on the three axis
     """
     m = nlp.model
     q = x[: m.nbQ(), :]
@@ -32,16 +36,20 @@ def marker_model(x, nlp: NonLinearProgram, idx):
     return marker_pos
 
 
-def marker_ref(t, x, nlp: NonLinearProgram, index_marker):
+def marker_ref(t: list, nlp: NonLinearProgram, index_marker):
     """
-    Compute the angular momentum of the system.
+    Get the position of the c3d's markers
 
     Parameters
     ----------
-    x
-        State vector
+    t: list
+        list of time
     nlp: NonLinearProgram
         Non linear program
+    idx: int
+        Index of the marker
+    Returns:
+        position of the markers on the three axis
     """
     dt = nlp.dt
     if isinstance(t, float) and np.isnan(t):

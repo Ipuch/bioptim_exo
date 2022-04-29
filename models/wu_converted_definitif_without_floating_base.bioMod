@@ -262,7 +262,7 @@ gravity	0 -9.81 0
             0.0001    0.97951422    0.20137498    0
             0    0    0    1
         rotations x
-        ranges		-3	3
+        ranges		-1.92	1.5
     endsegment
     // Segment
     segment humerus_shoulder_ele

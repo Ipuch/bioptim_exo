@@ -21,7 +21,7 @@ from bioptim import (
 
 class TrackingOcp:
     """
-     The base class for the ODE solvers
+     The class for dealing tracking problem
 
      Attributes
      ----------
@@ -68,31 +68,37 @@ class TrackingOcp:
     """
 
     def __init__(
-        self,
-        with_floating_base: bool,
-        c3d_path: str,
-        n_shooting_points: int,
-        nb_iteration: int,
-        ode_solver: OdeSolver = OdeSolver.RK4(),
-        final_time: float = None,
+            self,
+            with_floating_base: bool,
+            c3d_path: str,
+            n_shooting_points: int,
+            nb_iteration: int,
+            ode_solver: OdeSolver = OdeSolver.RK4(),
+            model_path: str = None,
+            n_threads: int = 6,
+            final_time: float = None,
     ):
         self.with_floating_base = with_floating_base
-        model_path_without_floating_base = (
-            "../models/" "wu_converted_definitif_without_floating_base_and_thorax_markers.bioMod"
-        )
-        model_path_with_floating_base = "../models/wu_converted_definitif.bioMod"
+        if model_path is None:
+            model_path_without_floating_base = "../models/wu_converted_definitif_without_floating_base.bioMod"
+            model_path_with_floating_base = "../models/wu_converted_definitif.bioMod"
+            self.model_path = model_path_with_floating_base if self.with_floating_base \
+                                                            else model_path_without_floating_base
+        else:
+            self.model_path = model_path
+
+        self.n_shooting_points = n_shooting_points
+        self.nb_iteration = nb_iteration
         self.ode_solver = ode_solver
-        self.model_path = model_path_with_floating_base if self.with_floating_base else model_path_without_floating_base
+        self.n_threads = n_threads
         self.biorbd_model = biorbd.Model(self.model_path)
 
         self.q_file = os.path.splitext(c3d_path)[0] + "_q.txt"
         self.qdot_file = os.path.splitext(c3d_path)[0] + "_qdot.txt"
 
-        self.data = C3dData(c3d_path, self.biorbd_model)
+        self.c3d_data = C3dData(c3d_path, self.biorbd_model)
 
-        self.final_time = self.data.get_final_time() if final_time is None else final_time
-        self.n_shooting_points = n_shooting_points
-        self.nb_iteration = nb_iteration
+        self.final_time = self.c3d_data.get_final_time() if final_time is None else final_time
         self.data_loaded = LoadData(self.biorbd_model, c3d_path, self.q_file, self.qdot_file)
 
         self.q_ref, self.qdot_ref, self.markers_ref = self.data_loaded.get_experimental_data(
@@ -129,7 +135,7 @@ class TrackingOcp:
         # Initial guess
         init_x = np.zeros((nb_q + nb_qdot, self.n_shooting_points + 1))
         init_x[:nb_q, :] = self.q_ref[0]
-        init_x[nb_q : nb_q + nb_qdot, :] = self.qdot_ref[0]
+        init_x[nb_q: nb_q + nb_qdot, :] = self.qdot_ref[0]
 
         x_init = InitialGuessList()
         x_init.add(init_x, interpolation=InterpolationType.EACH_FRAME)
@@ -156,10 +162,17 @@ class TrackingOcp:
             u_bounds=u_bounds,
             objective_functions=objective_functions,
             ode_solver=self.ode_solver,
-            n_threads=6,
+            n_threads=self.n_threads,
         )
 
-    def plot_c3d_markers_and_model_markers(self, c3d_path):
+    def plot_c3d_markers_and_model_markers(self, c3d_path: str):
+        """
+        plot c3d markers and model markers on the same plot
+
+        Parameters:
+        c3d_path: str
+            The Path to c3d file
+        """
         xp_data = LoadData(self.biorbd_model, c3d_path, self.q_file, self.qdot_file)
         xp_data.c3d_data.trajectories
         tf = self.final_time
