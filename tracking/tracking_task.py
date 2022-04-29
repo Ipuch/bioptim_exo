@@ -16,20 +16,24 @@ def main():
     # Define the problem
     with_floating_base = False
 
-    c3d_path = "../data/F0_aisselle_05.c3d"
-    # c3d_path = "../data/F0_aisselle_05_crop.c3d"
+    # c3d_path = "../data/F0_aisselle_05.c3d"
+    c3d_path = "../data/F0_aisselle_05_crop.c3d"
     # c3d_path = "../data/F0_aisselle_05_crop_3s.c3d"
     n_shooting_points = 450
     nb_iteration = 1000
 
-    my_ocp = TrackingOcp(with_floating_base, c3d_path, n_shooting_points, nb_iteration)
+    my_ocp = TrackingOcp(with_floating_base=with_floating_base,
+                         c3d_path=c3d_path,
+                         n_shooting_points=n_shooting_points,
+                         nb_iteration=nb_iteration,
+                         markers_tracked=["MET5"])
 
     my_ocp.ocp.add_plot_penalty(CostType.ALL)
     list_markers = ["MET5", "CLAV_SC"]
     my_ocp.ocp = add_custom_plots(my_ocp.ocp, list_markers)
 
     # --- Solve the program --- #
-    solver = Solver.IPOPT(show_online_optim=True, show_options=dict(show_bounds=True))
+    solver = Solver.IPOPT(show_online_optim=False, show_options=dict(show_bounds=True))
     solver.set_maximum_iterations(nb_iteration)
     sol = my_ocp.ocp.solve(solver)
     # sol.print_cost()

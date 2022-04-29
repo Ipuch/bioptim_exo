@@ -77,6 +77,7 @@ class TrackingOcp:
             model_path: str = None,
             n_threads: int = 6,
             final_time: float = None,
+            markers_tracked: list = ["all"],
     ):
         self.with_floating_base = with_floating_base
         if model_path is None:
@@ -101,9 +102,16 @@ class TrackingOcp:
         self.final_time = self.c3d_data.get_final_time() if final_time is None else final_time
         self.data_loaded = LoadData(self.biorbd_model, c3d_path, self.q_file, self.qdot_file)
 
-        self.q_ref, self.qdot_ref, self.markers_ref = self.data_loaded.get_experimental_data(
+        # self.q_ref, self.qdot_ref, self.markers_ref = self.data_loaded.get_experimental_data(
+        #     [self.n_shooting_points], [self.final_time], with_floating_base=with_floating_base
+        # )
+        self.q_ref, self.qdot_ref = self.data_loaded.get_states_ref(
             [self.n_shooting_points], [self.final_time], with_floating_base=with_floating_base
         )
+        self.markers_tracked = markers_tracked
+        self.markers_ref = self.data_loaded.get_marker_ref([self.n_shooting_points],
+                                                           [self.final_time],
+                                                           self.markers_tracked)
         self.ocp = None
         self.prepare_ocp()
 

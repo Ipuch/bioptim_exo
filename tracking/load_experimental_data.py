@@ -141,12 +141,12 @@ class LoadData:
             out.append(f(t_node))
         return out
 
-    def get_marker_ref(self, nb_shooting: list, phase_time: list, type: str) -> list:
+    def get_marker_ref(self, number_shooting_points: list, phase_time: list, markers: list[str]) -> list:
         """
         divide and adjust the dimensions to match number of shooting point for each phase
 
         Parameters:
-        nb_shooting: list
+        number_shooting_points: list
             The list of nb_shooting for each phases
         phase_time: list
             The list of duration for each phases4
@@ -155,11 +155,16 @@ class LoadData:
         Returns:
             The array of marker's position adjusted
         """
+
+        if markers == ["all"]:
+            self.c3d_data.get_marker_trajectories(self.c3d_data.c3d, self.c3d_data.marker_names)
+        else:
+            self.c3d_data.get_marker_trajectories(self.c3d_data.c3d, markers)
         # todo: add an argument if "all" all markers and if "hand" only markers of hand if "MET5" only MET5
 
-        return self.dispatch_data(self.c3d_data.trajectories, nb_shooting=nb_shooting, phase_time=phase_time)
+        return self.dispatch_data(data=self.c3d_data.trajectories, nb_shooting=number_shooting_points, phase_time=phase_time)
 
-    def get_experimental_data(self, number_shooting_points, phase_time, with_floating_base: bool):
+    def get_states_ref(self, number_shooting_points, phase_time, with_floating_base: bool):
         """
         Give all the data from c3d file
 
@@ -176,10 +181,7 @@ class LoadData:
         """
         q_ref = self.dispatch_data(data=self.q, nb_shooting=number_shooting_points, phase_time=phase_time)
         qdot_ref = self.dispatch_data(data=self.qdot, nb_shooting=number_shooting_points, phase_time=phase_time)
-        markers_ref = self.dispatch_data(
-            data=self.c3d_data.trajectories, nb_shooting=number_shooting_points, phase_time=phase_time
-        )
         q_ref[0] = q_ref[0][6:] if not with_floating_base else q_ref[0]
         qdot_ref[0] = qdot_ref[0][6:] if not with_floating_base else qdot_ref[0]
 
-        return q_ref, qdot_ref, markers_ref
+        return q_ref, qdot_ref
