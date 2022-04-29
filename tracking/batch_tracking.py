@@ -28,13 +28,13 @@ def run_ocp(with_floating_base, c3d_path, n_shooting_points, nb_iteration):
     # --- Save --- #
     c3d_str = c3d_path.split("/")
     c3d_name = os.path.splitext(c3d_str[-1])[0]
-    save_path = f"save/_batch_{c3d_name}_{datetime.now()}"
+    save_path = f"save/{datetime.now().date()}/{c3d_name}_batch_{datetime.now()}"
     save_path = save_path.replace(" ", "_").replace("-", "_").replace(":", "_").replace(".", "_")
     my_ocp.ocp.save(sol, save_path)
 
-    # # --- Plot --- #
-    # sol.graphs(show_bounds=True)
-    # sol.animate(n_frames=100)
+    # --- Plot --- #
+    sol.graphs(show_bounds=True)
+    sol.animate(n_frames=100)
 
 
 def main():
@@ -45,9 +45,8 @@ def main():
     # Define the problem
     with_floating_base = False
 
-    data_path = Path("../data/")
-    os.chdir(data_path)
-    file_list = glob.glob("*.c3d")  # We get the files names with a .c3d extension
+
+    file_list = glob.glob("../data/*.c3d")  # We get the files names with a .c3d extension
 
     for file in file_list:
         c3d = ezc3d.c3d(file)
