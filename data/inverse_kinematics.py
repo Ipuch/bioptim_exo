@@ -30,7 +30,7 @@ except ModuleNotFoundError:
     biorbd_viz_found = False
 
 # Load a predefined model
-model_path = "../models/wu_converted_definitif.bioMod"
+model_path = "../models/wu_converted_definitif_inverse_kinematics.bioMod"
 model = biorbd.Model(model_path)
 
 file_list = []
