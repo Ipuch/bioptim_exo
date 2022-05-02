@@ -19,6 +19,7 @@ import biorbd
 import ezc3d
 from pyomeca import Markers
 import glob
+import os
 
 from utils import get_c3d_frequencies, get_unit_division_factor, apply_offset, plot_dof
 try:
