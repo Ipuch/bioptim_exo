@@ -68,23 +68,24 @@ class TrackingOcp:
     """
 
     def __init__(
-            self,
-            with_floating_base: bool,
-            c3d_path: str,
-            n_shooting_points: int,
-            nb_iteration: int,
-            ode_solver: OdeSolver = OdeSolver.RK4(),
-            model_path: str = None,
-            n_threads: int = 6,
-            final_time: float = None,
-            markers_tracked: list = ["all"],
+        self,
+        with_floating_base: bool,
+        c3d_path: str,
+        n_shooting_points: int,
+        nb_iteration: int,
+        ode_solver: OdeSolver = OdeSolver.RK4(),
+        model_path: str = None,
+        n_threads: int = 6,
+        final_time: float = None,
+        markers_tracked: list = ["all"],
     ):
         self.with_floating_base = with_floating_base
         if model_path is None:
             model_path_without_floating_base = "../models/wu_converted_definitif_without_floating_base.bioMod"
             model_path_with_floating_base = "../models/wu_converted_definitif.bioMod"
-            self.model_path = model_path_with_floating_base if self.with_floating_base \
-                                                            else model_path_without_floating_base
+            self.model_path = (
+                model_path_with_floating_base if self.with_floating_base else model_path_without_floating_base
+            )
         else:
             self.model_path = model_path
 
@@ -102,16 +103,13 @@ class TrackingOcp:
         self.final_time = self.c3d_data.get_final_time() if final_time is None else final_time
         self.data_loaded = LoadData(self.biorbd_model, c3d_path, self.q_file, self.qdot_file)
 
-        # self.q_ref, self.qdot_ref, self.markers_ref = self.data_loaded.get_experimental_data(
-        #     [self.n_shooting_points], [self.final_time], with_floating_base=with_floating_base
-        # )
         self.q_ref, self.qdot_ref = self.data_loaded.get_states_ref(
             [self.n_shooting_points], [self.final_time], with_floating_base=with_floating_base
         )
         self.markers_tracked = markers_tracked
-        self.markers_ref = self.data_loaded.get_marker_ref([self.n_shooting_points],
-                                                           [self.final_time],
-                                                           self.markers_tracked)
+        self.markers_ref = self.data_loaded.get_marker_ref(
+            [self.n_shooting_points], [self.final_time], self.markers_tracked
+        )
         self.ocp = None
         self.prepare_ocp()
 
@@ -121,11 +119,14 @@ class TrackingOcp:
 
         # Add objective functions
         objective_functions = ObjectiveList()
-        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=100) #100
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=100)  # 100
         objective_functions.add(
             ObjectiveFcn.Mayer.TRACK_MARKERS, weight=100000, target=self.markers_ref[0], node=Node.ALL
         )
-        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, weight=10, key="qdot") #10
+        # objective_functions.add(
+        #     ObjectiveFcn.Mayer.TRACK_MARKERS, weight=100000, target=self.markers_ref[0], node=Node.END, phase=0
+        # )
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, weight=10, key="qdot")  # 10
 
         # Dynamics
         dynamics = DynamicsList()
@@ -138,7 +139,7 @@ class TrackingOcp:
         # Initial guess
         init_x = np.zeros((nb_q + nb_qdot, self.n_shooting_points + 1))
         init_x[:nb_q, :] = self.q_ref[0]
-        init_x[nb_q: nb_q + nb_qdot, :] = self.qdot_ref[0]
+        init_x[nb_q : nb_q + nb_qdot, :] = self.qdot_ref[0]
 
         x_init = InitialGuessList()
         x_init.add(init_x, interpolation=InterpolationType.EACH_FRAME)
@@ -180,27 +181,33 @@ class TrackingOcp:
         xp_data.c3d_data.trajectories
         tf = self.final_time
         list_dir = ["X", "Y", "Z"]
+        fig = plt.figure()
+        count = 1
         for j in range(0, 16):
             for i, direction in enumerate(list_dir):
-                plt.figure(j)
-                a = 311 + i
-                plt.subplot(a)
+                plt.subplot(
+                    int(np.sqrt(self.biorbd_model.nbMarkers())) * 3,
+                    int(np.sqrt(self.biorbd_model.nbMarkers())) + 1,
+                    count,
+                )
+                plt.title(f"{xp_data.c3d_data.marker_names[j]}_{direction}")
+                count += 1
                 plt.plot(
                     [
                         i / len(xp_data.c3d_data.trajectories[0][0]) * tf
                         for i in range(len(xp_data.c3d_data.trajectories[0][0]))
                     ],
                     xp_data.c3d_data.trajectories[i, j, :],
-                    label=f"{xp_data.c3d_data.marker_names[j]} {direction} c3d",
+                    label="c3d",
                     marker="o",
                 )
                 plt.plot(
                     [i / (self.n_shooting_points + 1) * tf for i in range(self.n_shooting_points + 1)],
                     self.markers_ref[0][i, j, :],
-                    label=f"{xp_data.c3d_data.marker_names[j]} {direction} interpolate",
+                    label="interpolate",
                     marker="o",
                 )
-                plt.legend()
-        plt.show()
-        plt.legend()
+
+        lines, labels = fig.axes[-1].get_legend_handles_labels()
+        fig.legend(lines, labels, loc="upper center")
         plt.show()

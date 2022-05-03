@@ -18,8 +18,9 @@ def main():
     with_floating_base = False
 
     # c3d_path = "../data/F0_aisselle_05.c3d"
-    c3d_path = "../data/F0_aisselle_05_croped_end_and_start.c3d"
+    c3d_path = "../data/F0_aisselle_05_crop_before_discontinuity.c3d"
     # c3d_path = "../data/F0_aisselle_05_crop_3s.c3d"
+
     c3d = ezc3d.c3d(c3d_path)
     freq = c3d["parameters"]["POINT"]["RATE"]["value"][0]
     nb_frames = c3d["parameters"]["POINT"]["FRAMES"]["value"][0]
@@ -32,13 +33,17 @@ def main():
     #                      n_shooting_points=n_shooting_points,
     #                      nb_iteration=nb_iteration,
     #                      markers_tracked=["MET5"])
-    my_ocp = TrackingOcp(with_floating_base=with_floating_base,
-                         c3d_path=c3d_path,
-                         n_shooting_points=n_shooting_points,
-                         nb_iteration=nb_iteration)
+    list_markers = ["SEML", "MET2", "MET5"]
+    my_ocp = TrackingOcp(
+        with_floating_base=with_floating_base,
+        c3d_path=c3d_path,
+        n_shooting_points=n_shooting_points,
+        nb_iteration=nb_iteration,
+        markers_tracked=list_markers,
+    )
 
     my_ocp.ocp.add_plot_penalty(CostType.ALL)
-    list_markers = ["MET5", "CLAV_SC"]
+    list_markers = ["SEML", "MET2", "MET5", "CLAV_SC"]
     my_ocp.ocp = add_custom_plots(my_ocp.ocp, list_markers)
 
     # --- Solve the program --- #
