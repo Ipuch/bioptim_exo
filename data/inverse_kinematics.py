@@ -20,8 +20,9 @@ import ezc3d
 from pyomeca import Markers
 import glob
 import os
-
+from pathlib import Path
 from utils import get_c3d_frequencies, get_unit_division_factor, apply_offset, plot_dof
+
 try:
     import bioviz
 
@@ -33,12 +34,12 @@ except ModuleNotFoundError:
 model_path = "../models/wu_converted_definitif_inverse_kinematics.bioMod"
 model = biorbd.Model(model_path)
 
-file_list = []
-for file in glob.glob("*.c3d"):  # We get the files names with a .c3d extension
-    file_list.append(file)
+file_path = Path("../data/")
+file_list = list(file_path.glob("*.c3d"))  # We get the files names with a .c3d extension
 
 for file in file_list:
-    c3d = ezc3d.c3d(file)  # c3d files are loaded as ezc3d object
+    c3d = ezc3d.c3d(file.name)  # c3d files are loaded as ezc3d object
+    print(file.name)
 
     # initialization of kalman filter
     freq = get_c3d_frequencies(c3d)  # Hz
@@ -50,9 +51,7 @@ for file in file_list:
     Qddot = biorbd.GeneralizedAcceleration(model)
 
     # create the list of marker from the .biomod file
-    marker_names = []
-    for i in range(len(model.markerNames())):
-        marker_names.append(model.markerNames()[i].to_string())
+    marker_names = [model.markerNames()[i].to_string() for i in range(len(model.markerNames()))]
 
     # retrieve markers from c3d file and load them with ezc3d
     Xmarkers = Markers.from_c3d(file, usecols=marker_names)
@@ -77,17 +76,18 @@ for file in file_list:
 
     q_recons_old = q_recons.copy()
 
-    list_dof = [11, 12, 13]
-    q_recons = apply_offset(model, q_recons, list_dof, np.pi)
+    # list_dof = [11, 12, 13]
+    list_dof = [i for i in range(16)]
+    q_recons = apply_offset(model, q_recons, list_dof, 2 * np.pi)
     plot_dof(q_recons_old, q_recons, model)
 
     # np.savetxt(os.path.splitext(file)[0] + "_q.txt", q_recons)
     # np.savetxt(os.path.splitext(file)[0] + "_qdot.txt", qdot_recons)
 
-print(Xmarkers)
+    if biorbd_viz_found:
+        b = bioviz.Viz(loaded_model=model, show_muscles=False)
+        b.load_experimental_markers(markers)
+        b.load_movement(q_recons)
+        b.exec()
 
-# if biorbd_viz_found:
-#     b = bioviz.Viz(loaded_model=model, show_muscles=False)
-#     b.load_experimental_markers(markers)
-#     b.load_movement(q_recons)
-#     b.exec()
+print(Xmarkers)

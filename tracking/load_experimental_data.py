@@ -45,7 +45,6 @@ class C3dData:
         # GET THE MARKERS POSITION (X, Y, Z) AT EACH POINT
         markers = np.zeros((3, len(marker_names), len(points[0, 0, :])))
 
-        # pelvis markers
         for i, name in enumerate(marker_names):
             markers[:, i, :] = points[:3, labels_markers.index(name), :] * 1e-3
         return markers
@@ -62,10 +61,7 @@ class C3dData:
         # todo: plz shrink the function
         freq = self.c3d["parameters"]["POINT"]["RATE"]["value"][0]
         index = self.get_indices()
-        phase_time = []
-        for i in range(len(index) - 1):
-            phase_time.append((1 / freq * (index[i + 1] - index[i] + 1)))
-        return phase_time[0]
+        return [(1 / freq * (index[i + 1] - index[i] + 1)) for i in range(len(index) - 1)][0]
 
 
 class LoadData:
@@ -96,7 +92,8 @@ class LoadData:
         Give the position of the markers from the c3d
     get_experimental_data(self, number_shooting_points, phase_time, with_floating_base: bool)
         Give the values of q, qdot and the position of the markers from the c3d
-        """
+    """
+
     def __init__(self, model: biorbd.Model, c3d_file: str, q_file: str, qdot_file: str):
         def load_txt_file(file_path: str):
             data_tp = np.loadtxt(file_path)
@@ -160,9 +157,10 @@ class LoadData:
             self.c3d_data.get_marker_trajectories(self.c3d_data.c3d, self.c3d_data.marker_names)
         else:
             self.c3d_data.get_marker_trajectories(self.c3d_data.c3d, markers)
-        # todo: add an argument if "all" all markers and if "hand" only markers of hand if "MET5" only MET5
 
-        return self.dispatch_data(data=self.c3d_data.trajectories, nb_shooting=number_shooting_points, phase_time=phase_time)
+        return self.dispatch_data(
+            data=self.c3d_data.trajectories, nb_shooting=number_shooting_points, phase_time=phase_time
+        )
 
     def get_states_ref(self, number_shooting_points, phase_time, with_floating_base: bool):
         """

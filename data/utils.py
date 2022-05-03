@@ -68,20 +68,25 @@ def plot_dof(q_old: np.ndarray, q: np.ndarray, biorbd_model: biorbd.Model):
     The frequencies
     """
     count = 0
+    range_max = []
+    range_min = []
     for i in range(biorbd_model.nbSegment()):  # we excluded the 3 first dof which correspond to 3 translation
         print(i)
         if biorbd_model.segment(i).nbDof() > 0:
             print(biorbd_model.segment(i))
             for j in range(biorbd_model.segment(i).nbDof()):
-                plt.figure()
-                plt.title(f"{biorbd_model.segment(i).name().to_string()} {j}")
-                old = "old"
-                plt.plot(q_old[count, :], label=f"{str(count)} {old}")
-                plt.plot(q[count, :], label=str(count))
-                plt.plot([biorbd_model.segment(i).QRanges()[j].min()] * q.shape[1])
-                plt.plot([biorbd_model.segment(i).QRanges()[j].max()] * q.shape[1])
-                count += 1
-                plt.legend()
+                range_min.append(biorbd_model.segment(i).QRanges()[j].min())
+                range_max.append(biorbd_model.segment(i).QRanges()[j].max())
+
+    plt.figure()
+    for h in range(biorbd_model.nbQdot()):
+        plt.subplot(int(np.sqrt(biorbd_model.nbQdot())), int(np.sqrt(biorbd_model.nbQdot())) + 1, h + 1)
+        plt.title(f"{biorbd_model.nameDof()[h].to_string()}")
+        plt.plot(q_old[h, :], label=f"{str(h)} old")
+        plt.plot(q[h, :], label=str(h))
+        plt.plot([range_min[h]] * q.shape[1])
+        plt.plot([range_max[h]] * q.shape[1])
+        plt.legend()
     plt.show()
 
 
