@@ -164,12 +164,12 @@ gravity	0 -9.81 0
         parent    clavicle
         position    0.033445913099119665 -0.010391785839228396 0.0028632585370065855
     endmarker
-
+    /*
     marker    CLAV_AC
         parent    clavicle
         position    0.019644638836381262 -0.0077436347940661454 0.12124945256646524
     endmarker
-	/*
+
     marker    SCAP_Cor
         parent    clavicle
         position    0.0019290725106974466 0.018492327009970166 0.10270227481847716
@@ -289,7 +289,7 @@ gravity	0 -9.81 0
             0.0001    0.97951422    0.20137498    0
             0    0    0    1
         rotations x
-        ranges		-1.92	1.5
+        ranges		-pi pi
     endsegment
     // Segment
     segment humerus_shoulder_ele
@@ -301,7 +301,7 @@ gravity	0 -9.81 0
             0.0556291    -0.97951496    0.193535131    0
             0    0    0    1
         rotations y
-        ranges		-0.3	3.0
+        ranges		-pi/2	3.0
     endsegment
     // Segment
     segment humerus_shoulder_rotation
@@ -314,7 +314,8 @@ gravity	0 -9.81 0
             0    0    0    1
         rotations z
         //ranges		0.0	3.0
-        ranges		-1.9	0.35
+        //ranges		-1.9	0.35
+        ranges		-2	pi
     endsegment
 
     // Segment to cancel transformation bases effect.
@@ -414,8 +415,8 @@ gravity	0 -9.81 0
             -0.006469738    -0.114683666    0.993380994    0
             0    0    0    1
         rotations z
-        //ranges		0.0	2.268928027593
-        ranges		-pi	pi
+        ranges		0.0	2.268928027593
+        //ranges		-pi	pi
     endsegment
 
     // Segment to cancel transformation bases effect.
@@ -495,7 +496,7 @@ gravity	0 -9.81 0
             0.059472709    -0.985360294    0.159775114    0
             0    0    0    1
         rotations y
-        ranges		-1.570796326795	1.570796326795
+        ranges		-pi/2 pi/2
     endsegment
     // Segment
     segment radius_rotation3
