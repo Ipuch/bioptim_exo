@@ -68,16 +68,16 @@ class TrackingOcp:
     """
 
     def __init__(
-        self,
-        with_floating_base: bool,
-        c3d_path: str,
-        n_shooting_points: int,
-        nb_iteration: int,
-        ode_solver: OdeSolver = OdeSolver.RK4(),
-        model_path: str = None,
-        n_threads: int = 6,
-        final_time: float = None,
-        markers_tracked: list = ["all"],
+            self,
+            with_floating_base: bool,
+            c3d_path: str,
+            n_shooting_points: int,
+            nb_iteration: int,
+            ode_solver: OdeSolver = OdeSolver.RK4(),
+            model_path: str = None,
+            n_threads: int = 6,
+            final_time: float = None,
+            markers_tracked: list = None,
     ):
         self.with_floating_base = with_floating_base
         if model_path is None:
@@ -107,6 +107,9 @@ class TrackingOcp:
             [self.n_shooting_points], [self.final_time], with_floating_base=with_floating_base
         )
         self.markers_tracked = markers_tracked
+        self.marker_model = [m.to_string() for m in self.biorbd_model.markerNames()]
+        self.marker_index = [self.marker_model.index(m) for m in self.markers_tracked]
+
         self.markers_ref = self.data_loaded.get_marker_ref(
             [self.n_shooting_points], [self.final_time], self.markers_tracked
         )
@@ -121,11 +124,8 @@ class TrackingOcp:
         objective_functions = ObjectiveList()
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=100)  # 100
         objective_functions.add(
-            ObjectiveFcn.Mayer.TRACK_MARKERS, weight=100000, target=self.markers_ref[0], node=Node.ALL
-        )
-        # objective_functions.add(
-        #     ObjectiveFcn.Mayer.TRACK_MARKERS, weight=100000, target=self.markers_ref[0], node=Node.END, phase=0
-        # )
+            ObjectiveFcn.Mayer.TRACK_MARKERS, weight=100000, target=self.markers_ref[0], node=Node.ALL,
+            marker_index=self.marker_index)
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, weight=10, key="qdot")  # 10
 
         # Dynamics
@@ -139,7 +139,7 @@ class TrackingOcp:
         # Initial guess
         init_x = np.zeros((nb_q + nb_qdot, self.n_shooting_points + 1))
         init_x[:nb_q, :] = self.q_ref[0]
-        init_x[nb_q : nb_q + nb_qdot, :] = self.qdot_ref[0]
+        init_x[nb_q: nb_q + nb_qdot, :] = self.qdot_ref[0]
 
         x_init = InitialGuessList()
         x_init.add(init_x, interpolation=InterpolationType.EACH_FRAME)

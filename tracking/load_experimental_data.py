@@ -18,7 +18,7 @@ class C3dData:
         The position of the markers
     Methods
     -------
-    get_marker_trajectories(loaded_c3d: c3d, marker_names: list) -> np.ndarray
+    get_marker_trajectories(self, marker_names: list) -> np.ndarray
         Get markers trajectories
     get_indices(self)
         Get the indices of start and end
@@ -29,18 +29,25 @@ class C3dData:
     def __init__(self, file_path: str, biorbd_model: biorbd.Model):
         self.c3d = c3d(file_path)
         self.marker_names = [biorbd_model.markerNames()[i].to_string() for i in range(len(biorbd_model.markerNames()))]
-        self.trajectories = self.get_marker_trajectories(self.c3d, self.marker_names)
+        self.trajectories = self.get_marker_trajectories()
 
-    @staticmethod
-    def get_marker_trajectories(loaded_c3d: c3d, marker_names: list) -> np.ndarray:
+    def get_marker_trajectories(self, marker_names: list = None) -> np.ndarray:
         """
         get markers trajectories
 
-        """
+        Parameters:
+        ---------
+        marker_names: list
+            The list of tracked markers
 
+        Returns:
+            an array of markers' position
+
+        """
+        marker_names = self.marker_names if marker_names is None else marker_names
         # LOAD C3D FILE
-        points = loaded_c3d["data"]["points"]
-        labels_markers = loaded_c3d["parameters"]["POINT"]["LABELS"]["value"]
+        points = self.c3d["data"]["points"]
+        labels_markers = self.c3d["parameters"]["POINT"]["LABELS"]["value"]
 
         # GET THE MARKERS POSITION (X, Y, Z) AT EACH POINT
         markers = np.zeros((3, len(marker_names), len(points[0, 0, :])))
@@ -58,7 +65,6 @@ class C3dData:
         """
         find phase duration
         """
-        # todo: plz shrink the function
         freq = self.c3d["parameters"]["POINT"]["RATE"]["value"][0]
         index = self.get_indices()
         return [(1 / freq * (index[i + 1] - index[i] + 1)) for i in range(len(index) - 1)][0]
@@ -88,7 +94,7 @@ class LoadData:
     -------
     dispatch_data(self, data, nb_shooting: list, phase_time: list)
         divide and adjust data dimensions to match number of shooting point for each phase
-    get_marker_ref(self, nb_shooting: list, phase_time: list, type: str) -> list:
+    get_marker_ref(self, number_shooting_points: list, phase_time: list, markers_names: list[str])
         Give the position of the markers from the c3d
     get_experimental_data(self, number_shooting_points, phase_time, with_floating_base: bool)
         Give the values of q, qdot and the position of the markers from the c3d
@@ -138,28 +144,28 @@ class LoadData:
             out.append(f(t_node))
         return out
 
-    def get_marker_ref(self, number_shooting_points: list, phase_time: list, markers: list[str]) -> list:
+    def get_marker_ref(self, number_shooting_points: list, phase_time: list, markers_names: list[str] = None) -> list:
         """
         divide and adjust the dimensions to match number of shooting point for each phase
 
         Parameters:
+        --------
         number_shooting_points: list
             The list of nb_shooting for each phases
         phase_time: list
             The list of duration for each phases4
-        type: str
+        markers_names: list[str]
+            list of tracked markers
 
         Returns:
+        --------
             The array of marker's position adjusted
         """
 
-        if markers == ["all"]:
-            self.c3d_data.get_marker_trajectories(self.c3d_data.c3d, self.c3d_data.marker_names)
-        else:
-            self.c3d_data.get_marker_trajectories(self.c3d_data.c3d, markers)
+        markers = self.c3d_data.trajectories if markers_names is None else self.c3d_data.get_marker_trajectories(markers_names)
 
         return self.dispatch_data(
-            data=self.c3d_data.trajectories, nb_shooting=number_shooting_points, phase_time=phase_time
+            data=markers, nb_shooting=number_shooting_points, phase_time=phase_time
         )
 
     def get_states_ref(self, number_shooting_points, phase_time, with_floating_base: bool):

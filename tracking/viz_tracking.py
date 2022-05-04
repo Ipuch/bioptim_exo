@@ -62,12 +62,14 @@ def marker_ref(t: list, nlp: NonLinearProgram, index_marker):
     return nlp.J[1].target[:, index_marker, n_list]
 
 
-def plot_marker(id_marker: int, ocp: OptimalControlProgram, nlp: list[NonLinearProgram]):
+def plot_marker(id_marker_ref, id_marker: int, ocp: OptimalControlProgram, nlp: list[NonLinearProgram]):
     """
     plot the markers posiions
 
     Parameters
     ----------
+    id_marker_ref: int
+         The marker's id hidden in the cost function
     id_marker: int
          The marker's id
     ocp: OptimalControlProgram
@@ -77,7 +79,7 @@ def plot_marker(id_marker: int, ocp: OptimalControlProgram, nlp: list[NonLinearP
     """
     ocp.add_plot(
         f"{'Marker'} {nlp[0].model.markerNames()[id_marker].to_string()}",
-        lambda t, x, u, p: marker_ref(t, nlp[0], id_marker),
+        lambda t, x, u, p: marker_ref(t, nlp[0], id_marker_ref),
         legend=[f"Marker {id_marker} x", f"Marker {id_marker} y", f"Marker {id_marker} z"],
         plot_type=PlotType.STEP,
         node_idx=[nlp[0].dt * i for i in range(0, nlp[0].ns + 1)],
@@ -106,7 +108,7 @@ def add_custom_plots(ocp: OptimalControlProgram, list_markers: Union[list[int], 
     model_markers = [m.to_string() for m in nlp[0].model.markerNames()]
     marker_idx = [model_markers.index(m) for m in list_markers]
 
-    for idx in marker_idx:
-        plot_marker(idx, ocp, nlp)
+    for i, idx in enumerate(marker_idx):
+        plot_marker(i, idx, ocp, nlp)
 
     return ocp
