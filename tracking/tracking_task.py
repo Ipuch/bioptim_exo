@@ -1,98 +1,12 @@
-from load_experimental_data import LoadData, C3dData
-from scipy.integrate import solve_ivp
-import numpy as np
-import biorbd_casadi as biorbd
-from casadi import MX, vertcat
-from matplotlib import pyplot as plt
-
+from viz_tracking import add_custom_plots
+from datetime import datetime
+from tracking_ocp import TrackingOcp
 from bioptim import (
-    OptimalControlProgram,
-    NonLinearProgram,
-    BiMapping,
-    DynamicsList,
-    DynamicsFcn,
-    DynamicsFunctions,
-    ObjectiveList,
-    ObjectiveFcn,
-    BoundsList,
-    Bounds,
-    QAndQDotBounds,
-    InitialGuessList,
-    OdeSolver,
-    Node,
     Solver,
     CostType,
 )
-
-
-def prepare_ocp(
-    biorbd_model: biorbd.Model,
-    final_time: float,
-    n_shooting: int,
-    markers_ref: np.ndarray,
-    ode_solver: OdeSolver = OdeSolver.RK4(),
-) -> OptimalControlProgram:
-    """
-    Prepare the ocp to solve
-
-    Parameters
-    ----------
-    biorbd_model: biorbd.Model
-        The loaded biorbd model
-    final_time: float
-        The time at final node
-    n_shooting: int
-        The number of shooting points
-    markers_ref: np.ndarray
-        The marker to track if 'markers' is chosen in kin_data_to_track
-    ode_solver: OdeSolver
-        The ode solver to use
-
-    Returns
-    -------
-    The OptimalControlProgram ready to solve
-    """
-
-    # Add objective functions
-    objective_functions = ObjectiveList()
-    objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=10)
-    objective_functions.add(ObjectiveFcn.Mayer.TRACK_MARKERS, weight=100, target=markers_ref, node=Node.ALL)
-
-    # Dynamics
-    dynamics = DynamicsList()
-    dynamics.add(DynamicsFcn.TORQUE_DRIVEN)
-
-    # Path constraint
-    x_bounds = BoundsList()
-    x_bounds.add(bounds=QAndQDotBounds(biorbd_model))
-
-    # Initial guess
-    x_init = InitialGuessList()
-    x_init.add([0] * (biorbd_model.nbQ() + biorbd_model.nbQdot()))
-
-    # Define control path constraint
-    u_bounds = BoundsList()
-    u_init = InitialGuessList()
-    tau_min, tau_max, tau_init = -100, 100, 0
-    u_bounds.add(
-        [tau_min] * biorbd_model.nbGeneralizedTorque(), [tau_max] * biorbd_model.nbGeneralizedTorque(),
-    )
-    u_init.add([tau_init] * biorbd_model.nbGeneralizedTorque())
-
-    # ------------- #
-
-    return OptimalControlProgram(
-        biorbd_model,
-        dynamics,
-        n_shooting,
-        final_time,
-        x_init,
-        u_init,
-        x_bounds,
-        u_bounds,
-        objective_functions,
-        ode_solver=ode_solver,
-    )
+import os
+import ezc3d
 
 
 def main():
@@ -101,47 +15,47 @@ def main():
     """
 
     # Define the problem
-    c3d_path = "../data/F0_dessiner_05.c3d"
-    model_path = "../models/wu_converted_definitif.bioMod"
+    with_floating_base = False
 
-    biorbd_model = biorbd.Model(model_path)
-    data = C3dData(c3d_path)
-    final_time = data.get_final_time()
-    n_shooting_points = 30
+    # c3d_path = "../data/F0_aisselle_05.c3d"
+    c3d_path = "../data/F0_aisselle_05_crop_before_discontinuity.c3d"
+    # c3d_path = "../data/F0_aisselle_05_crop_3s.c3d"
 
-    # Marker ref
-    data_loaded = LoadData(biorbd_model, c3d_path)
-    markers_ref = data_loaded.get_marker_ref(nb_shooting=[n_shooting_points], phase_time=[final_time], type="all")
+    c3d = ezc3d.c3d(c3d_path)
+    freq = c3d["parameters"]["POINT"]["RATE"]["value"][0]
+    nb_frames = c3d["parameters"]["POINT"]["FRAMES"]["value"][0]
+    duration = nb_frames / freq
+    n_shooting_points = int(duration * 100)
+    nb_iteration = 1000
 
-    ocp = prepare_ocp(biorbd_model, final_time, n_shooting_points, markers_ref[0])
+    list_markers = ["SEML", "MET2", "MET5"]
+    my_ocp = TrackingOcp(
+        with_floating_base=with_floating_base,
+        c3d_path=c3d_path,
+        n_shooting_points=n_shooting_points,
+        nb_iteration=nb_iteration,
+        markers_tracked=list_markers,
+    )
 
-    ocp.add_plot_penalty(CostType.CONSTRAINTS)
+    my_ocp.ocp.add_plot_penalty(CostType.ALL)
+    list_markers = ["SEML", "MET2", "MET5"]
+    my_ocp.ocp = add_custom_plots(my_ocp.ocp, list_markers)
+
     # --- Solve the program --- #
-    sol = ocp.solve(Solver.IPOPT(show_online_optim=False))
+    solver = Solver.IPOPT(show_online_optim=True, show_options=dict(show_bounds=True))
+    solver.set_linear_solver("ma57")
+    solver.set_maximum_iterations(nb_iteration)
+    sol = my_ocp.ocp.solve(solver)
+    # sol.print_cost()
 
-    # --- Show the results --- #
-    q = sol.states["q"]
-    n_q = ocp.nlp[0].model.nbQ()
-    n_mark = ocp.nlp[0].model.nbMarkers()
-    n_frames = q.shape[1]
-
-    markers = np.ndarray((3, n_mark, q.shape[1]))
-    symbolic_states = MX.sym("x", n_q, 1)
-    markers_func = biorbd.to_casadi_func("ForwardKin", biorbd_model.markers, symbolic_states)
-    for i in range(n_frames):
-        markers[:, :, i] = markers_func(q[:, i])
-
-    plt.figure("Markers")
-    n_steps_ode = ocp.nlp[0].ode_solver.steps + 1 if ocp.nlp[0].ode_solver.is_direct_collocation else 1
-    for i in range(markers.shape[1]):
-        plt.plot(np.linspace(0, 2, n_shooting_points + 1), markers_ref[:, i, :].T, "k")
-        plt.plot(np.linspace(0, 2, n_shooting_points * n_steps_ode + 1), markers[:, i, :].T, "r--")
-    plt.xlabel("Time")
-    plt.ylabel("Markers Position")
+    # --- Save --- #
+    c3d_str = c3d_path.split("/")
+    c3d_name = os.path.splitext(c3d_str[-1])[0]
+    save_path = f"save/{c3d_name}_{datetime.now()}"
+    save_path = save_path.replace(" ", "_").replace("-", "_").replace(":", "_").replace(".", "_")
+    my_ocp.ocp.save(sol, save_path)
 
     # --- Plot --- #
-    plt.show()
-    sol.print()
     sol.graphs(show_bounds=True)
     sol.animate(n_frames=100)
 
