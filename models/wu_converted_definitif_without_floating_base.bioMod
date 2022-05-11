@@ -138,12 +138,12 @@ gravity	0 -9.81 0
         parent    clavicle
         position    0.033445913099119665 -0.010391785839228396 0.0028632585370065855
     endmarker
-
+    /*
     marker    CLAV_AC
         parent    clavicle
         position    0.019644638836381262 -0.0077436347940661454 0.12124945256646524
     endmarker
-	/*
+
     marker    SCAP_Cor
         parent    clavicle
         position    0.0019290725106974466 0.018492327009970166 0.10270227481847716
