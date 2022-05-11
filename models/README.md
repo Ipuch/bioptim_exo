@@ -18,12 +18,18 @@ This model is used to get the rototrans matrix between ulna and kinova arm.
 
 ## wu_converted_definitif
 The floating remain free. The initial RT is changed. This model is the wu model but with initial position changed. The initial position is adapted with the inverse kinematics output.
+This model is used in tracking_ocp, it has thorax markers (MAN, XYP, C7, T10).
 
 ## wu_converted_definitif_inverse_kinematics
 This model is for inverse kinematics script, ranges are adapted and the floating base is free.
+This model is not used in tracking_ocp, it has thorax markers (MAN, XYP, C7, T10).
+The initial RT is changed.
 
 ## wu_converted_definitif_without_floating_base
 The initial RT is changed. This model has no dof for the first segment. 
+This model is used in tracking_ocp, it does not have thorax markers (MAN, XYP, C7, T10).
+
 
 ## wu_converted_definitif_without_modif
 This model is the wu model with almost no changement except for the range of q to allow convinient inverse kinematics with it. It comes from the converter Opensim to Biomod. It still has the 2 segment of the thorax that has been removed from the other model: thorax_rotation_transform and thorax_reset_axis.
+This model has thorax markers (MAN, XYP, C7, T10).
