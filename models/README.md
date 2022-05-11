@@ -17,14 +17,13 @@ This is the model is the same as KINOVA_merge but with 6 dof between the ulna an
 This model is used to get the rototrans matrix between ulna and kinova arm.
 
 ## wu_converted_definitif
-This model is the wu model but with initial position changed. The initial position is adapted with the inverse kinematics output.
+The floating remain free. The initial RT is changed. This model is the wu model but with initial position changed. The initial position is adapted with the inverse kinematics output.
 
 ## wu_converted_definitif_inverse_kinematics
-This model is for inverse kinematics script, he is placed at the origin or at the output of the inverse kinematics.
+This model is for inverse kinematics script, ranges are adapted and the floating base is free.
 
 ## wu_converted_definitif_without_floating_base
-This model has no dof for the first segment.
+The initial RT is changed. This model has no dof for the first segment. 
 
 ## wu_converted_definitif_without_modif
-This model is the wu model with almost no changement exept for the range of the dof to allow convinient inverse kinematics with it. It comes from the converter Opensim to Biomod.
-It still has the 2 segment of the thorax that has been removed from the other model: thorax_rotation_transform and thorax_reset_axis.
+This model is the wu model with almost no changement except for the range of q to allow convinient inverse kinematics with it. It comes from the converter Opensim to Biomod. It still has the 2 segment of the thorax that has been removed from the other model: thorax_rotation_transform and thorax_reset_axis.
