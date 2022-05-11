@@ -29,6 +29,13 @@ The initial RT is changed.
 The initial RT is changed. This model has no dof for the first segment. 
 This model is used in tracking_ocp, it does not have thorax markers (MAN, XYP, C7, T10).
 
+## wu_converted_definitif_without_floating_base_template
+The initial RT values are replaced by variables names. 
+This model is used as a template in utils.
+
+## wu_converted_definitif_without_floating_base_template_with_variables
+A header introducing the variables and their values is added to the template, right below the first line stating the version.
+This model is used in tracking_ocp, in situations without floating.
 
 ## wu_converted_definitif_without_modif
 This model is the wu model with almost no changement except for the range of q to allow convinient inverse kinematics with it. It comes from the converter Opensim to Biomod. It still has the 2 segment of the thorax that has been removed from the other model: thorax_rotation_transform and thorax_reset_axis.
