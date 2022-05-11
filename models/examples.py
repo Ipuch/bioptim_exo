@@ -1,3 +1,6 @@
+from utils import add_header
+
+file = "wu_converted_definitif_without_floating_base_template.bioMod"
 new_file = "wu_converted_definitif_without_floating_base_template_with_variables.bioMod"
 thorax_values = {
     'thoraxRT1': 1.5136279122166798,
