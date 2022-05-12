@@ -38,15 +38,19 @@ def add_header(biomod_file_name: str, new_biomod_file_name: str, variables: dict
     biomod_file.close()
 
 
-def thorax_variables(path: str):
+def thorax_variables(path: str) -> dict:
     """
-    create a dictionary pairing each variable with its value for a given c3d file path
+    create a dictionary pairing each variable with its value for a given text file path
 
     Parameters:
     ---------
     path: str
-        path to the c3d file containing the values obtained via motion capture
+        path to the text file containing the generalized coordinates obtained via inverse kinematics
 
+    Returns
+    --------
+    thorax_values : dict
+        dictionary of position and orientation of the thorax
     """
 
     data_loaded = np.loadtxt(path)
