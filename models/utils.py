@@ -1,3 +1,6 @@
+import numpy as np
+
+
 def add_header(biomod_file_name: str, new_biomod_file_name: str, variables: dict):
     """
     create a header introducing the values associated with each variable used in the file
@@ -33,3 +36,26 @@ def add_header(biomod_file_name: str, new_biomod_file_name: str, variables: dict
             biomod_file.write(line)
 
     biomod_file.close()
+
+
+def thorax_variables(path: str):
+    """
+    create a dictionary pairing each variable with its value for a given c3d file path
+
+    Parameters:
+    ---------
+    path: str
+        path to the c3d file containing the values obtained via motion capture
+
+    """
+
+    data_loaded = np.loadtxt(path)
+    thorax_values = {
+        'thoraxRT1': data_loaded[3].mean(),
+        'thoraxRT2': data_loaded[4].mean(),
+        'thoraxRT3': data_loaded[5].mean(),
+        'thoraxRT4': data_loaded[0].mean(),
+        'thoraxRT5': data_loaded[1].mean(),
+        'thoraxRT6': data_loaded[2].mean(),
+    }
+    return thorax_values
