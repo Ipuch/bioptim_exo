@@ -69,16 +69,16 @@ class TrackingOcp:
     """
 
     def __init__(
-            self,
-            with_floating_base: bool,
-            c3d_path: str,
-            n_shooting_points: int,
-            nb_iteration: int,
-            ode_solver: OdeSolver = OdeSolver.RK4(),
-            model_path: str = None,
-            n_threads: int = 6,
-            final_time: float = None,
-            markers_tracked: list = None,
+        self,
+        with_floating_base: bool,
+        c3d_path: str,
+        n_shooting_points: int,
+        nb_iteration: int,
+        ode_solver: OdeSolver = OdeSolver.RK4(),
+        model_path: str = None,
+        n_threads: int = 6,
+        final_time: float = None,
+        markers_tracked: list = None,
     ):
         self.with_floating_base = with_floating_base
         if model_path is None:
@@ -86,9 +86,11 @@ class TrackingOcp:
             model_path_with_floating_base = "../models/wu_converted_definitif.bioMod"
 
             if not self.with_floating_base:
-                txt_path = c3d_path.removesuffix(".c3d")+"_q.txt"
+                txt_path = c3d_path.removesuffix(".c3d") + "_q.txt"
                 thorax_values = thorax_variables(txt_path)  # load c3d floating base pose
-                new_biomod_file = "../models/wu_converted_definitif_without_floating_base_template_with_variable.bioMod"
+                new_biomod_file = (
+                    "../models/wu_converted_definitif_without_floating_base_template_with_variables.bioMod"
+                )
                 add_header(model_path_without_floating_base, new_biomod_file, thorax_values)
                 self.model_path = new_biomod_file
             else:
@@ -132,8 +134,12 @@ class TrackingOcp:
         objective_functions = ObjectiveList()
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=100)  # 100
         objective_functions.add(
-            ObjectiveFcn.Mayer.TRACK_MARKERS, weight=100000, target=self.markers_ref[0], node=Node.ALL,
-            marker_index=self.marker_index)
+            ObjectiveFcn.Mayer.TRACK_MARKERS,
+            weight=100000,
+            target=self.markers_ref[0],
+            node=Node.ALL,
+            marker_index=self.marker_index,
+        )
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, weight=10, key="qdot")  # 10
 
         # Dynamics
@@ -147,7 +153,7 @@ class TrackingOcp:
         # Initial guess
         init_x = np.zeros((nb_q + nb_qdot, self.n_shooting_points + 1))
         init_x[:nb_q, :] = self.q_ref[0]
-        init_x[nb_q: nb_q + nb_qdot, :] = self.qdot_ref[0]
+        init_x[nb_q : nb_q + nb_qdot, :] = self.qdot_ref[0]
 
         x_init = InitialGuessList()
         x_init.add(init_x, interpolation=InterpolationType.EACH_FRAME)

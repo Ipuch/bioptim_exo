@@ -16,7 +16,7 @@ def add_header(biomod_file_name: str, new_biomod_file_name: str, variables: dict
 
     """
 
-    biomod_file = open(new_biomod_file_name, 'w')
+    biomod_file = open(new_biomod_file_name, "w")
 
     # copy the first line of the original file onto the new file
     with open(biomod_file_name, "r") as file_object:
@@ -26,7 +26,7 @@ def add_header(biomod_file_name: str, new_biomod_file_name: str, variables: dict
 
         # add a line in the header for each variable
         for variable in variables:
-            biomod_file.write("\n\t$" + variable + ' ')
+            biomod_file.write("\n\t$" + variable + " ")
             biomod_file.write(str(variables[variable]))
 
         biomod_file.write("\nendvariables\n")
@@ -55,11 +55,11 @@ def thorax_variables(path: str) -> dict:
 
     data_loaded = np.loadtxt(path)
     thorax_values = {
-        'thoraxRT1': data_loaded[3].mean(),
-        'thoraxRT2': data_loaded[4].mean(),
-        'thoraxRT3': data_loaded[5].mean(),
-        'thoraxRT4': data_loaded[0].mean(),
-        'thoraxRT5': data_loaded[1].mean(),
-        'thoraxRT6': data_loaded[2].mean(),
+        "thoraxRT1": data_loaded[3].mean(),
+        "thoraxRT2": data_loaded[4].mean(),
+        "thoraxRT3": data_loaded[5].mean(),
+        "thoraxRT4": data_loaded[0].mean(),
+        "thoraxRT5": data_loaded[1].mean(),
+        "thoraxRT6": data_loaded[2].mean(),
     }
     return thorax_values
