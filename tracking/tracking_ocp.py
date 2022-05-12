@@ -3,6 +3,7 @@ import numpy as np
 import biorbd_casadi as biorbd
 from matplotlib import pyplot as plt
 import os
+from bioptim_exo.models.utils import add_header, thorax_variables
 
 from bioptim import (
     OptimalControlProgram,
@@ -81,11 +82,18 @@ class TrackingOcp:
     ):
         self.with_floating_base = with_floating_base
         if model_path is None:
-            model_path_without_floating_base = "../models/wu_converted_definitif_without_floating_base.bioMod"
+            model_path_without_floating_base = "../models/wu_converted_definitif_without_floating_base_template.bioMod"
             model_path_with_floating_base = "../models/wu_converted_definitif.bioMod"
-            self.model_path = (
-                model_path_with_floating_base if self.with_floating_base else model_path_without_floating_base
-            )
+
+            if not self.with_floating_base:
+                txt_path = c3d_path.removesuffix(".c3d")+"_q.txt"
+                thorax_values = thorax_variables(txt_path)  # load c3d floating base pose
+                new_biomod_file = "../models/wu_converted_definitif_without_floating_base_template_with_variable.bioMod"
+                add_header(model_path_without_floating_base, new_biomod_file, thorax_values)
+                self.model_path = new_biomod_file
+            else:
+                self.model_path = model_path_with_floating_base
+
         else:
             self.model_path = model_path
 
