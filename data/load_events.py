@@ -27,7 +27,7 @@ class LoadEvent:
 
         """
         event_time = self.c3d["parameters"]["EVENT"]["TIMES"]["value"][1][idx]
-        return [event_time]
+        return np.array(event_time)
 
     def get_frame(self, idx: int) -> np.ndarray:
         """
@@ -46,10 +46,10 @@ class LoadEvent:
 
         """
         frame_rate = self.c3d["parameters"]["TRIAL"]["CAMERA_RATE"]["value"][0]
-        frame = round(self.get_time(idx)[0] * frame_rate)
+        frame = round(self.get_time(idx) * frame_rate)
         start_frame = self.c3d["parameters"]["TRIAL"]["ACTUAL_START_FIELD"]["value"][0]
         event_frame = frame - start_frame
-        return [event_frame]
+        return np.array(event_frame)
 
     def get_markers(self, idx: int) -> np.ndarray:
         """
@@ -68,8 +68,8 @@ class LoadEvent:
 
         """
 
-        markers = self.c3d["data"]["points"] # Markers.from_c3d(self.c3d_path, prefix_delimiter=":")
-        event_markers = markers[:3, :, self.get_frame(idx)[0]]
+        markers = Markers.from_c3d(self.c3d_path, prefix_delimiter=":").to_numpy()
+        event_markers = markers[:3, :, self.get_frame(idx)]
         return event_markers
 
     def get_event(self, idx: int) -> dict:
