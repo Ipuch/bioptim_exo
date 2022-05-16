@@ -4,9 +4,7 @@ import numpy as np
 
 
 class LoadEvent:
-    def __init__(
-            self,
-            c3d_path: str):
+    def __init__(self, c3d_path: str):
         self.c3d_path = c3d_path
         self.c3d = ezc3d.c3d(c3d_path)
 
@@ -95,7 +93,7 @@ class LoadEvent:
         return event_values
 
 
-c3d_events = LoadEvent("../event/F0_tete_05.c3d")
+c3d_events = LoadEvent("../event_tracking/F0_tete_05.c3d")
 print(c3d_events.get_markers(0))
 print(c3d_events.get_frame(0))
 print(c3d_events.get_time(0))
