@@ -91,10 +91,3 @@ class LoadEvent:
         event_values = {"time": self.get_time(idx), "frame": self.get_frame(idx), "markers": self.get_markers(idx)}
 
         return event_values
-
-
-c3d_events = LoadEvent("../event_tracking/F0_tete_05.c3d")
-print(c3d_events.get_markers(0))
-print(c3d_events.get_frame(0))
-print(c3d_events.get_time(0))
-print(c3d_events.get_event(0))
