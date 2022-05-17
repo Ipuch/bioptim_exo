@@ -11,13 +11,13 @@ except ModuleNotFoundError:
     biorbd_viz_found = False
 
 
-def get_unit_division_factor(c3d_file: ezc3d) -> int:
+def get_unit_division_factor(c3d_file: ezc3d.c3d) -> int:
     """
     Allow the users to get the length units of a c3d file
 
     Parameters
     ----------
-    c3d_file: ezc3d
+    c3d_file: ezc3d.c3d
         c3d file converted into an ezc3d object
 
     Returns

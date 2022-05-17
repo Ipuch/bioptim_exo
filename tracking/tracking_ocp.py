@@ -60,6 +60,7 @@ class TrackingOcp:
          The list of Markers position at each shooting points
      ocp: OptimalControlProgram
 
+
     Methods
     -------
     prepare_ocp(self) -> OptimalControlProgram:
@@ -188,6 +189,7 @@ class TrackingOcp:
         plot c3d markers and model markers on the same plot
 
         Parameters:
+        ----------
         c3d_path: str
             The Path to c3d file
         """
