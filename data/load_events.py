@@ -1,12 +1,20 @@
 import ezc3d
 from pyomeca import Markers
 import numpy as np
+import biorbd_casadi as biorbd
 
 
 class LoadEvent:
-    def __init__(self, c3d_path: str):
+    def __init__(self,
+                 c3d_path: str,
+                 marker_list: list[str],
+                 ):
         self.c3d_path = c3d_path
         self.c3d = ezc3d.c3d(c3d_path)
+        self.marker_list = marker_list
+        # model_path_without_floating_base = "../models/wu_converted_definitif_without_floating_base_template.bioMod"
+        # biorbd_model = biorbd.Model(model_path_without_floating_base)
+        # self.marker_list = [m.to_string() for m in biorbd_model.markerNames()]
 
     def get_time(self, idx: int) -> np.ndarray:
         """
@@ -66,8 +74,9 @@ class LoadEvent:
 
         """
 
-        markers = Markers.from_c3d(self.c3d_path, prefix_delimiter=":").to_numpy()
+        markers = Markers.from_c3d(self.c3d_path, usecols=self.marker_list, prefix_delimiter=":").to_numpy()
         event_markers = markers[:3, :, self.get_frame(idx)]
+
         return event_markers
 
     def get_event(self, idx: int) -> dict:
@@ -91,3 +100,11 @@ class LoadEvent:
         event_values = {"time": self.get_time(idx), "frame": self.get_frame(idx), "markers": self.get_markers(idx)}
 
         return event_values
+
+
+biorbd_model = biorbd.Model("../models/wu_converted_definitif_without_floating_base_template_with_variables.bioMod")
+marker_ref = [m.to_string() for m in biorbd_model.markerNames()]
+event = LoadEvent("../event_tracking/F0_dents_05.c3d", marker_ref)
+# print(event.get_frame(0))
+# print(event.get_frame(2))
+
