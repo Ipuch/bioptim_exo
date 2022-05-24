@@ -195,7 +195,7 @@ class LoadData:
 
         return self.dispatch_data(data=markers, nb_shooting=number_shooting_points, phase_time=phase_time)
 
-    def get_states_ref(self, number_shooting_points, phase_time, with_floating_base: bool, start: int = None,
+    def get_states_ref(self, number_shooting_points, phase_time, start: int = None,
                        end: int = None):
         """
         Give all the data from c3d file
