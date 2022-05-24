@@ -1,8 +1,6 @@
 import sys
 import biorbd_casadi as biorbd
-sys.path.append("../event")
-from load_events import LoadEvent
-# from utils import add_header, thorax_variables
+
 import ezc3d
 from bioptim import (
     OptimalControlProgram,
@@ -23,6 +21,7 @@ import numpy as np
 import os
 from datetime import datetime
 
+sys.path.append("../event")
 sys.path.append("../models")
 import utils
 
@@ -84,8 +83,8 @@ def prepare_ocp(
     # x_init[i] = np.random.rand()*3.14
 
     x_init = InitialGuess(x_init_ref, interpolation=InterpolationType.EACH_FRAME)
-    
-    
+
+
 
     # Define control path constraint
     n_tau = biorbd_model.nbGeneralizedTorque()
