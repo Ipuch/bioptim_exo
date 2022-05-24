@@ -2,6 +2,8 @@ from ezc3d import c3d
 import numpy as np
 from scipy.interpolate import interp1d
 import biorbd
+
+
 # from data.load_events import LoadEvent
 
 
@@ -33,7 +35,6 @@ class C3dData:
         self.c3d = c3d(file_path)
         self.marker_names = [biorbd_model.markerNames()[i].to_string() for i in range(len(biorbd_model.markerNames()))]
         self.trajectories = self.get_marker_trajectories()
-
 
     def get_marker_trajectories(self, marker_names: list = None) -> np.ndarray:
         """
@@ -88,6 +89,8 @@ class LoadData:
         The number of generalized velocities in the model
     nb_markers: int
         The number of markers in the model
+    c3d_file: str
+        The c3d file path
     c3d_data: C3dData
         The data from c3d
     q: numpy.ndarray
