@@ -202,16 +202,29 @@ class LoadData:
             The list of nb_shooting for each phases
         phase_time: list
             The list of duration for each phases4
-        with_floating_base: bool
-            True if there is a floating base in the biorbd model
-
+        start: int
+            The frame number corresponding to the beginning of the studied movement
+        end: int
+            The frame number corresponding to the end of the studied movement
         Returns:
             The values of q, qdot and the positions of the markers from the c3d
         """
-        q_ref = self.dispatch_data(data=self.q[:, start:end + 1], nb_shooting=number_shooting_points,
-                                   phase_time=phase_time, start=start, end=end)
-        qdot_ref = self.dispatch_data(data=self.qdot[:, start:end + 1], nb_shooting=number_shooting_points,
-                                      phase_time=phase_time, start=start, end=end)
-        q_ref[0] = q_ref[0][6:] if not with_floating_base else q_ref[0]
-        qdot_ref[0] = qdot_ref[0][6:] if not with_floating_base else qdot_ref[0]
+        if start and end:
+
+            q_ref = self.dispatch_data(data=self.q[:, start:end + 1], nb_shooting=number_shooting_points,
+                                       phase_time=phase_time, start=start, end=end)
+            qdot_ref = self.dispatch_data(data=self.qdot[:, start:end + 1], nb_shooting=number_shooting_points,
+                                          phase_time=phase_time, start=start, end=end)
+        else:
+            q_ref = self.dispatch_data(data=self.q, nb_shooting=number_shooting_points, phase_time=phase_time)
+            qdot_ref = self.dispatch_data(data=self.qdot, nb_shooting=number_shooting_points, phase_time=phase_time)
+
         return q_ref, qdot_ref
+
+
+
+
+
+
+
+
