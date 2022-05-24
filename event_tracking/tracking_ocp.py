@@ -3,6 +3,7 @@ import numpy as np
 import biorbd_casadi as biorbd
 from matplotlib import pyplot as plt
 import os
+
 # from bioptim_exo.models.utils import add_header, thorax_variables
 # from bioptim_exo.data.load_events import LoadEvent
 from bioptim import (
@@ -79,16 +80,16 @@ class TrackingOcp:
     """
 
     def __init__(
-            self,
-            with_floating_base: bool,
-            c3d_path: str,
-            n_shooting_points: int,
-            nb_iteration: int,
-            ode_solver: OdeSolver = OdeSolver.RK4(),
-            model_path: str = None,
-            n_threads: int = 6,
-            final_time: float = None,
-            markers_tracked: list = None,
+        self,
+        with_floating_base: bool,
+        c3d_path: str,
+        n_shooting_points: int,
+        nb_iteration: int,
+        ode_solver: OdeSolver = OdeSolver.RK4(),
+        model_path: str = None,
+        n_threads: int = 6,
+        final_time: float = None,
+        markers_tracked: list = None,
     ):
         self.with_floating_base = with_floating_base
         if model_path is None:
@@ -170,7 +171,7 @@ class TrackingOcp:
         # Initial guess
         init_x = np.zeros((nb_q + nb_qdot, self.n_shooting_points + 1))
         init_x[:nb_q, :] = self.q_ref[0]
-        init_x[nb_q: nb_q + nb_qdot, :] = self.qdot_ref[0]
+        init_x[nb_q : nb_q + nb_qdot, :] = self.qdot_ref[0]
 
         x_init = InitialGuessList()
         x_init.add(init_x, interpolation=InterpolationType.EACH_FRAME)
