@@ -34,8 +34,8 @@ except ModuleNotFoundError:
 model_path = "../models/wu_converted_definitif_inverse_kinematics.bioMod"
 model = biorbd.Model(model_path)
 
-file_path = Path("../data/")
-file_list = list(file_path.glob("*.c3d"))  # We get the files names with a .c3d extension
+file_path = Path("../event_tracking/")
+file_list = list(file_path.glob("*.c3d"))  # We get the file names with a .c3d extension
 
 for file in file_list:
     c3d = ezc3d.c3d(file.name)  # c3d files are loaded as ezc3d object
@@ -68,11 +68,13 @@ for file in file_list:
     n_frames = c3d["parameters"]["POINT"]["FRAMES"]["value"][0]
     q_recons = np.ndarray((model.nbQ(), n_frames))
     qdot_recons = np.ndarray((model.nbQdot(), n_frames))
+    qddot_recons = np.ndarray((model.nbQddot(), n_frames))
 
     for i, targetMarkers in enumerate(markersOverFrames):
         kalman.reconstructFrame(model, targetMarkers, Q, Qdot, Qddot)
         q_recons[:, i] = Q.to_array()
         qdot_recons[:, i] = Qdot.to_array()
+        qddot_recons[:, i] = Qddot.to_array()
 
     q_recons_old = q_recons.copy()
 
@@ -81,8 +83,9 @@ for file in file_list:
     q_recons = apply_offset(model, q_recons, list_dof, 2 * np.pi)
     plot_dof(q_recons_old, q_recons, model)
 
-    # np.savetxt(os.path.splitext(file)[0] + "_q.txt", q_recons)
-    # np.savetxt(os.path.splitext(file)[0] + "_qdot.txt", qdot_recons)
+    np.savetxt(os.path.splitext(file)[0] + "_q.txt", q_recons)
+    np.savetxt(os.path.splitext(file)[0] + "_qdot.txt", qdot_recons)
+    np.savetxt(os.path.splitext(file)[0] + "_qddot.txt", qddot_recons)
 
     if biorbd_viz_found:
         b = bioviz.Viz(loaded_model=model, show_muscles=False)
