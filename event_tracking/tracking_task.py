@@ -125,7 +125,6 @@ def main():
     q_ref, qdot_ref = data.get_states_ref(
         number_shooting_points=[n_shooting_points],
         phase_time=[phase_time],
-        with_floating_base=with_floating_base,
         start=start_frame,
         end=end_frame,
     )
