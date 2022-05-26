@@ -4,9 +4,6 @@ from scipy.interpolate import interp1d
 import biorbd
 
 
-# from data.load_events import LoadEvent
-
-
 class C3dData:
     """
     The base class for managing c3d file
@@ -118,13 +115,12 @@ class LoadData:
         self.nb_markers = model.nbMarkers()
 
         # files path
+        self.c3d_file = c3d_file
         self.c3d_data = C3dData(c3d_file, model)
         self.q = load_txt_file(q_file)
         self.qdot = load_txt_file(qdot_file)
-
-        # todo:
-        # self.start = ...
-        # self.end = ...
+        self.qddot = load_txt_file(qdot_file.removesuffix("qdot.txt") + "qddot.txt")
+        self.tau = load_txt_file(qdot_file.removesuffix("qdot.txt") + "tau.txt")
 
     def dispatch_data(self, data: np.ndarray, nb_shooting: list[int], phase_time: list[int], start: int = None,
                       end: int = None):
@@ -143,21 +139,15 @@ class LoadData:
             Data adjusted+
         """
 
+        out = []
         if start and end:
-            out = []
-            index = range(start, end+1)
-            for i in range(end-start):
-                if len(data.shape) == 3:
-                    x = data#[:, :, index[i]: index[i + 1] + 1]
-                else:
-                    x = data#[:, index[i]: index[i + 1] + 1]
-                t_init = np.linspace(0, (i+1)/(end+1-start), (end+1-start))
-                t_node = np.linspace(0, (i+1)/(end+1-start), nb_shooting[0] + 1)
-                f = interp1d(t_init, x, kind="linear")
+            for i in range(end - start):
+                t_init = np.linspace(0, (i + 1) / (end + 1 - start), (end + 1 - start))
+                t_node = np.linspace(0, (i + 1) / (end + 1 - start), nb_shooting[0] + 1)
+                f = interp1d(t_init, data, kind="linear")
                 out.append(f(t_node))
         else:
             index = self.c3d_data.get_indices()
-            out = []
             for i in range(len(nb_shooting)):
                 if len(data.shape) == 3:
                     x = data[:, :, index[i]: index[i + 1] + 1]
@@ -210,24 +200,15 @@ class LoadData:
         end: int
             The frame number corresponding to the end of the studied movement
         Returns:
-            The values of q, qdot and the positions of the markers from the c3d
+            The values of q, qdot and tau from the c3d
         """
-        if start and end:
+        start = start if start is not None else 0
+        end = end if end is not None else self.nb_frame
 
-            q_ref = self.dispatch_data(data=self.q[:, start:end + 1], nb_shooting=number_shooting_points,
-                                       phase_time=phase_time, start=start, end=end)
-            qdot_ref = self.dispatch_data(data=self.qdot[:, start:end + 1], nb_shooting=number_shooting_points,
-                                          phase_time=phase_time, start=start, end=end)
-        else:
-            q_ref = self.dispatch_data(data=self.q, nb_shooting=number_shooting_points, phase_time=phase_time)
-            qdot_ref = self.dispatch_data(data=self.qdot, nb_shooting=number_shooting_points, phase_time=phase_time)
-
-        return q_ref, qdot_ref
-
-
-
-
-
-
-
-
+        q_ref = self.dispatch_data(data=self.q[:, start:end + 1], nb_shooting=number_shooting_points,
+                                   phase_time=phase_time, start=start, end=end)
+        qdot_ref = self.dispatch_data(data=self.qdot[:, start:end + 1], nb_shooting=number_shooting_points,
+                                      phase_time=phase_time, start=start, end=end)
+        tau_ref = self.dispatch_data(data=self.qdot[:, start:end + 1], nb_shooting=number_shooting_points,
+                                     phase_time=phase_time, start=start, end=end)
+        return q_ref, qdot_ref, tau_ref
