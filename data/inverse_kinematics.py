@@ -8,7 +8,7 @@ This examples shows how to
     3. Create a Kalman filter
     4. Apply the Kalman filter (inverse kinematics)
     5. Plot the kinematics (Q), velocity (Qdot) and acceleration (Qddot)
-    6. Create a .txt for each c3d which contains the generalized coordinates and velocities
+    6. Create a .txt for each c3d which contains the generalized coordinates, velocities and torques
 
 Please note that this example will work only with the Eigen backend.
 Please also note that kalman will be VERY slow if compiled in debug
