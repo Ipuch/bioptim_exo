@@ -49,6 +49,7 @@ for file in file_list:
     Q = biorbd.GeneralizedCoordinates(model)
     Qdot = biorbd.GeneralizedVelocity(model)
     Qddot = biorbd.GeneralizedAcceleration(model)
+    tau = model.InverseDynamics(Q, Qdot, Qddot)
 
     # create the list of marker from the .biomod file
     marker_names = [model.markerNames()[i].to_string() for i in range(len(model.markerNames()))]
@@ -69,12 +70,14 @@ for file in file_list:
     q_recons = np.ndarray((model.nbQ(), n_frames))
     qdot_recons = np.ndarray((model.nbQdot(), n_frames))
     qddot_recons = np.ndarray((model.nbQddot(), n_frames))
+    tau_recons = np.ndarray((model.nbQ(), n_frames))   # ??
 
     for i, targetMarkers in enumerate(markersOverFrames):
         kalman.reconstructFrame(model, targetMarkers, Q, Qdot, Qddot)
         q_recons[:, i] = Q.to_array()
         qdot_recons[:, i] = Qdot.to_array()
         qddot_recons[:, i] = Qddot.to_array()
+        tau_recons[:, i] = tau.to_array()
 
     q_recons_old = q_recons.copy()
 
@@ -86,6 +89,7 @@ for file in file_list:
     np.savetxt(os.path.splitext(file)[0] + "_q.txt", q_recons)
     np.savetxt(os.path.splitext(file)[0] + "_qdot.txt", qdot_recons)
     np.savetxt(os.path.splitext(file)[0] + "_qddot.txt", qddot_recons)
+    np.savetxt(os.path.splitext(file)[0] + "_tau.txt", tau_recons)
 
     if biorbd_viz_found:
         b = bioviz.Viz(loaded_model=model, show_muscles=False)
