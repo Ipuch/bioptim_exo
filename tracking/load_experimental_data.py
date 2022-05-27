@@ -104,7 +104,7 @@ class LoadData:
         Give the values of q, qdot and the position of the markers from the c3d
     """
 
-    def __init__(self, model: biorbd.Model, c3d_file: str, q_file: str, qdot_file: str):
+    def __init__(self, model: biorbd.Model, c3d_file: str, q_file: str, qdot_file: str, qddot_file: str = None):
         def load_txt_file(file_path: str):
             data_tp = np.loadtxt(file_path)
             return data_tp
@@ -117,6 +117,8 @@ class LoadData:
         # files path
         self.c3d_file = c3d_file
         self.c3d_data = C3dData(c3d_file, model)
+
+        self.nb_frames = self.c3d_data.c3d["parameters"]["POINT"]["FRAMES"]["value"][0]
         self.q = load_txt_file(q_file)
         self.qdot = load_txt_file(qdot_file)
         self.qddot = load_txt_file(qdot_file.removesuffix("qdot.txt") + "qddot.txt")
@@ -185,16 +187,43 @@ class LoadData:
 
         return self.dispatch_data(data=markers, nb_shooting=number_shooting_points, phase_time=phase_time)
 
-    def get_states_ref(self, number_shooting_points, phase_time, start: int = None,
+    def get_states_ref(self, number_shooting_points, phase_time, with_floating_base: bool, start: int = None,
                        end: int = None):
         """
         Give all the data from c3d file
 
         Parameters:
         number_shooting_points: list
-            The list of nb_shooting for each phases
+            The list of nb_shooting for each phase
         phase_time: list
-            The list of duration for each phases4
+            The list of duration for each phase
+        with_floating_base: bool
+            True if there is a floating base in the biorbd model
+
+        Returns:
+            The values of q, qdot and the positions of the markers from the c3d
+        """
+        start = start if start is not None else 0
+        end = end if end is not None else self.nb_frames
+
+        q_ref = self.dispatch_data(data=self.q[:, start:end + 1], nb_shooting=number_shooting_points,
+                                   phase_time=phase_time, start=start, end=end)
+        qdot_ref = self.dispatch_data(data=self.qdot[:, start:end + 1], nb_shooting=number_shooting_points,
+                                      phase_time=phase_time, start=start, end=end)
+        q_ref[0] = q_ref[0][6:] if not with_floating_base else q_ref[0]
+        qdot_ref[0] = qdot_ref[0][6:] if not with_floating_base else qdot_ref[0]
+        return q_ref, qdot_ref
+
+    def get_variables_ref(self, number_shooting_points, phase_time, start: int = None,
+                          end: int = None):
+        """
+        Give all the data from c3d file
+
+        Parameters:
+        number_shooting_points: list
+            The list of nb_shooting for each phase
+        phase_time: list
+            The list of duration for each phase
         start: int
             The frame number corresponding to the beginning of the studied movement
         end: int
@@ -203,12 +232,12 @@ class LoadData:
             The values of q, qdot and tau from the c3d
         """
         start = start if start is not None else 0
-        end = end if end is not None else self.nb_frame
+        end = end if end is not None else self.nb_frames
 
         q_ref = self.dispatch_data(data=self.q[:, start:end + 1], nb_shooting=number_shooting_points,
                                    phase_time=phase_time, start=start, end=end)
         qdot_ref = self.dispatch_data(data=self.qdot[:, start:end + 1], nb_shooting=number_shooting_points,
                                       phase_time=phase_time, start=start, end=end)
-        tau_ref = self.dispatch_data(data=self.qdot[:, start:end + 1], nb_shooting=number_shooting_points,
+        tau_ref = self.dispatch_data(data=self.qdot[:, start:end + 1], nb_shooting=[number_shooting_points[0] - 1],
                                      phase_time=phase_time, start=start, end=end)
         return q_ref, qdot_ref, tau_ref
