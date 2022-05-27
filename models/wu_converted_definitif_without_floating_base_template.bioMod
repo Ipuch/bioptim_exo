@@ -263,7 +263,7 @@ gravity	0 0 -9.81
             0.0001    0.97951422    0.20137498    0
             0    0    0    1
         rotations x
-        ranges		-1.92	1.5
+        ranges		-pi	pi
     endsegment
     // Segment
     segment humerus_shoulder_ele
@@ -275,7 +275,7 @@ gravity	0 0 -9.81
             0.0556291    -0.97951496    0.193535131    0
             0    0    0    1
         rotations y
-        ranges		-0.3	3.0
+        ranges		-pi/2	3.0
     endsegment
     // Segment
     segment humerus_shoulder_rotation
@@ -288,7 +288,7 @@ gravity	0 0 -9.81
             0    0    0    1
         rotations z
         //ranges		0.0	3.0
-        ranges		-1.9	0.35
+        ranges		-2	pi
     endsegment
 
     // Segment to cancel transformation bases effect.
