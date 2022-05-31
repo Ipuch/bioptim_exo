@@ -2,7 +2,6 @@ import sys
 import biorbd_casadi as biorbd
 
 sys.path.append("../event")
-import ezc3d
 from bioptim import (
     OptimalControlProgram,
     DynamicsFcn,
@@ -45,8 +44,7 @@ def prepare_ocp(
 
     # Add objective functions
     objective_functions = ObjectiveList()
-    # objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", index=[5, 6, 7, 8, 9, 10], weight=1000)
-    objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", index=range(5, 9), weight=1000)
+    objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", index=range(5, 10), weight=1000)
     objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="qdot", weight=1)
     objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[0, 1, 2, 3, 4], weight=1000)
 
@@ -61,6 +59,11 @@ def prepare_ocp(
     x_bounds = QAndQDotBounds(biorbd_model)
     x_bounds[:10, 0] = x_init_ref[:10, 0]
     x_bounds[:10, -1] = x_init_ref[:10, -1]
+    # x_bounds[10:, 0] = [0] * biorbd_model.nbQdot()
+    x_bounds.min[10:, 0] = [-np.pi] * biorbd_model.nbQdot()
+    x_bounds.max[10:, 0] = [np.pi] * biorbd_model.nbQdot()
+    x_bounds.min[10:, -1] = [-np.pi] * biorbd_model.nbQdot()
+    x_bounds.max[10:, -1] = [np.pi] * biorbd_model.nbQdot()
 
     n_tau = biorbd_model.nbGeneralizedTorque()
     tau_min, tau_max = -100, 100
@@ -89,7 +92,8 @@ def main():
 
     # Define the problem
     c3d_path = "F0_dents_05.c3d"
-    n_shooting_points = 100
+    # todo: manger, aisselle, dessiner
+    n_shooting_points = 200
     nb_iteration = 10000
 
     q_file_path = c3d_path.removesuffix(".c3d") + "_q.txt"
@@ -108,7 +112,7 @@ def main():
     data = load_experimental_data.LoadData(biorbd_model, c3d_path, q_file_path, qdot_file_path)
     start_frame = event.get_frame(0)
     end_frame = event.get_frame(1)
-    phase_time = event.get_time(1)-event.get_time(0)
+    phase_time = event.get_time(1) - event.get_time(0)
 
     # load initial guesses
     q_ref, qdot_ref, tau_ref = data.get_variables_ref(
@@ -131,7 +135,7 @@ def main():
         phase_time=phase_time,
     )
 
-    # my_ocp.print()
+    my_ocp.print()
 
     # add figures of constraints and objectives
     my_ocp.add_plot_penalty(CostType.ALL)
