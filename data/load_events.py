@@ -4,23 +4,26 @@ import numpy as np
 
 
 class LoadEvent:
-    def __init__(self, c3d_path: str):
+    def __init__(self,
+                 c3d_path: str,
+                 marker_list: list[str],
+                 ):
         self.c3d_path = c3d_path
         self.c3d = ezc3d.c3d(c3d_path)
+        self.marker_list = marker_list
 
     def get_time(self, idx: int) -> np.ndarray:
         """
         find the time corresponding to the event
 
-        Parameters:
+        Parameters
         ---------
-
         idx: int
             index number of the event
 
         Returns
         --------
-        event_values : ndarray
+        event_values: ndarray
             array with the time value in seconds
 
         """
@@ -31,15 +34,14 @@ class LoadEvent:
         """
         find the frame corresponding to the event
 
-        Parameters:
+        Parameters
         ---------
-
         idx: int
             index number of the event
 
         Returns
         --------
-        event_values : ndarray
+        event_values: ndarray
             array with the frame number
 
         """
@@ -53,36 +55,35 @@ class LoadEvent:
         """
         find the position of each marker during an event
 
-        Parameters:
+        Parameters
         ---------
-
         idx: int
             index number of the event
 
         Returns
         --------
-        event_values : ndarray
+        event_values: ndarray
             array with the position along three axes of each marker in millimeters
 
         """
 
-        markers = Markers.from_c3d(self.c3d_path, prefix_delimiter=":").to_numpy()
+        markers = Markers.from_c3d(self.c3d_path, usecols=self.marker_list, prefix_delimiter=":").to_numpy()
         event_markers = markers[:3, :, self.get_frame(idx)]
+
         return event_markers
 
     def get_event(self, idx: int) -> dict:
         """
         find the time, the frame and the position of each marker during an event
 
-        Parameters:
+        Parameters
         ---------
-
         idx: int
             index number of the event
 
         Returns
         --------
-        event_values : dict
+        event_values: dict
             dictionary containing the time, the frame and the positions of each marker for the event corresponding to
             the given index
 
@@ -93,8 +94,5 @@ class LoadEvent:
         return event_values
 
 
-c3d_events = LoadEvent("../event_tracking/F0_tete_05.c3d")
-print(c3d_events.get_markers(0))
-print(c3d_events.get_frame(0))
-print(c3d_events.get_time(0))
-print(c3d_events.get_event(0))
+
+

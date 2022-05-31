@@ -16,6 +16,7 @@ class C3dData:
         The list of all marker names in the biorbd model.
     trajectories: ndarray
         The position of the markers
+
     Methods
     -------
     get_marker_trajectories(self, marker_names: list) -> np.ndarray
@@ -35,13 +36,14 @@ class C3dData:
         """
         get markers trajectories
 
-        Parameters:
+        Parameters
         ---------
         marker_names: list
             The list of tracked markers
 
-        Returns:
-            an array of markers' position
+        Returns
+        --------
+        an array of markers' position
 
         """
         marker_names = self.marker_names if marker_names is None else marker_names
@@ -84,12 +86,15 @@ class LoadData:
         The number of generalized velocities in the model
     nb_markers: int
         The number of markers in the model
+    c3d_file: str
+        The c3d file path
     c3d_data: C3dData
         The data from c3d
     q: numpy.ndarray
         The array of all values of the q
     qdot: numpy.ndarray
         The array of all values of the qdot
+
     Methods
     -------
     dispatch_data(self, data, nb_shooting: list, phase_time: list)
@@ -98,6 +103,7 @@ class LoadData:
         Give the position of the markers from the c3d
     get_experimental_data(self, number_shooting_points, phase_time, with_floating_base: bool)
         Give the values of q, qdot and the position of the markers from the c3d
+
     """
 
     def __init__(self, model: biorbd.Model, c3d_file: str, q_file: str, qdot_file: str):
@@ -111,81 +117,169 @@ class LoadData:
         self.nb_markers = model.nbMarkers()
 
         # files path
+        self.c3d_file = c3d_file
         self.c3d_data = C3dData(c3d_file, model)
+
+        self.nb_frames = self.c3d_data.c3d["parameters"]["POINT"]["FRAMES"]["value"][0]
         self.q = load_txt_file(q_file)
         self.qdot = load_txt_file(qdot_file)
+        self.qddot = load_txt_file(qdot_file.removesuffix("qdot.txt") + "qddot.txt")
+        self.tau = load_txt_file(qdot_file.removesuffix("qdot.txt") + "tau.txt")
 
-    def dispatch_data(self, data: np.ndarray, nb_shooting: list, phase_time: list):
+    def dispatch_data(
+        self, data: np.ndarray, nb_shooting: list[int], phase_time: list[float], start: int = None, end: int = None
+    ) -> list[np.ndarray]:
         """
         divide and adjust data dimensions to match number of shooting point for each phase
 
-        Parameters:
+        Parameters
+        ---------
         data: np.ndarray
             The data we want to adjust
         nb_shooting: list
-            The list of nb_shooting for each phases
+            The list of nb_shooting for each phase
         phase_time: list
-            The list of duration for each phases4
+            The list of duration for each phase
+        start: int
+            The frame number corresponding to the beginning of the studied movement
+        end: int
+            The frame number corresponding to the end of the studied movement
 
-        Returns:
-            Data adjusted
+        Returns
+        --------
+        out: list[np.ndarray]
+            The array of adjusted data
+
         """
 
-        index = self.c3d_data.get_indices()
         out = []
-        for i in range(len(nb_shooting)):
-            if len(data.shape) == 3:
-                x = data[:, :, index[i] : index[i + 1] + 1]
-            else:
-                x = data[:, index[i] : index[i + 1] + 1]
-            t_init = np.linspace(0, phase_time[i], (index[i + 1] - index[i]))
-            t_node = np.linspace(0, phase_time[i], nb_shooting[i] + 1)
-            f = interp1d(t_init, x, kind="linear")
-            out.append(f(t_node))
+
+        if start and end:
+            x = data[:, :, start : end + 1] if len(data.shape) == 3 else data[:, start : end + 1]
+            for i in range(end - start):
+                t_init = np.linspace(0, (i + 1) / (end + 1 - start), (end + 1 - start))
+                t_node = np.linspace(0, (i + 1) / (end + 1 - start), nb_shooting[0] + 1)
+                f = interp1d(t_init, x, kind="linear")
+                out.append(f(t_node))
+        else:
+            idx = self.c3d_data.get_indices()
+            for i in range(len(nb_shooting)):
+                x = data[:, :, idx[i] : idx[i + 1] + 1] if len(data.shape) == 3 else data[:, idx[i] : idx[i + 1] + 1]
+                t_init = np.linspace(0, phase_time[i], (idx[i + 1] - idx[i]))
+                t_node = np.linspace(0, phase_time[i], nb_shooting[i] + 1)
+                f = interp1d(t_init, x, kind="linear")
+                out.append(f(t_node))
         return out
 
-    def get_marker_ref(self, number_shooting_points: list, phase_time: list, markers_names: list[str] = None) -> list:
+    def get_marker_ref(self, number_shooting_points: list[int], phase_time: list[int], markers_names: list[str] = None):
         """
         divide and adjust the dimensions to match number of shooting point for each phase
 
-        Parameters:
+        Parameters
         --------
-        number_shooting_points: list
-            The list of nb_shooting for each phases
-        phase_time: list
-            The list of duration for each phases4
+        number_shooting_points: list[int]
+            The list of nb_shooting for each phase
+        phase_time: list[float]
+            The list of duration for each phase
         markers_names: list[str]
             list of tracked markers
 
-        Returns:
+        Returns
         --------
-            The array of marker's position adjusted
+        The array of marker's position adjusted
+
         """
 
-        markers = self.c3d_data.trajectories if markers_names is None else self.c3d_data.get_marker_trajectories(markers_names)
-
-        return self.dispatch_data(
-            data=markers, nb_shooting=number_shooting_points, phase_time=phase_time
+        markers = (
+            self.c3d_data.trajectories
+            if markers_names is None
+            else self.c3d_data.get_marker_trajectories(markers_names)
         )
 
-    def get_states_ref(self, number_shooting_points, phase_time, with_floating_base: bool):
+        return self.dispatch_data(data=markers, nb_shooting=number_shooting_points, phase_time=phase_time)
+
+    def get_states_ref(
+        self,
+        number_shooting_points: list[int],
+        phase_time: list[float],
+        with_floating_base: bool,
+        start: int = None,
+        end: int = None,
+    ):
+        """
+        Give all the data from c3d file
+
+        Parameters
+        --------
+        number_shooting_points: list
+            The list of nb_shooting for each phase
+        phase_time: list
+            The list of duration for each phase
+        with_floating_base: bool
+            True if there is a floating base in the biorbd model
+        start: int
+            The frame number corresponding to the beginning of the studied movement
+        end: int
+            The frame number corresponding to the end of the studied movement
+
+        Returns
+        --------
+        The values of q and qdot from the c3d
+
+        """
+        start = start if start is not None else 0
+        end = end if end is not None else self.nb_frames
+
+        q_ref = self.dispatch_data(
+            data=self.q[:, start : end + 1],
+            nb_shooting=number_shooting_points,
+            phase_time=phase_time,
+            start=start,
+            end=end,
+        )
+        qdot_ref = self.dispatch_data(
+            data=self.qdot[:, start : end + 1],
+            nb_shooting=number_shooting_points,
+            phase_time=phase_time,
+            start=start,
+            end=end,
+        )
+        q_ref[0] = q_ref[0][6:] if not with_floating_base else q_ref[0]
+        qdot_ref[0] = qdot_ref[0][6:] if not with_floating_base else qdot_ref[0]
+        return q_ref, qdot_ref
+
+    def get_variables_ref(
+        self, number_shooting_points: list[int], phase_time: list[float], start: int = None, end: int = None
+    ):
         """
         Give all the data from c3d file
 
         Parameters:
-        number_shooting_points: list
-            The list of nb_shooting for each phases
-        phase_time: list
-            The list of duration for each phases4
-        with_floating_base: bool
-            True if there is a floating base in the biorbd model
+        ---------
+        number_shooting_points: list[int]
+            The list of nb_shooting for each phase
+        phase_time: list[float]
+            The list of duration for each phase
+        start: int
+            The frame number corresponding to the beginning of the studied movement
+        end: int
+            The frame number corresponding to the end of the studied movement
 
-        Returns:
-            The values of q, qdot and the positions of the markers from the c3d
+         Returns
+        --------
+        The values of q, qdot and tau from the c3d
+
         """
-        q_ref = self.dispatch_data(data=self.q, nb_shooting=number_shooting_points, phase_time=phase_time)
-        qdot_ref = self.dispatch_data(data=self.qdot, nb_shooting=number_shooting_points, phase_time=phase_time)
-        q_ref[0] = q_ref[0][6:] if not with_floating_base else q_ref[0]
-        qdot_ref[0] = qdot_ref[0][6:] if not with_floating_base else qdot_ref[0]
+        start = start if start is not None else 0
+        end = end if end is not None else self.nb_frames
 
-        return q_ref, qdot_ref
+        q_ref = self.dispatch_data(
+            data=self.q, nb_shooting=number_shooting_points, phase_time=phase_time, start=start, end=end
+        )
+        qdot_ref = self.dispatch_data(
+            data=self.qdot, nb_shooting=number_shooting_points, phase_time=phase_time, start=start, end=end
+        )
+        tau_ref = self.dispatch_data(
+            data=self.tau, nb_shooting=[number_shooting_points[0] - 1], phase_time=phase_time, start=start, end=end
+        )
+        return q_ref, qdot_ref, tau_ref
