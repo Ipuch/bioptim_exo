@@ -15,6 +15,7 @@ from bioptim import (
     Solver,
     CostType,
     InterpolationType,
+    Node,
 )
 import numpy as np
 import os
@@ -31,22 +32,26 @@ import load_experimental_data
 
 
 def prepare_ocp(
-        biorbd_model_path: str,
-        n_shooting: int,
-        x_init_ref: np.array,
-        u_init_ref: np.array,
-        ode_solver: OdeSolver = OdeSolver.RK4(),
-        use_sx: bool = False,
-        n_threads: int = 4,
-        phase_time: float = 1,
+    biorbd_model_path: str,
+    n_shooting: int,
+    x_init_ref: np.array,
+    u_init_ref: np.array,
+    target: any,
+    ode_solver: OdeSolver = OdeSolver.RK4(),
+    use_sx: bool = False,
+    n_threads: int = 4,
+    phase_time: float = 1,
 ) -> object:
     biorbd_model = biorbd.Model(biorbd_model_path)
 
     # Add objective functions
     objective_functions = ObjectiveList()
+    objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", index=range(5), weight=100)
     objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", index=range(5, 10), weight=1000)
     objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="qdot", weight=1)
     objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[0, 1, 2, 3, 4], weight=1000)
+    objective_functions.add(ObjectiveFcn.Mayer.MINIMIZE_STATE, key="qdot", node=Node.END, weight=1000)
+    objective_functions.add(ObjectiveFcn.Mayer.TRACK_MARKERS, weight=1000, target=target, node=Node.ALL)
 
     # Dynamics
     dynamics = Dynamics(DynamicsFcn.TORQUE_DRIVEN)
@@ -110,9 +115,21 @@ def main():
     # get key events
     event = load_events.LoadEvent(c3d_path=c3d_path, marker_list=marker_ref)
     data = load_experimental_data.LoadData(biorbd_model, c3d_path, q_file_path, qdot_file_path)
+    # target_start = event.get_markers(0)[:, :, np.newaxis]
+    # target_end = event.get_markers(1)[:, :, np.newaxis]
     start_frame = event.get_frame(0)
     end_frame = event.get_frame(1)
     phase_time = event.get_time(1) - event.get_time(0)
+    # target = event.get_all_markers([0, 1])
+    target = data.get_marker_ref(
+        number_shooting_points=[n_shooting_points],
+        phase_time=[phase_time],
+        # markers_names=["ULNA", "RADIUS", "SEML", "MET2", "MET5"],
+        start=start_frame,
+        end=end_frame,
+    )
+    # target = data.dispatch_data(target_frame, nb_shooting=[n_shooting_points], phase_time=[phase_time],
+    # start=start_frame, end=end_frame)
 
     # load initial guesses
     q_ref, qdot_ref, tau_ref = data.get_variables_ref(
@@ -129,13 +146,14 @@ def main():
         biorbd_model_path=new_biomod_file,
         x_init_ref=x_init_ref,
         u_init_ref=u_init_ref,
+        target=target[0],
         n_shooting=n_shooting_points,
         use_sx=False,
         n_threads=4,
         phase_time=phase_time,
     )
 
-    my_ocp.print()
+    # my_ocp.print()
 
     # add figures of constraints and objectives
     my_ocp.add_plot_penalty(CostType.ALL)
