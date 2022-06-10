@@ -31,7 +31,7 @@ from bioptim import (
     ConfigureProblem,
     CostType,
 )
-from old import IK_Kinova
+import IK_Kinova
 
 
 def prepare_ocp(
@@ -134,6 +134,7 @@ if __name__ == "__main__":
     #                 2.1504,
     #                0.2868,
     #                0.5049))
+
     q0 = np.array((0.0, 0.0, 0.0, 0.0, -0.1709, 0.0515, -0.2892, 0.6695, 0.721, 0.0, 0.0, 0.0))
 
     m = biorbd.Model(model)
@@ -145,11 +146,14 @@ if __name__ == "__main__":
     pos_init = IK_Kinova.IK_Kinova(model, q0, targetd, targetp_init)
     pos_fin = IK_Kinova.IK_Kinova(model, pos_init, targetd, targetp_fin)
 
-    b = bioviz.Viz(loaded_model=m, show_muscles=False)
+    b = bioviz.Viz(loaded_model=m, show_muscles=False, show_floor=False)
     # b.load_experimental_markers(self.xp_markers)
     q = [pos_init, pos_fin]
+    # q = [pos_init]
     # b.load_movement(np.array(q))
     b.load_movement(np.array((pos_init, pos_fin)).T)
+    # b.load_movement(np.array(pos_init).T)
+
     b.exec()
 
     # ocp = prepare_ocp(model, pos_init, pos_fin)
