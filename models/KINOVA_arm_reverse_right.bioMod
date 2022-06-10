@@ -51,13 +51,14 @@ segment part5
         -0.00002201  0.00700069 -0.00000344
         -0.00002644 -0.00000344 0.00700400
     com  -0.15597894  0.00143925  0.01848738
-    meshfile geometry\Reverse_Piece5_right.STL
+    meshfile geometry\Reverse_Piece5_right_2.STL
 endsegment
 
 segment part4
     parent    part5
 	rtinmatrix 0
-    rt -pi/6    0     -pi/6 xyz  -0.25360 -0.00772 0.02422
+    //rt -pi/6    0     -pi/6 xyz  -0.25360 -0.00772 0.02422
+    rt pi/6    0     -pi/6 xyz  -0.25325 -0.0099 0.00928
     rotations z
     ranges 	-2*pi 2*pi
     mass 0.338
