@@ -116,43 +116,24 @@ def prepare_ocp(
 
 
 if __name__ == "__main__":
-    model = "../models/KINOVA_arm_reverse_left.bioMod"
-
-    # q0 = np.array((0.1916,
-    #                -0.1963,
-    #                 3.1415,
-    #                3.1415,
-    #                3.1415,
-    #                0.576,
-    #                0.7952,
-    #               -0.5965,
-    #                1.014,
-    #                0.9272,
-    #                -0.5675,
-    #                 0.3179,
-    #                0.187,
-    #                 2.1504,
-    #                0.2868,
-    #                0.5049))
+    model = "../models/KINOVA_arm_reverse_right.bioMod"
+    biorbd_model = biorbd.Model(model)
 
     q0 = np.array((0.0, 0.0, 0.0, 0.0, -0.1709, 0.0515, -0.2892, 0.6695, 0.721, 0.0, 0.0, 0.0))
 
-    m = biorbd.Model(model)
-    X = m.markers()
-    targetd = X[2].to_array()  # 0 0 0 for now
-    targetp_init = X[4].to_array()
-    targetp_fin = X[5].to_array()
+    markers_names = [value.to_string() for value in biorbd_model.markerNames()]
+    markers_list = biorbd_model.markers()
 
-    pos_init = IK_Kinova.IK_Kinova(model, q0, targetd, targetp_init)
-    pos_fin = IK_Kinova.IK_Kinova(model, pos_init, targetd, targetp_fin)
+    targetd = markers_list[markers_names.index('grd_contact1')].to_array()  # 0 0 0 for now
+    targetp_init = markers_list[markers_names.index('mg1')].to_array()
+    targetp_fin = markers_list[markers_names.index('mg2')].to_array()
 
-    b = bioviz.Viz(loaded_model=m, show_muscles=False, show_floor=False)
-    # b.load_experimental_markers(self.xp_markers)
+    pos_init = IK_Kinova.IK_Kinova(biorbd_model, markers_names, q0, targetd, targetp_init)
+    pos_fin = IK_Kinova.IK_Kinova(biorbd_model, markers_names, pos_init, targetd, targetp_fin)
+
+    b = bioviz.Viz(loaded_model=biorbd_model, show_muscles=False, show_floor=False)
     q = [pos_init, pos_fin]
-    # q = [pos_init]
-    # b.load_movement(np.array(q))
     b.load_movement(np.array((pos_init, pos_fin)).T)
-    # b.load_movement(np.array(pos_init).T)
 
     b.exec()
 

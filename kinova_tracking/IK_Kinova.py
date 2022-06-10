@@ -1,35 +1,26 @@
-import biorbd as biorbd
+import biorbd
 from scipy import optimize
 import numpy as np
+import utils
 
 
-def IK_Kinova(model_path: str, q0: np.ndarray, targetd: np.ndarray, targetp: np.ndarray):
+def IK_Kinova(biorbd_model: biorbd.Model, markers_names: list[str], q0: np.ndarray, targetd: np.ndarray, targetp: np.ndarray):
     """
-
+    :param markers_names:
+    :param biorbd_model:
     :param targetd:
     :param targetp:
     :param q0:
-    :type model_path: object
     """
-    m = biorbd.Model(model_path)
-    bound_min = []
-    bound_max = []
-    for i in range(m.nbSegment()):
-        seg = m.segment(i)
-        for r in seg.QRanges():
-            bound_min.append(r.min())
-            bound_max.append(r.max())
-    bounds = (bound_min, bound_max)
-
     def objective_function(x, *args, **kwargs):
-        markers = m.markers(x)
+        markers = biorbd_model.markers(x)
         out1 = np.linalg.norm(markers[0].to_array() - targetd) ** 2
-        out3_1 = (markers[-1].to_array()[0] - targetp[0]) ** 2
-        out3_2 = (markers[-1].to_array()[1] - targetp[1]) ** 2
-        out3_3 = (markers[-1].to_array()[2] - targetp[2]) ** 2
+        out3_1 = (markers[markers_names.index('md0')].to_array()[0] - targetp[0]) ** 2
+        out3_2 = (markers[markers_names.index('md0')].to_array()[1] - targetp[1]) ** 2
+        out3_3 = (markers[markers_names.index('md0')].to_array()[2] - targetp[2]) ** 2
         out3 = out3_1 + out3_2 + out3_3
-        # out3 = np.linalg.norm(markers[-1].to_array() - targetp) ** 2
-        T = m.globalJCS(x, m.nbSegment() - 1).to_array()
+        # out3 = np.linalg.norm(markers[X_names.index('md0')].to_array() - targetp) ** 2
+        T = biorbd_model.globalJCS(x, biorbd_model.nbSegment() - 1).to_array()
         out2 = T[2, 0] ** 2 + T[2, 1] ** 2 + T[0, 2] ** 2 + T[1, 2] ** 2 + (1 - T[2, 2]) ** 2
 
         # return 10 * out1 + out2 + 10 * out3 + 1000 * (q_3e_pivot - q_3epivot_desired)
@@ -37,9 +28,9 @@ def IK_Kinova(model_path: str, q0: np.ndarray, targetd: np.ndarray, targetp: np.
 
     pos = optimize.least_squares(
         objective_function,
-        args=(m, targetd, targetp),
+        args=(biorbd_model, targetd, targetp),
         x0=q0,
-        bounds=bounds,
+        bounds=utils.get_range_q(biorbd_model),
         verbose=2,
         method="trf",
         jac="3-point",
