@@ -5,7 +5,6 @@ from ezc3d import c3d
 import biorbd
 import os
 
-# model_path = "../models/KINOVA_merge_without_floating_base.bioMod"
 model_path = "../models/wu_converted_definitif_inverse_kinematics.bioMod"
 biorbd_model = biorbd.Model(model_path)
 
