@@ -60,7 +60,7 @@ segment part4
     //rt -pi/6    0     -pi/6 xyz  -0.25360 -0.00772 0.02422
     rt pi/6    0     -pi/6 xyz  -0.25325 -0.0099 0.00928
     rotations z
-    ranges 	-2*pi 2*pi
+    ranges 	0 pi/2
     mass 0.338
     inertia
         0.00078841  0.00002960  0
