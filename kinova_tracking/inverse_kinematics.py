@@ -117,9 +117,12 @@ class InverseKinematics:
         elif isinstance(marker_data, np.ndarray):
             self.c3d_path_file = None
             self.c3d = None
-            if marker_data.ndim == 3 and marker_data.shape[0] <= 3 and marker_data.shape[1] == self.nb_markers:
+            if marker_data.ndim >= 2 and marker_data.shape[0] <= 3 and marker_data.shape[1] == self.nb_markers:
                 self.xp_markers = marker_data
-                self.nb_frames = marker_data.shape[2]
+                if marker_data.ndim == 3:
+                    self.nb_frames = marker_data.shape[2]
+                else:
+                    self.nb_frames = 0
             else:
                 raise ValueError(f"The standard dimension of the NumPy array should be (nb_dim, nb_marker, nb_frame)")
         else:
