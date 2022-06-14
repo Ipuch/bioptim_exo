@@ -6,7 +6,6 @@ import biorbd_casadi
 import biorbd
 import bioviz
 import numpy as np
-from casadi import MX, vertcat
 from bioptim import (
     Solver,
     PenaltyNode,
@@ -32,6 +31,7 @@ from bioptim import (
     CostType,
 )
 import IK_Kinova
+from ezc3d import c3d
 
 
 def prepare_ocp(
@@ -116,13 +116,44 @@ def prepare_ocp(
 
 
 if __name__ == "__main__":
-    model = "../models/KINOVA_arm_reverse_right.bioMod"
-    biorbd_model = biorbd.Model(model)
+    #todo: lock the floating base
+    #todo: create kinova merged with variables
+    model = "../models/KINOVA_merge.bioMod"
+    # model = "../models/KINOVA_arm_reverse_right.bioMod"
+    c3d_path = "../data/kinova_arm/F3_aisselle_01.c3d"
 
-    q0 = np.array((0.0, 0.0, 0.0, 0.0, -0.1709, 0.0515, -0.2892, 0.6695, 0.721, 0.0, 0.0, 0.0))
+    biorbd_model = biorbd.Model(model)
+    c3d = c3d(c3d_path)
+
+    # q0 = np.array((0.0, 0.0, 0.0, 0.0, -0.1709, 0.0515, -0.2892, 0.6695, 0.721, 0.0, 0.0, 0.0))
+    q0 = np.array((-0.49936691256448906,
+                   0.6129779697515374,
+                   0.37513329009911695,
+                   -1.588636623158031,
+                   3.1415926535897927,
+                   -3.0956382757004506,
+                   -0.1828863713271869,
+                   -0.18554581848601184,
+                   3.1415926535897927,
+                   -3.1415926535897927,
+                   3.1415926535897913,
+                   0.4561403964243357,
+                   0.6148957681121301,
+                   -0.1053897314454207,
+                   1.1118454130974944,
+                   1.0199120908159471,
+                   -0.3535,
+                   0.3739,
+                   0.4524,
+                   -1.879,
+                   0.1111,
+                   0.2817))
 
     markers_names = [value.to_string() for value in biorbd_model.markerNames()]
     markers_list = biorbd_model.markers()
+
+    points = c3d["data"]["points"]
+    labels_markers = c3d["parameters"]["POINT"]["LABELS"]["value"]
 
     targetd = markers_list[markers_names.index('grd_contact1')].to_array()  # 0 0 0 for now
     targetp_init = markers_list[markers_names.index('mg1')].to_array()

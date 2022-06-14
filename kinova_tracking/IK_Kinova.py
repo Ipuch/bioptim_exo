@@ -34,7 +34,7 @@ def IK_Kinova(biorbd_model: biorbd.Model, markers_names: list[str], q0: np.ndarr
         verbose=2,
         method="trf",
         jac="3-point",
-        ftol=2.22e-16,
+        ftol=1e-5,
         gtol=1e-5,
     )
 
