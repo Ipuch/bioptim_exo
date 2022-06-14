@@ -538,14 +538,15 @@ segment part5
         -0.00002201  0.00700069 -0.00000344
         -0.00002644 -0.00000344 0.00700400
     com  -0.15597894  0.00143925  0.01848738
-    meshfile geometry\Reverse_Piece5_right.STL
+    meshfile geometry\Reverse_Piece5_right_2.STL
     meshcolor 0 0 0
 endsegment
 
 segment part4
     parent    part5
 	rtinmatrix 0
-    rt -pi/6    0     -pi/6 xyz  -0.25360 -0.00772 0.02422
+    //rt -pi/6    0     -pi/6 xyz  -0.25360 -0.00772 0.02422
+    rt pi/6    0     -pi/6 xyz  -0.25325 -0.0099 0.00928
     rotations z
     ranges 	-2*pi 2*pi
     mass 0.338
@@ -700,7 +701,7 @@ endsegment
         parent    hand_r
         position    -0.034857887005921739 -0.057673278011784845 0.019247369721773766
     endmarker
-/*
+
     marker    Contact_mk1
         parent    part1
         position  -0.120 0 0
@@ -711,13 +712,12 @@ endsegment
         parent    part1
         position  -0.120 0 0.1
     endmarker
-    */
 
     marker    Table:Table5
         parent    part1
         position  -0.120 0 0.1
     endmarker
-/*
+
     marker     grd_contact1
         parent ground
         position 0  0 0
@@ -725,12 +725,12 @@ endsegment
 
     marker     grd_contact2
         parent ground
-        position 0  0   0.1
+        position 0  0  0.1
     endmarker
 
     marker      mg1
         parent ground
-        position -0.027  0.40 -0.10
+        position -0.027  0.40 0.10
     endmarker
 
     marker      mg2
@@ -742,7 +742,7 @@ endsegment
         parent part7
         position 0.01 0.01 0.01
     endmarker
-    */
+
 
 // MUSCLE DEFINIION
 
