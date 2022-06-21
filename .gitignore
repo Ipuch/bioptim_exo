@@ -8,3 +8,15 @@
 tracking/__pycache__/
 
 tracking/save/
+
+event_tracking/save/
+gimbal_lock/save/
+models/wu_converted_definitif_without_floating_base_template_with_variables.bioMod
+
+models/wu_converted_definitif_without_floating_base_template_fixed_with_variables.bioMod
+
+models/wu_converted_definitif_without_floating_base_template_quat_with_variables.bioMod
+
+tracking/animate_my_solution.py
+
+Animate_my_model.py
