@@ -706,7 +706,7 @@ endsegment
         parent    part1
         position  -0.120 0 0.1
     endmarker
-*/
+
     marker     grd_contact1
         parent ground
         position 0  0 0
@@ -731,7 +731,7 @@ endsegment
         parent part7
         position 0.01 0.01 0.01
     endmarker
-
+*/
 
 // MUSCLE DEFINIION
 

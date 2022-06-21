@@ -144,15 +144,15 @@ if __name__ == "__main__":
     my_ik = ik.InverseKinematics(model_path_without_kinova, markers_without_kinova)
     my_ik.solve("lm")
 
-    my_ik.animate()
+    # my_ik.animate()
 
     thorax_values = {
-        "thoraxRT1": my_ik.q[0, :].mean(),
-        "thoraxRT2": my_ik.q[1, :].mean(),
-        "thoraxRT3": my_ik.q[2, :].mean(),
-        "thoraxRT4": my_ik.q[3, :].mean(),
-        "thoraxRT5": my_ik.q[4, :].mean(),
-        "thoraxRT6": my_ik.q[5, :].mean(),
+        "thoraxRT1": my_ik.q[3, :].mean(),
+        "thoraxRT2": my_ik.q[4, :].mean(),
+        "thoraxRT3": my_ik.q[5, :].mean(),
+        "thoraxRT4": my_ik.q[0, :].mean(),
+        "thoraxRT5": my_ik.q[1, :].mean(),
+        "thoraxRT6": my_ik.q[2, :].mean(),
     }
     old_biomod_file = (
         "../models/KINOVA_merge_without_floating_base_template.bioMod"

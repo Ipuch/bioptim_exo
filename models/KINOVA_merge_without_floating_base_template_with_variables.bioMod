@@ -1,11 +1,11 @@
 version 4
 variables
-	$thoraxRT1 -0.5003904947857671
-	$thoraxRT2 0.6176353259570346
-	$thoraxRT3 0.3770733287468461
-	$thoraxRT4 1.521658891101423
-	$thoraxRT5 -0.06133360185047414
-	$thoraxRT6 0.0252118792026403
+	$thoraxRT1 1.52170811191705
+	$thoraxRT2 -0.061413388734570695
+	$thoraxRT3 0.025243238609444413
+	$thoraxRT4 -0.5004068433610389
+	$thoraxRT5 0.6176260579049055
+	$thoraxRT6 0.37707449347359245
 endvariables
 
 // File extracted from C:/Users/remi6/Desktop/S5/Wu_shoulder_model/Wu_Shoulder_Model_kinova_definitif.osim
@@ -714,7 +714,7 @@ endsegment
         parent    part1
         position  -0.120 0 0.1
     endmarker
-*/
+
     marker     grd_contact1
         parent ground
         position 0  0 0
@@ -739,7 +739,7 @@ endsegment
         parent part7
         position 0.01 0.01 0.01
     endmarker
-
+*/
 
 // MUSCLE DEFINIION
 
