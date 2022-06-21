@@ -31,13 +31,18 @@ from bioptim import (
     CostType,
 )
 import IK_Kinova
+import inverse_kinematics as ik
+import time
+import numpy as np
 from ezc3d import c3d
+import biorbd
+from models.utils import add_header, thorax_variables
 
 
 def prepare_ocp(
-    biorbd_model_path: str = "KINOVA_arm_reverse_left.bioMod",
-    q0: np.ndarray = np.zeros((12, 1)),
-    qfin: np.ndarray = np.zeros((12, 1)),
+        biorbd_model_path: str = None,
+        q0: np.ndarray = np.zeros((12, 1)),
+        qfin: np.ndarray = np.zeros((12, 1)),
 ) -> OptimalControlProgram:
     """
     Prepare the ocp
@@ -116,55 +121,96 @@ def prepare_ocp(
 
 
 if __name__ == "__main__":
-    #todo: lock the floating base
-    #todo: create kinova merged with variables
-    model = "../models/KINOVA_merge.bioMod"
-    # model = "../models/KINOVA_arm_reverse_right.bioMod"
+
+    model_path_without_kinova = "../models/wu_converted_definitif_inverse_kinematics.bioMod"
+    biorbd_model_without_kinova = biorbd.Model(model_path_without_kinova)
+
     c3d_path = "../data/kinova_arm/F3_aisselle_01.c3d"
 
-    biorbd_model = biorbd.Model(model)
     c3d = c3d(c3d_path)
 
-    # q0 = np.array((0.0, 0.0, 0.0, 0.0, -0.1709, 0.0515, -0.2892, 0.6695, 0.721, 0.0, 0.0, 0.0))
-    q0 = np.array((-0.49936691256448906,
-                   0.6129779697515374,
-                   0.37513329009911695,
-                   -1.588636623158031,
-                   3.1415926535897927,
-                   -3.0956382757004506,
-                   -0.1828863713271869,
-                   -0.18554581848601184,
-                   3.1415926535897927,
-                   -3.1415926535897927,
-                   3.1415926535897913,
-                   0.4561403964243357,
-                   0.6148957681121301,
-                   -0.1053897314454207,
-                   1.1118454130974944,
-                   1.0199120908159471,
-                   -0.3535,
-                   0.3739,
-                   0.4524,
-                   -1.879,
-                   0.1111,
-                   0.2817))
+    points = c3d["data"]["points"]
+    labels_markers = c3d["parameters"]["POINT"]["LABELS"]["value"]
+    labels_markers.append('Table:Table6')
+
+    marker_names_without_kinova = [
+        biorbd_model_without_kinova.markerNames()[i].to_string() for i in range(biorbd_model_without_kinova.nbMarkers())
+    ]
+    markers_without_kinova = np.zeros((3, len(marker_names_without_kinova), len(points[0, 0, :])))
+
+    for i, name in enumerate(marker_names_without_kinova):
+        markers_without_kinova[:, i, :] = points[:3, labels_markers.index(name), :] / 1000
+
+    my_ik = ik.InverseKinematics(model_path_without_kinova, markers_without_kinova)
+    my_ik.solve("lm")
+
+    my_ik.animate()
+
+    thorax_values = {
+        "thoraxRT1": my_ik.q[0, :].mean(),
+        "thoraxRT2": my_ik.q[1, :].mean(),
+        "thoraxRT3": my_ik.q[2, :].mean(),
+        "thoraxRT4": my_ik.q[3, :].mean(),
+        "thoraxRT5": my_ik.q[4, :].mean(),
+        "thoraxRT6": my_ik.q[5, :].mean(),
+    }
+    old_biomod_file = (
+        "../models/KINOVA_merge_without_floating_base_template.bioMod"
+    )
+    new_biomod_file = (
+        "../models/KINOVA_merge_without_floating_base_template_with_variables.bioMod"
+    )
+    add_header(old_biomod_file, new_biomod_file, thorax_values)
+
+    model_path = new_biomod_file
+
+    biorbd_model = biorbd.Model(model_path)
+
+    q0_rescue = np.array([
+                -0.18905905, -0.22494988,  0.17328238,  0.22634287,  0.0068234, 0.18016999,  0.68947024,
+                -0.01252137,  1.10091368,  1.0030519, 0.,  0.2618, 0.3903, 1.7951, 0.6878, 0.3952])
+
+    q0_1 = my_ik.q[6:, 0]
+    q0_2 = np.array((-0.2892, 0.6695, 0.721, 0.0, 0.0, 0.0))
+    q0_2 = np.array((0.0, 0.2618, 0.3903, 1.7951, 0.6878, 0.3952))
+    q0 = np.concatenate((q0_1, q0_2))
 
     markers_names = [value.to_string() for value in biorbd_model.markerNames()]
     markers_list = biorbd_model.markers()
 
-    points = c3d["data"]["points"]
-    labels_markers = c3d["parameters"]["POINT"]["LABELS"]["value"]
+    count = 0
+    for i, name in enumerate(markers_names):
+        if name in labels_markers:
+            count += 1
 
-    targetd = markers_list[markers_names.index('grd_contact1')].to_array()  # 0 0 0 for now
-    targetp_init = markers_list[markers_names.index('mg1')].to_array()
+    markers = np.zeros((3, count, len(points[0, 0, :])))
+
+    for i, name in enumerate(markers_names):
+        if name in labels_markers:
+            if name == 'Table:Table6':
+                markers[:, i, :] = points[:3, labels_markers.index('Table:Table5'), :] / 1000
+            else:
+                markers[:, i, :] = points[:3, labels_markers.index(name), :] / 1000
+
+    markers[2, markers_names.index('Table:Table6'), :] = markers[2, markers_names.index('Table:Table6'), :] + 0.1
+
+    # target_init tous les marqueurs du bras minimize (xyz)
+    # + les marqeurs distaux (ground contact 1 + ground contact 2) (x y)
+
+    # targetd = markers_list[markers_names.index('grd_contact1')].to_array()  # 0 0 0 for now
+    targetd = markers[:, 14:, 0]
+
+    # targetp_init = markers_list[markers_names.index('mg1')].to_array()
+    targetp_init = markers[:, 0:14, 0]
+
     targetp_fin = markers_list[markers_names.index('mg2')].to_array()
 
     pos_init = IK_Kinova.IK_Kinova(biorbd_model, markers_names, q0, targetd, targetp_init)
-    pos_fin = IK_Kinova.IK_Kinova(biorbd_model, markers_names, pos_init, targetd, targetp_fin)
+    # pos_fin = IK_Kinova.IK_Kinova(biorbd_model, markers_names, pos_init, targetd, targetp_fin)
 
     b = bioviz.Viz(loaded_model=biorbd_model, show_muscles=False, show_floor=False)
-    q = [pos_init, pos_fin]
-    b.load_movement(np.array((pos_init, pos_fin)).T)
+    q = pos_init
+    b.load_movement(np.array((pos_init, pos_init)).T)
 
     b.exec()
 

@@ -4,7 +4,12 @@ import numpy as np
 import utils
 
 
-def IK_Kinova(biorbd_model: biorbd.Model, markers_names: list[str], q0: np.ndarray, targetd: np.ndarray, targetp: np.ndarray):
+def IK_Kinova(
+        biorbd_model: biorbd.Model,
+        markers_names: list[str],
+        q0: np.ndarray,
+        targetd: np.ndarray,
+        targetp: np.ndarray):
     """
     :param markers_names:
     :param biorbd_model:
@@ -14,17 +19,20 @@ def IK_Kinova(biorbd_model: biorbd.Model, markers_names: list[str], q0: np.ndarr
     """
     def objective_function(x, *args, **kwargs):
         markers = biorbd_model.markers(x)
-        out1 = np.linalg.norm(markers[0].to_array() - targetd) ** 2
-        out3_1 = (markers[markers_names.index('md0')].to_array()[0] - targetp[0]) ** 2
-        out3_2 = (markers[markers_names.index('md0')].to_array()[1] - targetp[1]) ** 2
-        out3_3 = (markers[markers_names.index('md0')].to_array()[2] - targetp[2]) ** 2
-        out3 = out3_1 + out3_2 + out3_3
-        # out3 = np.linalg.norm(markers[X_names.index('md0')].to_array() - targetp) ** 2
+        table5_xyz = np.linalg.norm(markers[markers_names.index('Table:Table5')].to_array()[:] - targetd[:, 0]) ** 2
+        table6_xy = np.linalg.norm(markers[markers_names.index('Table:Table6')].to_array()[:2] - targetd[:2, 1]) ** 2
+        mark_list = []
+        mark_out = 0
+        for j in range(len(targetp[0, :])):
+            mark = np.linalg.norm(markers[j].to_array()[:] - targetd[:, 1]) ** 2
+            mark_list.append(mark)
+            mark_out += mark
+
         T = biorbd_model.globalJCS(x, biorbd_model.nbSegment() - 1).to_array()
         out2 = T[2, 0] ** 2 + T[2, 1] ** 2 + T[0, 2] ** 2 + T[1, 2] ** 2 + (1 - T[2, 2]) ** 2
 
-        # return 10 * out1 + out2 + 10 * out3 + 1000 * (q_3e_pivot - q_3epivot_desired)
-        return 10 * out1 + out2 + 10 * out3
+        # return 10 * out1 + out2 + 10 * out3
+        return 1000 * table5_xyz + 1000 * table6_xy + out2 + mark_out
 
     pos = optimize.least_squares(
         objective_function,
