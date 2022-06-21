@@ -37,35 +37,14 @@ endsegment
 	//-pi     pi
 	//-pi     pi
     endsegment
-// Rotation transform was initially an orthogonal basis
-    // Segment
-    segment thorax_rotation_transform
-        parent thorax_translation
-        RTinMatrix    1
-        RT
-            0.0    1.0    0.0    0
-            0.0    0.0    1.0    0
-            1.0    0.0    0.0    0
-            0    0    0    1
-        rotations xyz
-    endsegment
 
-    // Segment to cancel transformation bases effect.
-    // Segment
-    segment thorax_reset_axis
-        parent thorax_rotation_transform
-        RTinMatrix    1
-        RT
-            0.0    0.0    1.0    0
-            1.0    0.0    0.0    0
-            0.0    1.0    0.0    0
-            0    0    0    1
-    endsegment
+// The following segment were removed: thorax_rotation_transform, thorax_reset_axis
+
 
     //True segment where are applied inertial values.
     // Segment
     segment thorax
-        parent thorax_reset_axis
+        parent thorax_translation
         RTinMatrix    0
         RT	-0.0 -0.0 -0.0	xyz	0.0 0.0 0.0
         mass 20
@@ -707,6 +686,16 @@ endsegment
         position    -0.034857887005921739 -0.057673278011784845 0.019247369721773766
     endmarker
 
+    marker    Table:Table5
+        parent    part1
+        position  -0.120 0 0
+    endmarker
+
+     marker    Table:Table6
+        parent    part1
+        position  -0.120 0 0.1
+    endmarker
+/*
     marker    Contact_mk1
         parent    part1
         position  -0.120 0 0
@@ -717,12 +706,7 @@ endsegment
         parent    part1
         position  -0.120 0 0.1
     endmarker
-
-    marker    Table:Table5
-        parent    part1
-        position  -0.120 0 0.1
-    endmarker
-
+*/
     marker     grd_contact1
         parent ground
         position 0  0 0

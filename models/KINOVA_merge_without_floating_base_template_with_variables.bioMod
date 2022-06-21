@@ -1,4 +1,12 @@
 version 4
+variables
+	$thoraxRT1 -0.5003904947857671
+	$thoraxRT2 0.6176353259570346
+	$thoraxRT3 0.3770733287468461
+	$thoraxRT4 1.521658891101423
+	$thoraxRT5 -0.06133360185047414
+	$thoraxRT6 0.0252118792026403
+endvariables
 
 // File extracted from C:/Users/remi6/Desktop/S5/Wu_shoulder_model/Wu_Shoulder_Model_kinova_definitif.osim
 
@@ -14,7 +22,8 @@ endsegment
     segment thorax_parent_offset
         parent ground
         RTinMatrix    0
-        RT	0.0 0.0 0.0	xyz	0.0 0.0 0.0
+        //RT	0.0 0.0 0.0	xyz	0.0 0.0 0.0
+        RT $thoraxRT1 $thoraxRT2 $thoraxRT3 xyz $thoraxRT4 $thoraxRT5 $thoraxRT6
     endsegment
 
     // Segments to define transformation axis.
@@ -27,40 +36,23 @@ endsegment
             0.0    1.0    0.0    0
             0.0    0.0    1.0    0
             0    0    0    1
-        translations xyz
-        ranges		-20.0	20.0
-	-2.0	4.0
-	-5.0	5.0
-    endsegment
-// Rotation transform was initially an orthogonal basis
-    // Segment
-    segment thorax_rotation_transform
-        parent thorax_translation
-        RTinMatrix    1
-        RT
-            0.0    1.0    0.0    0
-            0.0    0.0    1.0    0
-            1.0    0.0    0.0    0
-            0    0    0    1
-        rotations xyz
+        //translations xyz
+        //rotations xyz
+        //ranges		-20.0	20.0
+	//-2.0	4.0
+	//-5.0	5.0
+	//-pi     pi
+	//-pi     pi
+	//-pi     pi
     endsegment
 
-    // Segment to cancel transformation bases effect.
-    // Segment
-    segment thorax_reset_axis
-        parent thorax_rotation_transform
-        RTinMatrix    1
-        RT
-            0.0    0.0    1.0    0
-            1.0    0.0    0.0    0
-            0.0    1.0    0.0    0
-            0    0    0    1
-    endsegment
+// The following segment were removed: thorax_rotation_transform, thorax_reset_axis
+
 
     //True segment where are applied inertial values.
     // Segment
     segment thorax
-        parent thorax_reset_axis
+        parent thorax_translation
         RTinMatrix    0
         RT	-0.0 -0.0 -0.0	xyz	0.0 0.0 0.0
         mass 20
@@ -702,6 +694,16 @@ endsegment
         position    -0.034857887005921739 -0.057673278011784845 0.019247369721773766
     endmarker
 
+    marker    Table:Table5
+        parent    part1
+        position  -0.120 0 0
+    endmarker
+
+     marker    Table:Table6
+        parent    part1
+        position  -0.120 0 0.1
+    endmarker
+/*
     marker    Contact_mk1
         parent    part1
         position  -0.120 0 0
@@ -712,12 +714,7 @@ endsegment
         parent    part1
         position  -0.120 0 0.1
     endmarker
-
-    marker    Table:Table5
-        parent    part1
-        position  -0.120 0 0.1
-    endmarker
-
+*/
     marker     grd_contact1
         parent ground
         position 0  0 0
