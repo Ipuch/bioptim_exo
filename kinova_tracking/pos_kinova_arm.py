@@ -194,23 +194,20 @@ if __name__ == "__main__":
 
     markers[2, markers_names.index('Table:Table6'), :] = markers[2, markers_names.index('Table:Table6'), :] + 0.1
 
-    # target_init tous les marqueurs du bras minimize (xyz)
-    # + les marqeurs distaux (ground contact 1 + ground contact 2) (x y)
-
     # targetd = markers_list[markers_names.index('grd_contact1')].to_array()  # 0 0 0 for now
-    targetd = markers[:, 14:, 0]
+    table_markers = markers[:, 14:, 0]
 
     # targetp_init = markers_list[markers_names.index('mg1')].to_array()
-    targetp_init = markers[:, 0:14, 0]
-
-    targetp_fin = markers_list[markers_names.index('mg2')].to_array()
-
-    pos_init = IK_Kinova.IK_Kinova(biorbd_model, markers_names, q0, targetd, targetp_init)
-    # pos_fin = IK_Kinova.IK_Kinova(biorbd_model, markers_names, pos_init, targetd, targetp_fin)
+    thorax_markers = markers[:, 0:14, 0]
+    xp_data = markers[:, :, :100]
+    # pos_init = IK_Kinova.IK_Kinova(biorbd_model, markers_names, q0, table_markers, thorax_markers)
+    pos_init = IK_Kinova.IK_Kinova(biorbd_model, markers_names, xp_data, q0)
+    q0 = pos_init
 
     b = bioviz.Viz(loaded_model=biorbd_model, show_muscles=False, show_floor=False)
-    q = pos_init
-    b.load_movement(np.array((pos_init, pos_init)).T)
+    b.load_experimental_markers(xp_data)
+    # b.load_movement(np.array(q0, q0).T)
+    b.load_movement(pos_init)
 
     b.exec()
 

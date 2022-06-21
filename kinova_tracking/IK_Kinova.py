@@ -7,46 +7,53 @@ import utils
 def IK_Kinova(
         biorbd_model: biorbd.Model,
         markers_names: list[str],
+        markers: np.ndarray,
         q0: np.ndarray,
-        targetd: np.ndarray,
-        targetp: np.ndarray):
+        # table: np.ndarray,
+        # thorax: np.ndarray
+        ):
     """
+    :param markers:
     :param markers_names:
     :param biorbd_model:
-    :param targetd:
-    :param targetp:
+    :param table:
+    :param thorax:
     :param q0:
     """
-    def objective_function(x, *args, **kwargs):
+    def objective_function(x, biorbd_model, table_markers, thorax_markers):
         markers = biorbd_model.markers(x)
-        table5_xyz = np.linalg.norm(markers[markers_names.index('Table:Table5')].to_array()[:] - targetd[:, 0]) ** 2
-        table6_xy = np.linalg.norm(markers[markers_names.index('Table:Table6')].to_array()[:2] - targetd[:2, 1]) ** 2
+        table5_xyz = np.linalg.norm(markers[markers_names.index('Table:Table5')].to_array()[:] - table_markers[:, 0]) ** 2
+        table6_xy = np.linalg.norm(markers[markers_names.index('Table:Table6')].to_array()[:2] - table_markers[:2, 1]) ** 2
         mark_list = []
         mark_out = 0
-        for j in range(len(targetp[0, :])):
-            mark = np.linalg.norm(markers[j].to_array()[:] - targetd[:, 1]) ** 2
+        for j in range(len(thorax_markers[0, :])):
+            mark = np.linalg.norm(markers[j].to_array()[:] - thorax_markers[:, j]) ** 2
             mark_list.append(mark)
             mark_out += mark
 
         T = biorbd_model.globalJCS(x, biorbd_model.nbSegment() - 1).to_array()
         out2 = T[2, 0] ** 2 + T[2, 1] ** 2 + T[0, 2] ** 2 + T[1, 2] ** 2 + (1 - T[2, 2]) ** 2
 
-        # return 10 * out1 + out2 + 10 * out3
         return 1000 * table5_xyz + 1000 * table6_xy + out2 + mark_out
+        # return 1000 * table5_xyz + 1000 * table6_xy + mark_out
 
-    pos = optimize.least_squares(
-        objective_function,
-        args=(biorbd_model, targetd, targetp),
-        x0=q0,
-        bounds=utils.get_range_q(biorbd_model),
-        verbose=2,
-        method="trf",
-        jac="3-point",
-        ftol=1e-5,
-        gtol=1e-5,
-    )
+    q = np.zeros((biorbd_model.nbQ(), markers.shape[2]))
+    bounds = [(mini, maxi) for mini, maxi in zip(utils.get_range_q(biorbd_model)[0], utils.get_range_q(biorbd_model)[1])]
+    for f in range(markers.shape[2]):
+        x0 = q0 if f == 0 else q[:, f - 1]
+        pos = optimize.minimize(
+            fun=objective_function,
+            args=(biorbd_model, markers[:, 14:, f], markers[:, 0:14, f]),
+            x0=x0 ,
+            bounds=bounds,
+            method="trust-constr",
+            jac="3-point",
+            tol=1e-5,
+        )
+        q[:, f] = pos.x
+        print(f"frame {f} done")
 
-    return pos.x
+    return q
 
 
 def IK_Kinova_RT(model_path: str, q0: np.ndarray, targetd: np.ndarray, targetp: np.ndarray):
