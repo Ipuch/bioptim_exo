@@ -1,7 +1,4 @@
-import sys
 import biorbd_casadi as biorbd
-
-sys.path.append("../event")
 from bioptim import (
     OptimalControlProgram,
     DynamicsFcn,
@@ -17,73 +14,77 @@ from bioptim import (
     InterpolationType,
     Node,
 )
-import numpy as np
 import os
+import numpy as np
 from datetime import datetime
+import models.utils as utils
+import data.load_events as load_events
+import tracking.load_experimental_data as load_experimental_data
 
-sys.path.append("../models")
-import utils
 
-sys.path.append("../data")
-import load_events
-
-sys.path.append("../tracking")
-import load_experimental_data
+# import sys
+# sys.path.append("../models")
+# sys.path.append("../data")
+# sys.path.append("../tracking")
 
 
 def prepare_ocp(
     biorbd_model_path: str,
+    c3d_path: str,
     n_shooting: int,
     x_init_ref: np.array,
     u_init_ref: np.array,
     target: any,
     ode_solver: OdeSolver = OdeSolver.RK4(),
     use_sx: bool = False,
-    n_threads: int = 16,
+    n_threads: int = 4,
     phase_time: float = 1,
 ) -> object:
     biorbd_model = biorbd.Model(biorbd_model_path)
 
     # Add objective functions
     objective_functions = ObjectiveList()
-    objective_functions.add(
-        ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", index=range(5), weight=100, derivative=True
-    )
-    objective_functions.add(
-        ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", index=range(5, 10), weight=1000, derivative=True
-    )
-    objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="qdot", weight=1)
-    objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[0, 1, 2, 3, 4], weight=1000)
-    objective_functions.add(ObjectiveFcn.Mayer.MINIMIZE_STATE, key="qdot", node=Node.START, weight=1000)
-    objective_functions.add(ObjectiveFcn.Mayer.MINIMIZE_STATE, key="qdot", node=Node.END, weight=1000)
-    objective_functions.add(
-        ObjectiveFcn.Mayer.TRACK_MARKERS, weight=1000, marker_index=[10, 12, 13, 14, 15], target=target, node=Node.ALL
-    )
+    objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=100, derivative=True)
+    objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=1000)
+    objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="qdot", weight=50)
+    # objective_functions.add(
+    #     ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[0, 1, 2, 3, 4], weight=1000)
+    objective_functions.add(ObjectiveFcn.Mayer.MINIMIZE_STATE, key="qdot", node=Node.START, weight=50)
+    objective_functions.add(ObjectiveFcn.Mayer.MINIMIZE_STATE, key="qdot", node=Node.END, weight=50)
+    # objective_functions.add(
+    #     ObjectiveFcn.Mayer.TRACK_MARKERS,
+    #     weight=10000, marker_index=[10, 12, 13, 14, 15],
+    #     target=target,
+    #     node=Node.ALL
+    # )
 
     # Dynamics
     dynamics = Dynamics(DynamicsFcn.TORQUE_DRIVEN)
 
     # initial guesses
-    x_init = InitialGuess(x_init_ref, interpolation=InterpolationType.EACH_FRAME)
-    u_init = InitialGuess(u_init_ref, interpolation=InterpolationType.EACH_FRAME)
+    x_init = InitialGuess(
+        np.concatenate([x_init_ref[5:10], x_init_ref[15:] * 0]), interpolation=InterpolationType.EACH_FRAME
+    )
+
+    u_init = InitialGuess(u_init_ref[5:10] * 0, interpolation=InterpolationType.EACH_FRAME)
 
     # Define control path constraint
     x_bounds = QAndQDotBounds(biorbd_model)
-    x_bounds[:10, 0] = x_init_ref[:10, 0]
-    x_bounds[:10, -1] = x_init_ref[:10, -1]
-    x_bounds[10:, 0] = [0] * biorbd_model.nbQdot()
-    # x_bounds.min[10:, 0] = [-np.pi/4] * biorbd_model.nbQdot()
-    # x_bounds.max[10:, 0] = [np.pi/4] * biorbd_model.nbQdot()
-    x_bounds.min[10:, -1] = [-np.pi / 2] * biorbd_model.nbQdot()
-    x_bounds.max[10:, -1] = [np.pi / 2] * biorbd_model.nbQdot()
+    x_bounds[:5, 0] = x_init_ref[:5, 0]
+    x_bounds[:5, -1] = x_init_ref[:5, -1]
+    # x_bounds[5:, 0] = [0] * biorbd_model.nbQdot()
+    # x_bounds.min[8:, 0] = [-np.pi/4] * biorbd_model.nbQdot()
+    # x_bounds.max[8:, 0] = [np.pi/4] * biorbd_model.nbQdot()
+    x_bounds.min[5:, -1] = [-np.pi / 2] * biorbd_model.nbQdot()
+    x_bounds.max[5:, -1] = [np.pi / 2] * biorbd_model.nbQdot()
 
     n_tau = biorbd_model.nbGeneralizedTorque()
-    tau_min, tau_max = -100, 100
+    tau_min, tau_max = -20, 20
     u_bounds = Bounds([tau_min] * n_tau, [tau_max] * n_tau)
-    u_bounds.min[:2, :], u_bounds.max[:2, :] = -30, 30
-    u_bounds.min[2:5, :], u_bounds.max[2:5, :] = -50, 50
-    u_bounds.min[5:8, :], u_bounds.max[5:8, :] = -70, 70
-    u_bounds.min[8:, :], u_bounds.max[8:, :] = -40, 40
+    # u_bounds.min[:2, :], u_bounds.max[:2, :] = -20, 20
+    # u_bounds.min[2:5, :], u_bounds.max[2:5, :] = -50, 50
+    # u_bounds.min[5:8, :], u_bounds.max[5:8, :] = -50, 50
+    # u_bounds.min[8:, :], u_bounds.max[8:, :] = -20, 20
 
     return OptimalControlProgram(
         biorbd_model,
@@ -109,15 +110,15 @@ def main(c3d_path: str):
     # Define the problem
     # c3d_path = "F0_dents_05.c3d"
     # todo: manger, aisselle, dessiner
-    n_shooting_points = 400
+    n_shooting_points = 800
     nb_iteration = 10000
 
     q_file_path = c3d_path.removesuffix(".c3d") + "_q.txt"
     qdot_file_path = c3d_path.removesuffix(".c3d") + "_qdot.txt"
 
     thorax_values = utils.thorax_variables(q_file_path)  # load c3d floating base pose
-    new_biomod_file = "../models/wu_converted_definitif_without_floating_base_template_with_variables.bioMod"
-    model_path_without_floating_base = "../models/wu_converted_definitif_without_floating_base_template.bioMod"
+    new_biomod_file = "../models/wu_converted_definitif_without_floating_base_template_fixed_with_variables.bioMod"
+    model_path_without_floating_base = "../models/wu_converted_definitif_without_floating_base_template_fixed.bioMod"
     utils.add_header(model_path_without_floating_base, new_biomod_file, thorax_values)
 
     biorbd_model = biorbd.Model(new_biomod_file)
@@ -154,12 +155,13 @@ def main(c3d_path: str):
     # optimal control program
     my_ocp = prepare_ocp(
         biorbd_model_path=new_biomod_file,
+        c3d_path=c3d_path,
         x_init_ref=x_init_ref,
         u_init_ref=u_init_ref,
         target=target[0],
         n_shooting=n_shooting_points,
         use_sx=False,
-        n_threads=16,
+        n_threads=4,
         phase_time=phase_time,
     )
 
@@ -189,5 +191,4 @@ def main(c3d_path: str):
 
 
 if __name__ == "__main__":
-    main("../data/F0_dents_05.c3d")
-    main("../data/F0_boire_05.c3d")
+    main("F0_tete_05.c3d")
