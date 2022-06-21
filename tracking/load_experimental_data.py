@@ -171,7 +171,14 @@ class LoadData:
                 out.append(f(t_node))
         return out
 
-    def get_marker_ref(self, number_shooting_points: list[int], phase_time: list[int], markers_names: list[str] = None):
+    def get_marker_ref(
+        self,
+        number_shooting_points: list[int],
+        phase_time: list[int],
+        markers_names: list[str] = None,
+        start: int = None,
+        end: int = None,
+    ):
         """
         divide and adjust the dimensions to match number of shooting point for each phase
 
@@ -183,6 +190,10 @@ class LoadData:
             The list of duration for each phase
         markers_names: list[str]
             list of tracked markers
+        start: int
+            The frame number corresponding to the beginning of the studied movement
+        end: int
+            The frame number corresponding to the end of the studied movement
 
         Returns
         --------
@@ -196,7 +207,13 @@ class LoadData:
             else self.c3d_data.get_marker_trajectories(markers_names)
         )
 
-        return self.dispatch_data(data=markers, nb_shooting=number_shooting_points, phase_time=phase_time)
+        return self.dispatch_data(
+            data=markers,
+            nb_shooting=number_shooting_points,
+            phase_time=phase_time,
+            start=start,
+            end=end,
+        )
 
     def get_states_ref(
         self,
