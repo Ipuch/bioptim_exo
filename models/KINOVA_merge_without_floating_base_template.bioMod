@@ -14,7 +14,8 @@ endsegment
     segment thorax_parent_offset
         parent ground
         RTinMatrix    0
-        RT	0.0 0.0 0.0	xyz	0.0 0.0 0.0
+        //RT	0.0 0.0 0.0	xyz	0.0 0.0 0.0
+        RT $thoraxRT1 $thoraxRT2 $thoraxRT3 xyz $thoraxRT4 $thoraxRT5 $thoraxRT6
     endsegment
 
     // Segments to define transformation axis.
@@ -27,10 +28,14 @@ endsegment
             0.0    1.0    0.0    0
             0.0    0.0    1.0    0
             0    0    0    1
-        translations xyz
-        ranges		-20.0	20.0
-	-2.0	4.0
-	-5.0	5.0
+        //translations xyz
+        //rotations xyz
+        //ranges		-20.0	20.0
+	//-2.0	4.0
+	//-5.0	5.0
+	//-pi     pi
+	//-pi     pi
+	//-pi     pi
     endsegment
 
 // The following segment were removed: thorax_rotation_transform, thorax_reset_axis
@@ -513,11 +518,11 @@ segment part5
     ranges 	pi/12 3*pi/4
     mass 0.51119
     inertia
-        0.00012720  0.00004075 0.00002027
-        0.00004075  0.00699905 0.00000272
-        0.00002027  0.00000272 0.00700564
-    com  -0.15598555  0.00004919  0.01509296
-    meshfile geometry\Reverse_Piece5_right.STL
+        0.00012720  -0.00002201 -0.00002644
+        -0.00002201  0.00700069 -0.00000344
+        -0.00002644 -0.00000344 0.00700400
+    com  -0.15597894  0.00143925  0.01848738
+    meshfile geometry\Reverse_Piece5_right_2.STL
     meshcolor 0 0 0
 endsegment
 
@@ -681,6 +686,16 @@ endsegment
         position    -0.034857887005921739 -0.057673278011784845 0.019247369721773766
     endmarker
 
+    marker    Table:Table5
+        parent    part1
+        position  -0.120 0 0
+    endmarker
+
+     marker    Table:Table6
+        parent    part1
+        position  -0.120 0 0.1
+    endmarker
+/*
     marker    Contact_mk1
         parent    part1
         position  -0.120 0 0
@@ -688,11 +703,6 @@ endsegment
 
 //marker to align
   marker    Contact_mk2
-        parent    part1
-        position  -0.120 0 0.1
-    endmarker
-
-    marker    Table:Table5
         parent    part1
         position  -0.120 0 0.1
     endmarker
@@ -721,7 +731,7 @@ endsegment
         parent part7
         position 0.01 0.01 0.01
     endmarker
-
+*/
 
 // MUSCLE DEFINIION
 

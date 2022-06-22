@@ -47,19 +47,20 @@ segment part5
     ranges 	pi/12 3*pi/4
     mass 0.51119
     inertia
-        0.00012720  -0.00002201 -0.00002644
-        -0.00002201  0.00700069 -0.00000344
-        -0.00002644 -0.00000344 0.00700400
-    com  -0.15597894  0.00143925  0.01848738
+        0.00012720  0.00004075 0.00002027
+        0.00004075  0.00699905 0.00000272
+        0.00002027  0.00000272 0.00700564
+    com  -0.15598555  0.00004919  0.01509296
     meshfile geometry\Reverse_Piece5_right.STL
 endsegment
 
 segment part4
     parent    part5
 	rtinmatrix 0
-    rt -pi/6    0     -pi/6 xyz  -0.25360 -0.00772 0.02422
+    //rt -pi/6    0     -pi/6 xyz  -0.25360 -0.00772 0.02422
+    rt pi/6    0     -pi/6 xyz  -0.25325 -0.0099 0.00928
     rotations z
-    ranges 	-2*pi 2*pi
+    ranges 	0 pi/2
     mass 0.338
     inertia
         0.00078841  0.00002960  0
@@ -136,24 +137,30 @@ endsegment
         parent    part1
         position  -0.120 0 0.1
     endmarker
+
+    //targetd
     marker     grd_contact1
         parent ground
-        position 0  0 0
+        position 0  0  0
     endmarker
+
     marker     grd_contact2
         parent ground
-        position 0  0   0.1
+        position 0  0  0.1
     endmarker
 
+//targetp_init
     marker      mg1
         parent ground
-        position -0.027  0.40 -0.10
+        position -0.027  0.40 0.10
     endmarker
 
+//targetp_fin
     marker      mg2
         parent ground
         position -0.030 0.40 0 // position -0.035 0.35 0
     endmarker
+
 
     marker      md0
         parent part7

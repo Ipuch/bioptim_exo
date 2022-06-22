@@ -138,11 +138,11 @@ endsegment
     endmarker
     marker     grd_contact1
         parent ground
-        position 0  0 0
+        position 0  0  0
     endmarker
     marker     grd_contact2
         parent ground
-        position 0  0   0.1
+        position 0  0  0.1
     endmarker
 
     marker      mg1
