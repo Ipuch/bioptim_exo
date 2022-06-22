@@ -52,6 +52,7 @@ def prepare_ocp(
         phase_time: float = 1,
 ) -> object:
     biorbd_model = biorbd.Model(biorbd_model_path)
+    nb_q = biorbd_model.nbQ()
 
     # Add objective functions
     objective_functions = ObjectiveList()
@@ -123,7 +124,7 @@ def main():
     # Define the problem
     c3d_path = "arm26.c3d"
     # todo: manger, dessiner
-    n_shooting_points = 50
+    n_shooting_points = 25
     nb_iteration = 10000
 
     model_path = "/home/lim/Documents/Stage_Thasaarah/bioptim_exo/models/arm26_quat.bioMod"
@@ -159,7 +160,7 @@ def main():
     x[0] = x_init_quat[:5, 0]
     x[1] = x_init_quat[:5, 1]
     target = get_markers.marker_position(x, n_shooting_points)
-    phase_time = 0.5
+    phase_time = 1.5
 
     # optimal control program
     my_ocp = prepare_ocp(

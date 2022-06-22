@@ -20,3 +20,11 @@ models/wu_converted_definitif_without_floating_base_template_quat_with_variables
 tracking/animate_my_solution.py
 
 Animate_my_model.py
+
+models/__pycache__/
+
+event_tracking/ocp_graph.gv.pdf
+
+event_tracking/ocp_graph.gv
+
+data/__pycache__/
