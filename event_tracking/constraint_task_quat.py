@@ -17,13 +17,13 @@ from bioptim import (
 )
 import numpy as np
 import os
-from datetime import datetime
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
-import get_markers
+from datetime import datetime
 import models.utils as utils
 import data.load_events as load_events
 import tracking.load_experimental_data as load_experimental_data
+
 
 # import sys
 # sys.path.append("../models")
@@ -78,11 +78,12 @@ def prepare_ocp(
     dynamics = Dynamics(DynamicsFcn.TORQUE_DRIVEN)
 
     # initial guesses
+    x_init = InitialGuess([1e-5] * (nb_q + nb_qdot))
+    u_init = InitialGuess([0] * biorbd_model.nbGeneralizedTorque())
     # x_qdot = np.ones((10, n_shooting+1)) * 1e-5
     # x_init_ref[11:, :] = x_qdot
     x_init = InitialGuess(x_init_ref, interpolation=InterpolationType.EACH_FRAME)
     u_init = InitialGuess(u_init_ref, interpolation=InterpolationType.EACH_FRAME)
-
     names = [i.to_string() for i in biorbd_model.nameDof()]
     fig = make_subplots(rows=5, cols=4, subplot_titles=names, shared_yaxes=True)
     j = 0
@@ -141,7 +142,7 @@ def main(c3d_path: str):
     # Define the problem
     # c3d_path = "F0_dents_05.c3d"
     # todo: manger, aisselle, dessiner
-    n_shooting_points = 200
+    n_shooting_points = 50
     nb_iteration = 10000
 
     q_file_path = c3d_path.removesuffix(".c3d") + "_q.txt"
@@ -164,6 +165,7 @@ def main(c3d_path: str):
     start_frame = event.get_frame(0)
     end_frame = event.get_frame(1)
     phase_time = event.get_time(1) - event.get_time(0)
+    phase_time = 0.3
     target = data.get_marker_ref(
         number_shooting_points=[n_shooting_points],
         phase_time=[phase_time],
@@ -185,8 +187,8 @@ def main(c3d_path: str):
     u_init_ref = tau_ref[0][6:, :]
     nb_q = biorbd_model.nbQ()
     nb_qdot = biorbd_model.nbQdot()
-    x_init_quat = np.vstack((np.zeros((nb_q, n_shooting_points+1)), np.ones((nb_qdot, n_shooting_points+1))))
-    for i in range(n_shooting_points+1):
+    x_init_quat = np.vstack((np.zeros((nb_q, n_shooting_points + 1)), np.ones((nb_qdot, n_shooting_points + 1))))
+    for i in range(n_shooting_points + 1):
         x_quat_scapula = eul2quat(x_init_ref[2:5, i])
         x_quat_shoulder = eul2quat(x_init_ref[5:8, i])
         x_init_quat[2:5, i] = x_quat_scapula[1:].toarray().squeeze()  # todo:
@@ -221,7 +223,7 @@ def main(c3d_path: str):
         phase_time=phase_time,
     )
 
-    my_ocp.print()
+    # my_ocp.print()
 
     # add figures of constraints and objectives
     my_ocp.add_plot_penalty(CostType.ALL)
@@ -233,7 +235,6 @@ def main(c3d_path: str):
     sol = my_ocp.solve(solver)
     sol.graphs()
     # sol.print_cost()
-
 
     # --- Save --- #
     c3d_str = c3d_path.split("/")
@@ -250,6 +251,6 @@ def main(c3d_path: str):
 
 if __name__ == "__main__":
     main("../data/F0_dents_05.c3d")
-    # main("F0_boire_05.c3d")
-    # main("F0_aisselle_05.c3d")
-    # main("/dataF0_tete_05.c3d")
+    # main("../data/F0_boire_05.c3d")
+    # main("../data/F0_aisselle_05.c3d")
+    main("../data/F0_tete_05.c3d")
