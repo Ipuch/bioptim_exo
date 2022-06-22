@@ -2,7 +2,7 @@ import bioviz
 import numpy as np
 
 # model_name = "KINOVA_arm_deprecated.bioMod"
-model_name = "models/KINOVA_arm_reverse_left.bioMod"
+model_name = "models/KINOVA_merge.bioMod"
 
 # Load the model - for bioviz
 biorbd_viz = bioviz.Viz(

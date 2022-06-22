@@ -201,7 +201,7 @@ if __name__ == "__main__":
     thorax_markers = markers[:, 0:14, 0]
     xp_data = markers[:, :, :100]
     # pos_init = IK_Kinova.IK_Kinova(biorbd_model, markers_names, q0, table_markers, thorax_markers)
-    pos_init = IK_Kinova.IK_Kinova(biorbd_model, markers_names, xp_data, q0)
+    pos_init = IK_Kinova.IK_Kinova(biorbd_model, markers_names, xp_data, q0, my_ik.q[6:, :])
     q0 = pos_init
 
     b = bioviz.Viz(loaded_model=biorbd_model, show_muscles=False, show_floor=False)
