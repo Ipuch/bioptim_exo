@@ -70,7 +70,7 @@ for file in file_list:
     q_recons = np.ndarray((model.nbQ(), n_frames))
     qdot_recons = np.ndarray((model.nbQdot(), n_frames))
     qddot_recons = np.ndarray((model.nbQddot(), n_frames))
-    tau_recons = np.ndarray((model.nbQ(), n_frames))   # ??
+    tau_recons = np.ndarray((model.nbGeneralizedTorque(), n_frames)) 
 
     for i, targetMarkers in enumerate(markersOverFrames):
         kalman.reconstructFrame(model, targetMarkers, Q, Qdot, Qddot)
