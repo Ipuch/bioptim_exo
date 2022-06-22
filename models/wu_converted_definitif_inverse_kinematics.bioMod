@@ -150,9 +150,10 @@ gravity	0 0 -9.81
         RT	-0.0 -0.0 -0.0	xyz	0.0 0.0 0.0
         mass 0.20000000000000001
         inertia
-            0.0    0.0    0.0
-            0.0    0.0    0.0
-            0.0    0.0    0.0
+            0.00122800 0 0
+            0 0.00109900 0
+            0 0 0.0003900
+        // The moment of inertia for clavicle and scapula are from Quental (2012) A multibody biomechanical model of the upper limb including the shoulder girdle
         com    -0.016256208808519496 0.010856739819502741 0.084325257320595551
         meshfile geometry/clavicle.vtp
     endsegment
@@ -225,9 +226,10 @@ gravity	0 0 -9.81
         RT	0.5832133965420941 -0.4458246964234714 0.27717166315597463	xyz	-0.0 -0.0 -0.0
         mass 0.5
         inertia
-            0.0    0.0    0.0
-            0.0    0.0    0.0
-            0.0    0.0    0.0
+            0.01922569 0 0
+            0 0.00392116 0
+            0 0 0.0204860
+        // The moment of inertia for clavicle and scapula are from Quental (2012) A multibody biomechanical model of the upper limb including the shoulder girdle
         com    -0.0793326510181704 -0.040670349563165432 -0.066897010353895586
         meshfile geometry/scapula.vtp
     endsegment
