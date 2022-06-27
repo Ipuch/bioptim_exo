@@ -179,7 +179,7 @@ gravity	0 0 -9.81
             0.0    1.0    0.0    0
             1.0    0.0    0.0    0
             0    0    0    1
-        rotations q
+        rotations xyz
     endsegment
 
     // Segment to cancel transformation bases effect.

@@ -165,7 +165,6 @@ def main(c3d_path: str):
     start_frame = event.get_frame(0)
     end_frame = event.get_frame(1)
     phase_time = event.get_time(1) - event.get_time(0)
-    phase_time = 0.3
     target = data.get_marker_ref(
         number_shooting_points=[n_shooting_points],
         phase_time=[phase_time],
@@ -189,15 +188,13 @@ def main(c3d_path: str):
     nb_qdot = biorbd_model.nbQdot()
     x_init_quat = np.vstack((np.zeros((nb_q, n_shooting_points + 1)), np.ones((nb_qdot, n_shooting_points + 1))))
     for i in range(n_shooting_points + 1):
-        x_quat_scapula = eul2quat(x_init_ref[2:5, i])
         x_quat_shoulder = eul2quat(x_init_ref[5:8, i])
-        x_init_quat[2:5, i] = x_quat_scapula[1:].toarray().squeeze()  # todo:
-        x_init_quat[10, i] = x_quat_scapula[0].toarray().squeeze()
         x_init_quat[5:8, i] = x_quat_shoulder[1:].toarray().squeeze()
-        x_init_quat[11, i] = x_quat_shoulder[0].toarray().squeeze()
-    x_init_quat[:2] = x_init_ref[:2]
+        x_init_quat[10, i] = x_quat_shoulder[0].toarray().squeeze()
+    x_init_quat[:5] = x_init_ref[:5]
     x_init_quat[8:10] = x_init_ref[8:10]
-    x_init_quat[12:, :] = x_init_ref[10:, :]
+    x_init_quat[11:, :] = x_init_ref[10:, :]
+
     # optimal control program
 
     names = [i.to_string() for i in biorbd_model.nameDof()]
@@ -233,7 +230,7 @@ def main(c3d_path: str):
     solver.set_linear_solver("ma57")
     solver.set_maximum_iterations(nb_iteration)
     sol = my_ocp.solve(solver)
-    sol.graphs()
+    # sol.graphs()
     # sol.print_cost()
 
     # --- Save --- #
