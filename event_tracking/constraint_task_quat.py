@@ -93,7 +93,7 @@ def prepare_ocp(
         if ii == 3:
             j += 1
 
-    fig.show()
+    # fig.show()
 
     # Define control path constraint
     x_bounds = QAndQDotBounds(biorbd_model)
@@ -103,8 +103,8 @@ def prepare_ocp(
     # x_bounds.max[10:, 0] = [np.pi / 4] * biorbd_model.nbQdot()
     # x_bounds.min[10:, -1] = [-np.pi / 2] * biorbd_model.nbQdot()
     # x_bounds.max[10:, -1] = [np.pi / 2] * biorbd_model.nbQdot()
-    x_bounds.min[8:10, 1], x_bounds.min[10:12, 1] = x_bounds.min[10:12, 1],  [-1] * 2
-    x_bounds.max[8:10, 1], x_bounds.max[10:12, 1] = x_bounds.max[10:12, 1], [1] * 2
+    x_bounds.min[8:10, 1], x_bounds.min[10, 1] = x_bounds.min[9:11, 1],  -1
+    x_bounds.max[8:10, 1], x_bounds.max[10, 1] = x_bounds.max[9:11, 1], 1
 
     n_tau = biorbd_model.nbGeneralizedTorque()
     tau_min, tau_max = -20, 20
@@ -165,6 +165,7 @@ def main(c3d_path: str):
     start_frame = event.get_frame(0)
     end_frame = event.get_frame(1)
     phase_time = event.get_time(1) - event.get_time(0)
+    phase_time = 0.3
     target = data.get_marker_ref(
         number_shooting_points=[n_shooting_points],
         phase_time=[phase_time],
@@ -196,18 +197,6 @@ def main(c3d_path: str):
     x_init_quat[11:, :] = x_init_ref[10:, :]
 
     # optimal control program
-
-    names = [i.to_string() for i in biorbd_model.nameDof()]
-    # fig = make_subplots(rows=5, cols=4, subplot_titles=names, shared_yaxes=True)
-    # j = 0
-    # for i in range(10):
-    #     ii = i - j * 4
-    #     fig.add_trace(go.Scatter(y=x_init_quat[i]), row=j + 1, col=ii + 1)
-    #     if ii == 3:
-    #         j += 1
-
-    # fig.show()
-
     my_ocp = prepare_ocp(
         biorbd_model_path=new_biomod_file,
         c3d_path=c3d_path,
@@ -248,6 +237,6 @@ def main(c3d_path: str):
 
 if __name__ == "__main__":
     main("../data/F0_dents_05.c3d")
-    # main("../data/F0_boire_05.c3d")
-    # main("../data/F0_aisselle_05.c3d")
+    main("../data/F0_boire_05.c3d")
+    main("../data/F0_aisselle_05.c3d")
     main("../data/F0_tete_05.c3d")
