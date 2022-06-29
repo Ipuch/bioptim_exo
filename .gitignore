@@ -28,3 +28,5 @@ event_tracking/ocp_graph.gv.pdf
 event_tracking/ocp_graph.gv
 
 data/__pycache__/
+
+event_tracking/__pycache__/
