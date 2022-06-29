@@ -63,7 +63,6 @@ def prepare_ocp(
 ) -> object:
     biorbd_model = biorbd.Model(biorbd_model_path)
     nb_q = biorbd_model.nbQ()
-    nb_qdot = biorbd_model.nbQdot()
 
     # Add objective functions
     objective_functions = ObjectiveList()
@@ -71,8 +70,6 @@ def prepare_ocp(
     # objective_functions.add(ObjectiveFcn.Mayer.MINIMIZE_STATE, key="qdot", weight=50, node=Node.START)
     # objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[0, 1, 2, 3, 4], weight=100)
     # objective_functions.add(
-    #     ObjectiveFcn.Mayer.TRACK_MARKERS, weight=2000, marker_index=[10, 12, 13, 14, 15], target=target, node=Node.ALL
-    # )
 
     # Dynamics
     dynamics = Dynamics(DynamicsFcn.TORQUE_DRIVEN)
@@ -109,14 +106,6 @@ def prepare_ocp(
     n_tau = biorbd_model.nbGeneralizedTorque()
     tau_min, tau_max = -20, 20
     u_bounds = Bounds([tau_min] * n_tau, [tau_max] * n_tau)
-    # u_bounds.min[:2, :], u_bounds.max[:2, :] = -20, 20
-    # u_bounds.min[2:5, :], u_bounds.max[2:5, :] = -50, 50
-    # u_bounds.min[5:8, :], u_bounds.max[5:8, :] = -50, 50
-    # u_bounds.min[8:, :], u_bounds.max[8:, :] = -20, 20
-
-    # if "dents" in c3d_path or "boire" in c3d_path:
-    #     objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", index=range(5, 10), weight=1000)
-    #     x_bounds[10:, 0] = [0] * biorbd_model.nbQdot()
 
     return OptimalControlProgram(
         biorbd_model,
@@ -225,7 +214,7 @@ def main(c3d_path: str):
     # --- Save --- #
     c3d_str = c3d_path.split("/")
     c3d_name = os.path.splitext(c3d_str[-1])[0]
-    save_path = f"save/{c3d_name}_{datetime.now()}"
+    save_path = f"save/quat/{c3d_name}_{datetime.now()}"
     save_path = save_path.replace(" ", "_").replace("-", "_").replace(":", "_").replace(".", "_")
     my_ocp.save(sol, save_path)
 
@@ -236,7 +225,7 @@ def main(c3d_path: str):
 
 
 if __name__ == "__main__":
-    main("../data/F0_dents_05.c3d")
-    main("../data/F0_boire_05.c3d")
-    main("../data/F0_aisselle_05.c3d")
-    main("../data/F0_tete_05.c3d")
+    main("../data/xyz humerus rotations/F0_aisselle_05.c3d")
+    main("../data/xyz humerus rotations/F0_boire_05.c3d")
+    main("../data/xyz humerus rotations/F0_aisselle_05.c3d")
+    main("../data/xyz humerus rotations/F0_tete_05.c3d")
