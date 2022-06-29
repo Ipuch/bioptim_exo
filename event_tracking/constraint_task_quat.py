@@ -1,5 +1,4 @@
 import biorbd_casadi as biorbd
-from casadi import MX, Function
 from bioptim import (
     OptimalControlProgram,
     DynamicsFcn,
@@ -17,36 +16,21 @@ from bioptim import (
 )
 import numpy as np
 import os
+from datetime import datetime
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
-from datetime import datetime
-import models.utils as utils
-import data.load_events as load_events
-import tracking.load_experimental_data as load_experimental_data
+from quat import eul2quat, quat2eul
+import sys
+sys.path.append("../models")
+import utils
+sys.path.append("../data")
+import load_events
+sys.path.append("../tracking")
+import load_experimental_data
 
-
-# import sys
-# sys.path.append("../models")
-# sys.path.append("../data")
-# sys.path.append("../tracking")
-
-
-def eul2quat(eul: np.ndarray) -> np.ndarray:
-    """
-    Converts Euler angles to quaternion. It assumes a sequence angle of XYZ
-
-    Parameters
-    ----------
-    eul: np.ndarray
-        The 3 angles of sequence XYZ
-
-    Returns
-    -------
-    The quaternion associated to the Euler angles in the format [W, X, Y, Z]
-    """
-    eul_sym = MX.sym("eul", 3)
-    Quat = Function("Quaternion_fromEulerAngles", [eul_sym], [biorbd.Quaternion_fromXYZAngles(eul_sym).to_mx()])(eul)
-    return Quat
+# import models.utils as utils
+# import data.load_events as load_events
+# import tracking.load_experimental_data as load_experimental_data
 
 
 def prepare_ocp(
@@ -67,18 +51,14 @@ def prepare_ocp(
     # Add objective functions
     objective_functions = ObjectiveList()
     objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=1000)
-    # objective_functions.add(ObjectiveFcn.Mayer.MINIMIZE_STATE, key="qdot", weight=50, node=Node.START)
-    # objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[0, 1, 2, 3, 4], weight=100)
-    # objective_functions.add(
+    # objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[1, 2], weight=1000)
+    # objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[0, 3, 4], weight=100)
+
 
     # Dynamics
     dynamics = Dynamics(DynamicsFcn.TORQUE_DRIVEN)
 
     # initial guesses
-    x_init = InitialGuess([1e-5] * (nb_q + nb_qdot))
-    u_init = InitialGuess([0] * biorbd_model.nbGeneralizedTorque())
-    # x_qdot = np.ones((10, n_shooting+1)) * 1e-5
-    # x_init_ref[11:, :] = x_qdot
     x_init = InitialGuess(x_init_ref, interpolation=InterpolationType.EACH_FRAME)
     u_init = InitialGuess(u_init_ref, interpolation=InterpolationType.EACH_FRAME)
     names = [i.to_string() for i in biorbd_model.nameDof()]
@@ -179,8 +159,8 @@ def main(c3d_path: str):
     x_init_quat = np.vstack((np.zeros((nb_q, n_shooting_points + 1)), np.ones((nb_qdot, n_shooting_points + 1))))
     for i in range(n_shooting_points + 1):
         x_quat_shoulder = eul2quat(x_init_ref[5:8, i])
-        x_init_quat[5:8, i] = x_quat_shoulder[1:].toarray().squeeze()
-        x_init_quat[10, i] = x_quat_shoulder[0].toarray().squeeze()
+        x_init_quat[5:8, i] = x_quat_shoulder[1:]
+        x_init_quat[10, i] = x_quat_shoulder[0]
     x_init_quat[:5] = x_init_ref[:5]
     x_init_quat[8:10] = x_init_ref[8:10]
     x_init_quat[11:, :] = x_init_ref[10:, :]
@@ -219,13 +199,26 @@ def main(c3d_path: str):
     my_ocp.save(sol, save_path)
 
     # --- Plot --- #
-    # sol.graphs(show_bounds=True)
-    # todo: animate first and last frame with markers
-    # sol.animate(n_frames=100)
+    q = np.zeros((3, n_shooting_points))
+    Quaternion = np.zeros(4)
+    for i in range(n_shooting_points):
+        Q = sol.states["q"][:, i]
+        Quaternion[0] = Q[10]
+        Quaternion[1:] = Q[5:8]
+        # Quaternion_biorbd = biorbd.Quaternion(Quaternion[0], Quaternion[1], Quaternion[2], Quaternion[3])
+        # Rotation_matrix = biorbd.Quaternion.toMatrix(Quaternion_biorbd)
+        euler = quat2eul(Quaternion)
+        q[:, i] = np.array(euler)
+    fig = make_subplots(rows=1, cols=3, shared_yaxes=True)
+    j = 0
+    for i in range(3):
+        ii = i - j * 4
+        fig.add_trace(go.Scatter(y=q[i]), row=j + 1, col=ii + 1)
+    fig.show()
 
 
 if __name__ == "__main__":
-    main("../data/xyz humerus rotations/F0_aisselle_05.c3d")
+    main("../data/xyz humerus rotations/F0_dents_05.c3d")
     main("../data/xyz humerus rotations/F0_boire_05.c3d")
     main("../data/xyz humerus rotations/F0_aisselle_05.c3d")
     main("../data/xyz humerus rotations/F0_tete_05.c3d")
