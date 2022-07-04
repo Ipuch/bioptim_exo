@@ -123,8 +123,8 @@ def prepare_ocp(
 
 if __name__ == "__main__":
 
-    model_path_without_kinova = "../models/KINOVA_merge_inverse_kinematics.bioMod"
-    biorbd_model_without_kinova = biorbd.Model(model_path_without_kinova)
+    model_path_with_floating_base = "../models/KINOVA_merge_inverse_kinematics.bioMod"
+    biorbd_model_with_floating_base = biorbd.Model(model_path_with_floating_base)
 
     c3d_path = "../data/F3_aisselle_01.c3d"
 
@@ -134,24 +134,24 @@ if __name__ == "__main__":
     labels_markers = c3d["parameters"]["POINT"]["LABELS"]["value"]
     labels_markers.append('Table:Table6')
 
-    marker_names_without_kinova = [
-        biorbd_model_without_kinova.markerNames()[i].to_string() for i in range(biorbd_model_without_kinova.nbMarkers())
+    marker_names_with_floating_base = [
+        biorbd_model_with_floating_base.markerNames()[i].to_string() for i in range(biorbd_model_with_floating_base.nbMarkers())
     ]
-    markers_without_kinova = np.zeros((3, len(marker_names_without_kinova), len(points[0, 0, :])))
+    markers_without_kinova = np.zeros((3, len(marker_names_with_floating_base), len(points[0, 0, :])))
 
-    for i, name in enumerate(marker_names_without_kinova):
+    for i, name in enumerate(marker_names_with_floating_base):
         if name in labels_markers:
             if name == 'Table:Table6':
                 markers_without_kinova[:, i, :] = points[:3, labels_markers.index('Table:Table5'), :] / 1000
             else:
                 markers_without_kinova[:, i, :] = points[:3, labels_markers.index(name), :] / 1000
 
-    markers_without_kinova[2, marker_names_without_kinova.index('Table:Table6'), :] = markers_without_kinova[2, marker_names_without_kinova.index('Table:Table6'), :] + 0.1
+    markers_without_kinova[2, marker_names_with_floating_base.index('Table:Table6'), :] = markers_without_kinova[2, marker_names_with_floating_base.index('Table:Table6'), :] + 0.1
 
-    my_ik = ik.InverseKinematics(model_path_without_kinova, markers_without_kinova)
+    my_ik = ik.InverseKinematics(model_path_with_floating_base, markers_without_kinova)
     my_ik.solve("lm")
 
-    my_ik.animate()
+    # my_ik.animate()
 
     thorax_values = {
         "thoraxRT1": my_ik.q[3, :].mean(),
@@ -168,24 +168,27 @@ if __name__ == "__main__":
         "../models/KINOVA_merge_without_floating_base_template_with_variables.bioMod"
     )
     add_header(old_biomod_file, new_biomod_file, thorax_values)
-
     model_path = new_biomod_file
-
     biorbd_model = biorbd.Model(model_path)
 
     markers_names = [value.to_string() for value in biorbd_model.markerNames()]
-    markers_list = biorbd_model.markers()
+    markers = np.zeros((3, len(markers_names), len(points[0, 0, :])))
 
-    xp_data = markers_without_kinova[:, :, :100]
+    for i, name in enumerate(markers_names):
+        if name in labels_markers:
+            if name == 'Table:Table6':
+                markers[:, i, :] = points[:3, labels_markers.index('Table:Table5'), :] / 1000
+            else:
+                markers[:, i, :] = points[:3, labels_markers.index(name), :] / 1000
 
-    new_q = np.zeros((biorbd_model.nbQ(), markers_without_kinova.shape[2]))
-    new_q[:10, :] = my_ik.q[6:, :]
+    markers[2, markers_names.index('Table:Table6'), :] = markers[2, markers_names.index('Table:Table6'), :] + 0.1
+    xp_data = markers[:, :, :100]
 
-    q0_1 = my_ik.q[6:, 0]
-    q0_2 = np.ones(6)*0.01
-    q0_3 = np.array((0.0, 0.2618, 0.3903, 1.7951, 0.6878, 0.3952))
+    new_q = np.zeros((biorbd_model.nbQ(), markers.shape[2]))
+    new_q[:10, :] = my_ik.q[6:16, :]
+    new_q[16:, :] = my_ik.q[16:, :]
 
-    q0 = np.concatenate((q0_1, q0_2, q0_3))
+    q0 = new_q[:, 0]
 
     pos_init = IK_Kinova_2.IK_Kinova(biorbd_model, markers_names, xp_data, q0, new_q[:, :100])
 
