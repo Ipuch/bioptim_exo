@@ -486,12 +486,12 @@ segment part7
          0.            0.            0.            1.
     translations xyz
     rotations xyz
-    ranges		-1	1
-	-1	1
-	-1	1
-	-pi/2     pi/2
-	-pi/2     pi/2
-	-pi/2     pi/2
+    ranges		-0.1	0.1
+	-0.1	0.1
+	-0.1	0.1
+	-pi/4     pi/4
+	-pi/4     pi/4
+	-pi/4     pi/4
     mass 0.35022
     inertia
         0.00264324  -0.00042419  -0.00019927
