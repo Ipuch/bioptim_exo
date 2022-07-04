@@ -54,7 +54,7 @@ def prepare_ocp(
 
     if c3d_path == Tasks.TEETH.value:
         print("dents!")
-        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=500)
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=5)
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", derivative=True, weight=1000)
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[0, 1, 2], weight=1000)
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[3, 4], weight=100)
@@ -248,8 +248,8 @@ def main(c3d_path: str):
 
 if __name__ == "__main__":
     main(Tasks.TEETH.value)
-    # main(Tasks.DRINK.value)
-    # main(Tasks.HEAD.value)
-    # main(Tasks.EAT.value)
-    # main(Tasks.ARMPIT.value)
+    main(Tasks.DRINK.value)
+    main(Tasks.HEAD.value)
+    main(Tasks.EAT.value)
+    main(Tasks.ARMPIT.value)
 
