@@ -167,13 +167,6 @@ if __name__ == "__main__":
 
     biorbd_model = biorbd.Model(model_path)
 
-    q0_1 = my_ik.q[6:, 0]
-    q0_2 = np.random.uniform(low=get_range_q(biorbd_model)[0][10:16],
-                             high=get_range_q(biorbd_model)[1][10:16],
-                             size=6)
-    q0_3 = np.array((0.0, 0.2618, 0.3903, 1.7951, 0.6878, 0.3952))
-    q0 = np.concatenate((q0_1, q0_2, q0_3))
-
     markers_names = [value.to_string() for value in biorbd_model.markerNames()]
     markers_list = biorbd_model.markers()
 
@@ -198,12 +191,19 @@ if __name__ == "__main__":
 
     # targetp_init = markers_list[markers_names.index('mg1')].to_array()
     thorax_markers = markers[:, 0:14, 0]
+
     xp_data = markers[:, :, :100]
+
     new_q = np.zeros((biorbd_model.nbQ(), markers.shape[2]))
     new_q[:10, :] = my_ik.q[6:, :]
-    # pos_init = IK_Kinova.IK_Kinova(biorbd_model, markers_names, q0, table_markers, thorax_markers)
-    pos_init = IK_Kinova_2.IK_Kinova(biorbd_model, markers_names, xp_data, q0, new_q)
-    q0 = pos_init
+
+    q0_1 = my_ik.q[6:, 0]
+    q0_2 = np.ones(6)*0.01
+    q0_3 = np.array((0.0, 0.2618, 0.3903, 1.7951, 0.6878, 0.3952))
+
+    q0 = np.concatenate((q0_1, q0_2, q0_3))
+
+    pos_init = IK_Kinova_2.IK_Kinova(biorbd_model, markers_names, xp_data, q0, new_q[:, :100])
 
     b = bioviz.Viz(loaded_model=biorbd_model, show_muscles=False, show_floor=False)
     b.load_experimental_markers(xp_data)
