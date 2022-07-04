@@ -123,7 +123,7 @@ def prepare_ocp(
 
 if __name__ == "__main__":
 
-    model_path_without_kinova = "../models/wu_converted_definitif_inverse_kinematics.bioMod"
+    model_path_without_kinova = "../models/KINOVA_merge_inverse_kinematics.bioMod"
     biorbd_model_without_kinova = biorbd.Model(model_path_without_kinova)
 
     c3d_path = "../data/F3_aisselle_01.c3d"
@@ -140,12 +140,18 @@ if __name__ == "__main__":
     markers_without_kinova = np.zeros((3, len(marker_names_without_kinova), len(points[0, 0, :])))
 
     for i, name in enumerate(marker_names_without_kinova):
-        markers_without_kinova[:, i, :] = points[:3, labels_markers.index(name), :] / 1000
+        if name in labels_markers:
+            if name == 'Table:Table6':
+                markers_without_kinova[:, i, :] = points[:3, labels_markers.index('Table:Table5'), :] / 1000
+            else:
+                markers_without_kinova[:, i, :] = points[:3, labels_markers.index(name), :] / 1000
+
+    markers_without_kinova[2, marker_names_without_kinova.index('Table:Table6'), :] = markers_without_kinova[2, marker_names_without_kinova.index('Table:Table6'), :] + 0.1
 
     my_ik = ik.InverseKinematics(model_path_without_kinova, markers_without_kinova)
     my_ik.solve("lm")
 
-    # my_ik.animate()
+    my_ik.animate()
 
     thorax_values = {
         "thoraxRT1": my_ik.q[3, :].mean(),
@@ -170,31 +176,9 @@ if __name__ == "__main__":
     markers_names = [value.to_string() for value in biorbd_model.markerNames()]
     markers_list = biorbd_model.markers()
 
-    count = 0
-    for i, name in enumerate(markers_names):
-        if name in labels_markers:
-            count += 1
+    xp_data = markers_without_kinova[:, :, :100]
 
-    markers = np.zeros((3, count, len(points[0, 0, :])))
-
-    for i, name in enumerate(markers_names):
-        if name in labels_markers:
-            if name == 'Table:Table6':
-                markers[:, i, :] = points[:3, labels_markers.index('Table:Table5'), :] / 1000
-            else:
-                markers[:, i, :] = points[:3, labels_markers.index(name), :] / 1000
-
-    markers[2, markers_names.index('Table:Table6'), :] = markers[2, markers_names.index('Table:Table6'), :] + 0.1
-
-    # targetd = markers_list[markers_names.index('grd_contact1')].to_array()  # 0 0 0 for now
-    table_markers = markers[:, 14:, 0]
-
-    # targetp_init = markers_list[markers_names.index('mg1')].to_array()
-    thorax_markers = markers[:, 0:14, 0]
-
-    xp_data = markers[:, :, :100]
-
-    new_q = np.zeros((biorbd_model.nbQ(), markers.shape[2]))
+    new_q = np.zeros((biorbd_model.nbQ(), markers_without_kinova.shape[2]))
     new_q[:10, :] = my_ik.q[6:, :]
 
     q0_1 = my_ik.q[6:, 0]
