@@ -36,7 +36,8 @@ import load_experimental_data
 
 def prepare_ocp(
         biorbd_model_path: str,
-        c3d_path: str,
+        task: any,
+        track_markers: bool,
         n_shooting: int,
         x_init_ref: np.array,
         u_init_ref: np.array,
@@ -52,7 +53,7 @@ def prepare_ocp(
     # Add objective functions
     objective_functions = ObjectiveList()
 
-    if c3d_path == Tasks.TEETH.value:
+    if task == Tasks.TEETH:
         print("dents!")
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=5)
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", derivative=True, weight=1000)
@@ -61,25 +62,25 @@ def prepare_ocp(
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="qdot", weight=300)
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", weight=50)
 
-    if c3d_path == Tasks.DRINK.value:
+    elif task == Tasks.DRINK:
         print("boire!")
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=3)
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", derivative=True, weight=1000)
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[0, 1, 2], weight=1000)
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[3, 4], weight=100)
-        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="qdot", weight=1000)
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", weight=50)
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="qdot", weight=1000)
 
-    if c3d_path == Tasks.HEAD.value:
+    elif task == Tasks.HEAD:
         print("tete!")
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=5)
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", derivative=True, weight=1000)
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[0, 1, 2], weight=1000)
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[3, 4], weight=100)
-        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="qdot", weight=1000)
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", weight=50)
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="qdot", weight=1000)
 
-    if c3d_path == Tasks.EAT.value:
+    elif task == Tasks.EAT:
         print("manger!")
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=1.5)
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", derivative=True, weight=1000)
@@ -87,7 +88,7 @@ def prepare_ocp(
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[3, 4], weight=100)
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="qdot", weight=300)
 
-    if c3d_path == Tasks.ARMPIT.value:
+    elif task == Tasks.ARMPIT:
         print("aisselle!")
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=5)
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", derivative=True, weight=1000)
@@ -96,8 +97,14 @@ def prepare_ocp(
         objective_functions.add(
             ObjectiveFcn.Mayer.MINIMIZE_STATE, key="qdot", node=Node.START, derivative=True, weight=100
         )
+
+    else:
+        raise NotImplementedError("This task is not implemented yet.")
+
+    if track_markers:
+        print("tracking markers")
         objective_functions.add(
-            ObjectiveFcn.Mayer.TRACK_MARKERS, weight=1000, marker_index=[10, 12, 13, 14, 15], target=target,
+            ObjectiveFcn.Mayer.TRACK_MARKERS, weight=100, marker_index=[10, 12, 13, 14, 15], target=target,
             node=Node.ALL
         )
 
@@ -114,8 +121,8 @@ def prepare_ocp(
     x_bounds[:nb_q, -1] = x_init_ref[:nb_q, -1]
     x_bounds.min[nb_q:, 0] = [-1e-3] * biorbd_model.nbQdot()
     x_bounds.max[nb_q:, 0] = [1e-3] * biorbd_model.nbQdot()
-    x_bounds.min[nb_q:, -1] = [-1e-3] * biorbd_model.nbQdot()
-    x_bounds.max[nb_q:, -1] = [1e-3] * biorbd_model.nbQdot()
+    x_bounds.min[nb_q:, -1] = [-1e-1] * biorbd_model.nbQdot()
+    x_bounds.max[nb_q:, -1] = [1e-1] * biorbd_model.nbQdot()
     x_bounds.min[8:10, 1], x_bounds.min[10, 1] = x_bounds.min[9:11, 1],  -1
     x_bounds.max[8:10, 1], x_bounds.max[10, 1] = x_bounds.max[9:11, 1], 1
 
@@ -139,13 +146,18 @@ def prepare_ocp(
     )
 
 
-def main(c3d_path: str):
+def main(
+        task: any,
+        track_markers: bool,
+):
     """
     Get data, then create a tracking problem, and finally solve it and plot some relevant information
     """
 
     # Define the problem
-    n_shooting_points = 100
+    c3d_path = task.value
+    # todo: manger, aisselle, dessiner
+    n_shooting_points = 50
     nb_iteration = 10000
 
     q_file_path = c3d_path.removesuffix(".c3d") + "_q.txt"
@@ -201,15 +213,18 @@ def main(c3d_path: str):
     # optimal control program
     my_ocp = prepare_ocp(
         biorbd_model_path=new_biomod_file,
-        c3d_path=c3d_path,
+        task=task,
+        track_markers=track_markers,
         x_init_ref=x_init_quat,
         u_init_ref=u_init_ref,
         target=target[0],
         n_shooting=n_shooting_points,
         use_sx=False,
-        n_threads=16,
+        n_threads=4,
         phase_time=phase_time,
     )
+
+    # my_ocp.print()
 
     # add figures of constraints and objectives
     my_ocp.add_plot_penalty(CostType.ALL)
@@ -225,7 +240,7 @@ def main(c3d_path: str):
     # --- Save --- #
     c3d_str = c3d_path.split("/")
     c3d_name = os.path.splitext(c3d_str[-1])[0]
-    save_path = f"save/quat/quat_{n_shooting_points}/{c3d_name}_{datetime.now()}"
+    save_path = f"save/quat/6_juillet/{track_markers}/{c3d_name}_{datetime.now()}"
     save_path = save_path.replace(" ", "_").replace("-", "_").replace(":", "_").replace(".", "_")
     my_ocp.save(sol, save_path)
 
@@ -247,9 +262,8 @@ def main(c3d_path: str):
 
 
 if __name__ == "__main__":
-    main(Tasks.TEETH.value)
-    main(Tasks.DRINK.value)
-    main(Tasks.HEAD.value)
-    main(Tasks.EAT.value)
-    main(Tasks.ARMPIT.value)
-
+    main(task=Tasks.TEETH, track_markers=True)
+    main(task=Tasks.DRINK, track_markers=True)
+    main(task=Tasks.HEAD, track_markers=True)
+    main(task=Tasks.EAT, track_markers=True)
+    main(task=Tasks.ARMPIT, track_markers=True)
