@@ -390,8 +390,8 @@ gravity	0 0 -9.81
             -0.006469738    -0.114683666    0.993380994    0
             0    0    0    1
         rotations z
-        //ranges		0.0	2.268928027593
-        ranges		-pi	pi
+        ranges		0.0	2.268928027593
+        //ranges		-pi	pi
     endsegment
 
     // Segment to cancel transformation bases effect.

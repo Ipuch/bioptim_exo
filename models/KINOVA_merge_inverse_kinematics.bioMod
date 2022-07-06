@@ -28,9 +28,13 @@ endsegment
             0.0    0.0    1.0    0
             0    0    0    1
         translations xyz
+        rotations xyz
         ranges		-20.0	20.0
 	-2.0	4.0
 	-5.0	5.0
+	-pi     pi
+	-pi     pi
+	-pi     pi
     endsegment
 
 // The following segment were removed: thorax_rotation_transform, thorax_reset_axis
@@ -479,14 +483,6 @@ segment part7
         -0.2155116207 -0.9764422143  0.010739928  -0.0752000001
         -0.9759714555  0.2157439188  0.0305660713  0.0291000003
          0.            0.            0.            1.
-    translations xyz
-    rotations xyz
-    ranges		-20.0	20.0
-	-2.0	4.0
-	-5.0	5.0
-	-pi/2     pi/2
-	-pi/2     pi/2
-	-pi/2     pi/2
     mass 0.35022
     inertia
         0.00264324  -0.00042419  -0.00019927
@@ -535,7 +531,7 @@ segment part4
     //rt -pi/6    0     -pi/6 xyz  -0.25360 -0.00772 0.02422
     rt pi/6    0     -pi/6 xyz  -0.25325 -0.0099 0.00928
     rotations z
-    ranges 	-2*pi 2*pi
+    ranges 	-pi/2 pi/2
     mass 0.338
     inertia
         0.00078841  0.00002960  0
@@ -598,7 +594,27 @@ endsegment
 // end KINOVA
 
 // MARKERS
-/*
+
+    marker    MAN
+        parent    thorax
+        position    0.042419427613834632 -0.0023252897183505539 0.0099660835588140095
+    endmarker
+
+    marker    XYP
+        parent    thorax
+        position    0.082340062255294305 -0.16583819844340569 0.0031414666224537369
+    endmarker
+
+    marker    C7
+        parent    thorax
+        position    -0.095938308749567075 0.060837752331682482 0.014285418115368542
+    endmarker
+
+    marker    T10
+        parent    thorax
+        position    -0.13903237860548628 -0.19141883195932308 -0.0087898669234391935
+    endmarker
+
     marker    CLAV_SC
         parent    clavicle
         position    0.033445913099119665 -0.010391785839228396 0.0028632585370065855
@@ -689,6 +705,16 @@ endsegment
         position    -0.034857887005921739 -0.057673278011784845 0.019247369721773766
     endmarker
 
+marker    Table:Table5
+        parent    part1
+        position  -0.120 0 0
+    endmarker
+
+     marker    Table:Table6
+        parent    part1
+        position  -0.120 0 0.1
+    endmarker
+/*
     marker    Contact_mk1
         parent    part1
         position  -0.120 0 0
@@ -696,11 +722,6 @@ endsegment
 
 //marker to align
   marker    Contact_mk2
-        parent    part1
-        position  -0.120 0 0.1
-    endmarker
-
-    marker    Table:Table5
         parent    part1
         position  -0.120 0 0.1
     endmarker
@@ -729,6 +750,7 @@ endsegment
         parent part7
         position 0.01 0.01 0.01
     endmarker
+*/
 
 
 // MUSCLE DEFINIION

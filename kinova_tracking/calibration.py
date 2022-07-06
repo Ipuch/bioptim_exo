@@ -120,16 +120,16 @@ def ik_step(
     T = biorbd_model.globalJCS(x_with_p, biorbd_model.nbSegment() - 1).to_array()
     out2 = T[2, 0] ** 2 + T[2, 1] ** 2 + T[0, 2] ** 2 + T[1, 2] ** 2 + (1 - T[2, 2]) ** 2
 
-    out3 = 0
-    for i, value in enumerate(x[:10]):
-        out3 += (x_with_p[i] - value) ** 2
+    # out3 = 0
+    # for i, value in enumerate(x[:10]):
+    #     out3 += (x_with_p[i] - value) ** 2
 
-    out4 = 0
-    for h in range(1, 3):
-        out4 += (x_with_p[-h] - 0.0) ** 2
+    # out4 = 0
+    # for h in range(1, 3):
+    #     out4 += (x_with_p[-h] - 0.0) ** 2
 
     # return 1000 * table5_xyz + 1000 * table6_xy + out2 + mark_out + 10 * out3 + out4
-    return 100000 * table5_xyz + 100000 * table6_xy + out2 + 10 * out3 + 10 * out4
+    return 1000 * table5_xyz + 1000 * table6_xy + out2 + 1000 * mark_out
 
 
 def step_2(biorbd_model, p, bounds, nb_dof_wu_model, nb_parameters, nb_frames, q_first_ik, q_output, markers_xp_data, markers_names):
@@ -174,6 +174,9 @@ def arm_support_calibration(
     markers_names: list[str],
     markers_xp_data: np.ndarray,
     q_first_ik: np.ndarray,
+    nb_dof_wu_model,
+    nb_parameters,
+    nb_frames,
 ):
     """
     Parameters
@@ -186,17 +189,18 @@ def arm_support_calibration(
         (3 x n_markers x n_frames) marker values for all frames
     q_first_ik: np.ndarray
          Generalized coordinates for all frames all dof
-
+    nb_dof_wu_model: int
+        The number of dof for the thorax and the arm
+    nb_parameters: int
+        The number of dof between the ulna and piece 7
+    nb_frames: int
+        The number of frames
     Return
     ------
         The optimized Generalized coordinates
     """
 
     q0 = q_first_ik[:, 0]
-    nb_dof_wu_model = 10  # todo: remove raw hard coded value
-    nb_parameters = 6
-    nb_dof_kinova = 6
-    nb_frames = q_first_ik.shape[1]
 
     # idx_human = [0, ..., n_dof]
     # idx_support = [n_dof + 1, ..., n_dof + parameter]
