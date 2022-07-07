@@ -1,11 +1,11 @@
 version 4
 variables
-	$thoraxRT1 1.52170811191705
-	$thoraxRT2 -0.061413388734570695
-	$thoraxRT3 0.025243238609444413
-	$thoraxRT4 -0.5004068433610389
-	$thoraxRT5 0.6176260579049055
-	$thoraxRT6 0.37707449347359245
+	$thoraxRT1 -1.6228728303487001
+	$thoraxRT2 -3.0757992396775964
+	$thoraxRT3 3.1415926535897443
+	$thoraxRT4 -0.4988578481180906
+	$thoraxRT5 0.6174932040883456
+	$thoraxRT6 0.3767186534865115
 endvariables
 
 // File extracted from C:/Users/remi6/Desktop/S5/Wu_shoulder_model/Wu_Shoulder_Model_kinova_definitif.osim
@@ -492,6 +492,14 @@ segment part7
         -0.2155116207 -0.9764422143  0.010739928  -0.0752000001
         -0.9759714555  0.2157439188  0.0305660713  0.0291000003
          0.            0.            0.            1.
+    translations xyz
+    rotations xyz
+    ranges		-0.1	0.1
+	-0.1	0.1
+	-0.1	0.1
+	-pi/4     pi/4
+	-pi/4     pi/4
+	-pi/4     pi/4
     mass 0.35022
     inertia
         0.00264324  -0.00042419  -0.00019927
@@ -540,7 +548,7 @@ segment part4
     //rt -pi/6    0     -pi/6 xyz  -0.25360 -0.00772 0.02422
     rt pi/6    0     -pi/6 xyz  -0.25325 -0.0099 0.00928
     rotations z
-    ranges 	-2*pi 2*pi
+    ranges 	-pi/2 pi/2
     mass 0.338
     inertia
         0.00078841  0.00002960  0
