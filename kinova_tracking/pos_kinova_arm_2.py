@@ -11,6 +11,7 @@ from ezc3d import c3d
 import biorbd
 from models.utils import add_header, thorax_variables
 from utils import get_range_q
+import random
 
 
 def IK(model_path, points, labels_markers_ik):
@@ -96,8 +97,12 @@ if __name__ == "__main__":
     nb_dof_wu_model = ik_without_floating_base.q.shape[0]  # todo: remove raw hard coded value
     nb_parameters = 6
     nb_dof_kinova = 6
-    # nb_frames = markers.shape[2]
-    nb_frames = 100
+    nb_frames = markers.shape[2]
+    alea_frames = random.sample(range(nb_frames), 50)
+    alea_frames.sort()
+    print(alea_frames)
+    print(nb_frames)
+    # nb_frames = 50
     q_output = np.zeros((biorbd_model_merge.nbQ(), nb_frames))
     bounds = [
         (mini, maxi) for mini, maxi in zip(get_range_q(biorbd_model_merge)[0], get_range_q(biorbd_model_merge)[1])
@@ -105,16 +110,17 @@ if __name__ == "__main__":
     p = np.zeros(6)
 
     q_step_2 = calibration.step_2(
-        biorbd_model_merge,
-        p,
-        bounds,
-        nb_dof_wu_model,
-        nb_parameters,
-        nb_frames,
-        q_first_ik[:, :nb_frames],
-        q_output[:, :nb_frames],
-        markers[:, :, :nb_frames],
-        markers_names,
+        biorbd_model=biorbd_model_merge,
+        p=p,
+        bounds=bounds,
+        nb_dof_wu_model=nb_dof_wu_model,
+        nb_parameters=nb_parameters,
+        nb_frames=nb_frames,
+        list_frames=alea_frames,
+        q_first_ik=q_first_ik[:, alea_frames],
+        q_output=q_output[:, alea_frames],
+        markers_xp_data=markers[:, :, alea_frames],
+        markers_names=markers_names,
     )
     # b1 = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
     # b1.load_experimental_markers(markers[:, :, :10])
@@ -126,15 +132,16 @@ if __name__ == "__main__":
     pos_init = calibration.arm_support_calibration(
         biorbd_model_merge,
         markers_names,
-        markers[:, :, :nb_frames],
-        q_step_2[:, :nb_frames],
+        markers[:, :, alea_frames],
+        q_step_2,
         nb_dof_wu_model,
         nb_parameters,
         nb_frames,
+        alea_frames
     )
 
     b = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
-    b.load_experimental_markers(markers[:, :, :nb_frames])
+    b.load_experimental_markers(markers[:, :, alea_frames])
     # b.load_movement(np.array(q0, q0).T)
     b.load_movement(pos_init)
 

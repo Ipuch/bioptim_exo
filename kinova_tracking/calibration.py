@@ -11,6 +11,7 @@ def objective_function_param(
     x0: np.ndarray,
     markers: np.ndarray,
     nb_frames: int,
+    list_frames,
     markers_names,
 ):
     """
@@ -43,12 +44,12 @@ def objective_function_param(
     out2_all_frames = 0
     Q = np.zeros(nb_dof)
     Q[n_bras : n_bras + n_adjust] = p0
-    for frame in range(nb_frames):
-        thorax_markers = markers[:, 0:14, frame]
-        table_markers = markers[:, 14:, frame]
+    for f, frame in enumerate(list_frames):
+        thorax_markers = markers[:, 0:14, f]
+        table_markers = markers[:, 14:, f]
 
-        Q[:n_bras] = x[:n_bras, frame]
-        Q[n_bras + n_adjust :] = x[n_bras + n_adjust :, frame]
+        Q[:n_bras] = x[:n_bras, f]
+        Q[n_bras + n_adjust :] = x[n_bras + n_adjust :, f]
 
         markers_model = biorbd_model.markers(Q)
 
@@ -148,6 +149,7 @@ def step_2(
     nb_dof_wu_model,
     nb_parameters,
     nb_frames,
+    list_frames,
     q_first_ik,
     q_output,
     markers_xp_data,
@@ -158,7 +160,8 @@ def step_2(
     bounds_without_p_2 = bounds[nb_dof_wu_model + nb_parameters :]
     bounds_without_p = np.concatenate((bounds_without_p_1, bounds_without_p_2))
 
-    for f in range(nb_frames):
+    for f, frames in enumerate(list_frames):
+        # todo : comment here
         x0_1 = q_first_ik[:nb_dof_wu_model, 0] if f == 0 else q_output[:nb_dof_wu_model, f - 1]
         x0_2 = (
             q_first_ik[nb_dof_wu_model + nb_parameters :, 0]
@@ -197,6 +200,7 @@ def arm_support_calibration(
     nb_dof_wu_model,
     nb_parameters,
     nb_frames,
+    list_frames,
 ):
     """
     Parameters
@@ -236,7 +240,7 @@ def arm_support_calibration(
     # step 1 - param opt
     param_opt = optimize.minimize(
         fun=objective_function_param,
-        args=(biorbd_model, q_first_ik, q0, markers_xp_data, nb_frames, markers_names),
+        args=(biorbd_model, q_first_ik, q0, markers_xp_data, nb_frames, list_frames, markers_names),
         x0=p0,
         bounds=bounds[10:16],
         method="trust-constr",
@@ -245,23 +249,24 @@ def arm_support_calibration(
     )
     print(param_opt.x)
 
-    q_first_ik[nb_dof_wu_model : nb_dof_wu_model + nb_parameters, :] = np.array([param_opt.x] * nb_frames).T
+    q_first_ik[nb_dof_wu_model : nb_dof_wu_model + nb_parameters, :] = np.array([param_opt.x] * len(list_frames)).T
     p = param_opt.x
-    q_output[nb_dof_wu_model : nb_dof_wu_model + nb_parameters, :] = np.array([param_opt.x] * nb_frames).T
+    q_output[nb_dof_wu_model : nb_dof_wu_model + nb_parameters, :] = np.array([param_opt.x] * len(list_frames)).T
 
     # step 2 - ik step
 
     q_out = step_2(
-        biorbd_model,
-        p,
-        bounds,
-        nb_dof_wu_model,
-        nb_parameters,
-        nb_frames,
-        q_first_ik,
-        q_output,
-        markers_xp_data,
-        markers_names,
+        biorbd_model=biorbd_model,
+        p=p,
+        bounds=bounds,
+        nb_dof_wu_model=nb_dof_wu_model,
+        nb_parameters=nb_parameters,
+        nb_frames=nb_frames,
+        list_frames=list_frames,
+        q_first_ik=q_first_ik,
+        q_output=q_output,
+        markers_xp_data=markers_xp_data,
+        markers_names=markers_names,
     )
 
     # return support parameters, q_output
