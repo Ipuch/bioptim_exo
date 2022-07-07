@@ -189,7 +189,16 @@ def step_2(
         q_output[:nb_dof_wu_model, f] = IK_i.x[:nb_dof_wu_model]
         q_output[nb_dof_wu_model + nb_parameters :, f] = IK_i.x[nb_dof_wu_model:]
 
-    return q_output
+        markers_model = biorbd_model.markers(q_output[:, f])
+        table_markers = markers_xp_data[:, 14:, f]
+        thorax_markers = markers_xp_data[:, 0:14, f]
+        markers_to_compare = markers_xp_data[:, :, f]
+        espilon_markers = 0
+        for j in range(len(thorax_markers[0, :])):
+            mark = np.linalg.norm(markers_model[j].to_array()[:] - markers_to_compare[:, j]) ** 2
+            espilon_markers += mark
+
+    return q_output, espilon_markers
 
 
 def arm_support_calibration(
@@ -237,37 +246,50 @@ def arm_support_calibration(
     # nb_frames = markers_xp_data.shape[2]
     p0 = q_first_ik[nb_dof_wu_model : nb_dof_wu_model + nb_parameters, 0]
 
-    # step 1 - param opt
-    param_opt = optimize.minimize(
-        fun=objective_function_param,
-        args=(biorbd_model, q_first_ik, q0, markers_xp_data, nb_frames, list_frames, markers_names),
-        x0=p0,
-        bounds=bounds[10:16],
-        method="trust-constr",
-        jac="3-point",
-        tol=1e-5,
-    )
-    print(param_opt.x)
 
-    q_first_ik[nb_dof_wu_model : nb_dof_wu_model + nb_parameters, :] = np.array([param_opt.x] * len(list_frames)).T
-    p = param_opt.x
-    q_output[nb_dof_wu_model : nb_dof_wu_model + nb_parameters, :] = np.array([param_opt.x] * len(list_frames)).T
+    epsilon_markers_n = 10
+    epsilon_markers_n_minus_1 = 0
+    delta_epsilon_markers = epsilon_markers_n - epsilon_markers_n_minus_1
+    seuil = 1e-10
+    while delta_epsilon_markers > seuil:
+        epsilon_markers_n_minus_1 = epsilon_markers_n
+        # step 1 - param opt
+        param_opt = optimize.minimize(
+            fun=objective_function_param,
+            args=(biorbd_model, q_first_ik, q0, markers_xp_data, nb_frames, list_frames, markers_names),
+            x0=p0,
+            bounds=bounds[10:16],
+            method="trust-constr",
+            jac="3-point",
+            tol=1e-5,
+        )
+        print(param_opt.x)
 
-    # step 2 - ik step
+        q_first_ik[nb_dof_wu_model : nb_dof_wu_model + nb_parameters, :] = np.array([param_opt.x] * len(list_frames)).T
+        p = param_opt.x
+        q_output[nb_dof_wu_model : nb_dof_wu_model + nb_parameters, :] = np.array([param_opt.x] * len(list_frames)).T
 
-    q_out = step_2(
-        biorbd_model=biorbd_model,
-        p=p,
-        bounds=bounds,
-        nb_dof_wu_model=nb_dof_wu_model,
-        nb_parameters=nb_parameters,
-        nb_frames=nb_frames,
-        list_frames=list_frames,
-        q_first_ik=q_first_ik,
-        q_output=q_output,
-        markers_xp_data=markers_xp_data,
-        markers_names=markers_names,
-    )
+        # step 2 - ik step
+
+        q_out, epsilon_markers_n = step_2(
+            biorbd_model=biorbd_model,
+            p=p,
+            bounds=bounds,
+            nb_dof_wu_model=nb_dof_wu_model,
+            nb_parameters=nb_parameters,
+            nb_frames=nb_frames,
+            list_frames=list_frames,
+            q_first_ik=q_first_ik,
+            q_output=q_output,
+            markers_xp_data=markers_xp_data,
+            markers_names=markers_names,
+        )
+        delta_epsilon_markers = epsilon_markers_n - epsilon_markers_n_minus_1
+        print("delta_epsilon_markers:", delta_epsilon_markers)
+        print("epsilon_markers_n:", epsilon_markers_n)
+        print("epsilon_markers_n_minus_1:", epsilon_markers_n_minus_1)
+
+
 
     # return support parameters, q_output
     return q_out

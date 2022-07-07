@@ -109,7 +109,7 @@ if __name__ == "__main__":
     ]
     p = np.zeros(6)
 
-    q_step_2 = calibration.step_2(
+    q_step_2, epsilon = calibration.step_2(
         biorbd_model=biorbd_model_merge,
         p=p,
         bounds=bounds,
