@@ -5,7 +5,13 @@ import utils
 
 
 def objective_function_param(
-        p0: np.ndarray, biorbd_model: biorbd.Model, x: np.ndarray, x0: np.ndarray, markers: np.ndarray, nb_frames: int, markers_names
+    p0: np.ndarray,
+    biorbd_model: biorbd.Model,
+    x: np.ndarray,
+    x0: np.ndarray,
+    markers: np.ndarray,
+    nb_frames: int,
+    markers_names,
 ):
     """
     Objective function
@@ -36,25 +42,24 @@ def objective_function_param(
     mark_out_all_frames = 0
     out2_all_frames = 0
     Q = np.zeros(nb_dof)
-    Q[n_bras: n_bras + n_adjust] = p0
+    Q[n_bras : n_bras + n_adjust] = p0
     for frame in range(nb_frames):
         thorax_markers = markers[:, 0:14, frame]
         table_markers = markers[:, 14:, frame]
 
         Q[:n_bras] = x[:n_bras, frame]
-        Q[n_bras + n_adjust:] = x[n_bras + n_adjust:, frame]
+        Q[n_bras + n_adjust :] = x[n_bras + n_adjust :, frame]
 
         markers_model = biorbd_model.markers(Q)
 
         table5_xyz = (
-                np.linalg.norm(markers_model[markers_names.index("Table:Table5")].to_array()[:] - table_markers[:, 0])
-                ** 2
+            np.linalg.norm(markers_model[markers_names.index("Table:Table5")].to_array()[:] - table_markers[:, 0]) ** 2
         )
         table5_xyz_all_frames += table5_xyz
 
         table6_xy = (
-                np.linalg.norm(markers_model[markers_names.index("Table:Table6")].to_array()[:2] - table_markers[:2, 1])
-                ** 2
+            np.linalg.norm(markers_model[markers_names.index("Table:Table6")].to_array()[:2] - table_markers[:2, 1])
+            ** 2
         )
         table6_xy_all_frames += table6_xy
 
@@ -76,7 +81,12 @@ def objective_function_param(
 
 
 def ik_step(
-    x: np.ndarray, biorbd_model: biorbd.Model, p: np.ndarray, table_markers: np.ndarray, thorax_markers: np.ndarray, markers_names
+    x: np.ndarray,
+    biorbd_model: biorbd.Model,
+    p: np.ndarray,
+    table_markers: np.ndarray,
+    thorax_markers: np.ndarray,
+    markers_names,
 ):
     """
     Objective function
@@ -107,8 +117,7 @@ def ik_step(
         np.linalg.norm(markers_model[markers_names.index("Table:Table5")].to_array()[:] - table_markers[:, 0]) ** 2
     )
     table6_xy = (
-        np.linalg.norm(markers_model[markers_names.index("Table:Table6")].to_array()[:2] - table_markers[:2, 1])
-        ** 2
+        np.linalg.norm(markers_model[markers_names.index("Table:Table6")].to_array()[:2] - table_markers[:2, 1]) ** 2
     )
     mark_list = []
     mark_out = 0
@@ -132,18 +141,29 @@ def ik_step(
     return 1000 * table5_xyz + 1000 * table6_xy + out2 + 1000 * mark_out
 
 
-def step_2(biorbd_model, p, bounds, nb_dof_wu_model, nb_parameters, nb_frames, q_first_ik, q_output, markers_xp_data, markers_names):
+def step_2(
+    biorbd_model,
+    p,
+    bounds,
+    nb_dof_wu_model,
+    nb_parameters,
+    nb_frames,
+    q_first_ik,
+    q_output,
+    markers_xp_data,
+    markers_names,
+):
     # build the bounds for step 2
     bounds_without_p_1 = bounds[:nb_dof_wu_model]
-    bounds_without_p_2 = bounds[nb_dof_wu_model + nb_parameters:]
+    bounds_without_p_2 = bounds[nb_dof_wu_model + nb_parameters :]
     bounds_without_p = np.concatenate((bounds_without_p_1, bounds_without_p_2))
 
     for f in range(nb_frames):
         x0_1 = q_first_ik[:nb_dof_wu_model, 0] if f == 0 else q_output[:nb_dof_wu_model, f - 1]
         x0_2 = (
-            q_first_ik[nb_dof_wu_model + nb_parameters:, 0]
+            q_first_ik[nb_dof_wu_model + nb_parameters :, 0]
             if f == 0
-            else q_output[nb_dof_wu_model + nb_parameters:, f - 1]
+            else q_output[nb_dof_wu_model + nb_parameters :, f - 1]
         )
         x0 = np.concatenate((x0_1, x0_2))
         IK_i = optimize.minimize(
@@ -153,7 +173,7 @@ def step_2(biorbd_model, p, bounds, nb_dof_wu_model, nb_parameters, nb_frames, q
                 p,
                 markers_xp_data[:, 14:, f],  # todo: remove the raw hard coded walues
                 markers_xp_data[:, 0:14, f],
-                markers_names
+                markers_names,
             ),
             x0=x0,  # x0 q sans p
             bounds=bounds_without_p,
@@ -164,7 +184,7 @@ def step_2(biorbd_model, p, bounds, nb_dof_wu_model, nb_parameters, nb_frames, q
         print(f"frame {f} done")
 
         q_output[:nb_dof_wu_model, f] = IK_i.x[:nb_dof_wu_model]
-        q_output[nb_dof_wu_model + nb_parameters:, f] = IK_i.x[nb_dof_wu_model:]
+        q_output[nb_dof_wu_model + nb_parameters :, f] = IK_i.x[nb_dof_wu_model:]
 
     return q_output
 
@@ -231,8 +251,18 @@ def arm_support_calibration(
 
     # step 2 - ik step
 
-    q_out = step_2(biorbd_model, p, bounds, nb_dof_wu_model, nb_parameters, nb_frames, q_first_ik, q_output, markers_xp_data,
-           markers_names)
+    q_out = step_2(
+        biorbd_model,
+        p,
+        bounds,
+        nb_dof_wu_model,
+        nb_parameters,
+        nb_frames,
+        q_first_ik,
+        q_output,
+        markers_xp_data,
+        markers_names,
+    )
 
     # return support parameters, q_output
     return q_out

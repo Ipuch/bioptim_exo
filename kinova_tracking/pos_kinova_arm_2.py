@@ -17,9 +17,7 @@ def IK(model_path, points, labels_markers_ik):
     biorbd_model_ik = biorbd.Model(model_path)
 
     # Markers labels in the model
-    marker_names_ik = [
-        biorbd_model_ik.markerNames()[i].to_string() for i in range(biorbd_model_ik.nbMarkers())
-    ]
+    marker_names_ik = [biorbd_model_ik.markerNames()[i].to_string() for i in range(biorbd_model_ik.nbMarkers())]
 
     # reformat the makers trajectories
     markers_ik = np.zeros((3, len(marker_names_ik), len(points[0, 0, :])))
@@ -99,7 +97,7 @@ if __name__ == "__main__":
     nb_parameters = 6
     nb_dof_kinova = 6
     # nb_frames = markers.shape[2]
-    nb_frames = 10
+    nb_frames = 100
     q_output = np.zeros((biorbd_model_merge.nbQ(), nb_frames))
     bounds = [
         (mini, maxi) for mini, maxi in zip(get_range_q(biorbd_model_merge)[0], get_range_q(biorbd_model_merge)[1])
@@ -113,30 +111,30 @@ if __name__ == "__main__":
         nb_dof_wu_model,
         nb_parameters,
         nb_frames,
-        q_first_ik[:, :10],
-        q_output[:, :10],
-        markers[:, :, :10],
-        markers_names
+        q_first_ik[:, :nb_frames],
+        q_output[:, :nb_frames],
+        markers[:, :, :nb_frames],
+        markers_names,
     )
-    b1 = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
-    b1.load_experimental_markers(markers[:, :, :10])
-    # b.load_movement(np.array(q0, q0).T)
-    b1.load_movement(q_step_2)
-
-    b1.exec()
+    # b1 = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
+    # b1.load_experimental_markers(markers[:, :, :10])
+    # # b.load_movement(np.array(q0, q0).T)
+    # b1.load_movement(q_step_2)
+    #
+    # b1.exec()
 
     pos_init = calibration.arm_support_calibration(
         biorbd_model_merge,
         markers_names,
-        markers[:, :, :10],
-        q_step_2[:, :10],
+        markers[:, :, :nb_frames],
+        q_step_2[:, :nb_frames],
         nb_dof_wu_model,
         nb_parameters,
         nb_frames,
     )
 
     b = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
-    b.load_experimental_markers(markers[:, :, :10])
+    b.load_experimental_markers(markers[:, :, :nb_frames])
     # b.load_movement(np.array(q0, q0).T)
     b.load_movement(pos_init)
 
