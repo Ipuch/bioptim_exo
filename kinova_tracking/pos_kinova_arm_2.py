@@ -98,9 +98,12 @@ if __name__ == "__main__":
     nb_parameters = 6
     nb_dof_kinova = 6
     nb_frames = markers.shape[2]
-    alea_frames = random.sample(range(nb_frames), 50)
-    alea_frames.sort()
-    print(alea_frames)
+    nb_frames_needed = 10
+    all_frames = False
+    frames_list = random.sample(range(nb_frames), nb_frames_needed) if not all_frames \
+        else [i for i in range(nb_frames_needed)]
+    frames_list.sort()
+    print(frames_list)
     print(nb_frames)
     # nb_frames = 50
     q_output = np.zeros((biorbd_model_merge.nbQ(), nb_frames))
@@ -116,10 +119,10 @@ if __name__ == "__main__":
         nb_dof_wu_model=nb_dof_wu_model,
         nb_parameters=nb_parameters,
         nb_frames=nb_frames,
-        list_frames=alea_frames,
-        q_first_ik=q_first_ik[:, alea_frames],
-        q_output=q_output[:, alea_frames],
-        markers_xp_data=markers[:, :, alea_frames],
+        list_frames=frames_list,
+        q_first_ik=q_first_ik[:, frames_list],
+        q_output=q_output[:, frames_list],
+        markers_xp_data=markers[:, :, frames_list],
         markers_names=markers_names,
     )
     # b1 = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
@@ -132,16 +135,16 @@ if __name__ == "__main__":
     pos_init = calibration.arm_support_calibration(
         biorbd_model_merge,
         markers_names,
-        markers[:, :, alea_frames],
+        markers[:, :, frames_list],
         q_step_2,
         nb_dof_wu_model,
         nb_parameters,
         nb_frames,
-        alea_frames
+        frames_list
     )
 
     b = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
-    b.load_experimental_markers(markers[:, :, alea_frames])
+    b.load_experimental_markers(markers[:, :, frames_list])
     # b.load_movement(np.array(q0, q0).T)
     b.load_movement(pos_init)
 
