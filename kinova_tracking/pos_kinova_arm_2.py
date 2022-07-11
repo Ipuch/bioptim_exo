@@ -49,6 +49,7 @@ if __name__ == "__main__":
 
     # Step 1.1: IK of wu model with floating base
     ik_with_floating_base = IK(model_path_without_kinova, points_c3d, labels_markers)
+    # ik_with_floating_base.animate()
 
     # rewrite the models with the location of the floating base
     template_file_merge = "../models/KINOVA_merge_without_floating_base_template.bioMod"
@@ -99,23 +100,49 @@ if __name__ == "__main__":
     nb_dof_kinova = 6
     nb_frames = markers.shape[2]
     nb_frames_needed = 10
-    all_frames = False
+    all_frames = True
     frames_list = random.sample(range(nb_frames), nb_frames_needed) if not all_frames \
-        else [i for i in range(nb_frames_needed)]
+        else [i for i in range(nb_frames)]
     frames_list.sort()
     print(frames_list)
     print(nb_frames)
     # nb_frames = 50
+
     q_output = np.zeros((biorbd_model_merge.nbQ(), nb_frames))
+
     bounds = [
         (mini, maxi) for mini, maxi in zip(get_range_q(biorbd_model_merge)[0], get_range_q(biorbd_model_merge)[1])
     ]
+
+    for j in range((q_first_ik[16:, :].shape[1])):
+        q_first_ik[16:, j] = (
+            np.array(
+                [(bounds_inf + bounds_sup) / 2
+                 for bounds_inf, bounds_sup in zip(get_range_q(biorbd_model_merge)[0][16:],
+                                                   get_range_q(biorbd_model_merge)[1][16:])
+                 ]
+            )
+        )
     p = np.zeros(6)
 
-    q_step_2, epsilon = calibration.step_2(
+    # q_step_2, epsilon = calibration.step_2(
+    #     biorbd_model=biorbd_model_merge,
+    #     p=p,
+    #     bounds=bounds,
+    #     nb_dof_wu_model=nb_dof_wu_model,
+    #     nb_parameters=nb_parameters,
+    #     nb_frames=nb_frames,
+    #     list_frames=frames_list,
+    #     q_first_ik=q_first_ik[:, frames_list],
+    #     q_output=q_output[:, frames_list],
+    #     markers_xp_data=markers[:, :, frames_list],
+    #     markers_names=markers_names,
+    # )
+
+    q_step_2, epsilon = calibration.step_2_least_square(
         biorbd_model=biorbd_model_merge,
         p=p,
-        bounds=bounds,
+        bounds=get_range_q(biorbd_model_merge),
         nb_dof_wu_model=nb_dof_wu_model,
         nb_parameters=nb_parameters,
         nb_frames=nb_frames,
@@ -125,6 +152,7 @@ if __name__ == "__main__":
         markers_xp_data=markers[:, :, frames_list],
         markers_names=markers_names,
     )
+
     # b1 = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
     # b1.load_experimental_markers(markers[:, :, :10])
     # # b.load_movement(np.array(q0, q0).T)

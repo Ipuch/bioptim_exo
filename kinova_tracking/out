@@ -1,0 +1,3 @@
+python pos_kinova_arm_2.py &> pos_kinova_arm_2_out.txt
+
+redirect the output of script in txt file
