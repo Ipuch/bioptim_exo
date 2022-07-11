@@ -271,31 +271,29 @@ def ik_step_least_square(
 
     T = biorbd_model.globalJCS(x_with_p, biorbd_model.nbSegment() - 1).to_array()
     # out2 = T[2, 0] ** 2 + T[2, 1] ** 2 + T[0, 2] ** 2 + T[1, 2] ** 2 + (1 - T[2, 2]) ** 2
-    out2_list = [T[2, 0], T[2, 1], T[0, 2], T[1, 2], (1 - T[2, 2])]
-    out2_list_xp = [0]*len(out2_list)
+    rot_matrix_list = [T[2, 0], T[2, 1], T[0, 2], T[1, 2], (1 - T[2, 2])]
+    rot_matrix_list_xp = [0]*len(rot_matrix_list)
 
-    # out3 = 0
-    # for i, value in enumerate(x[:10]):
-    #     out3 += (x_with_p[i] - value) ** 2
+    pivot_xp = []
+    for h in range(1, 3):
+        pivot_xp.append(x_with_p[-h])
+    pivot_model = [0]*len(pivot_xp)
 
-    # out4 = 0
-    # for h in range(1, 3):
-    #     out4 += (x_with_p[-h] - 0.0) ** 2
-
-    diff_model = table + mark_list + out2_list
+    diff_model = table + mark_list + rot_matrix_list + pivot_model
     diff_tab_model = np.array(diff_model)
-    diff_xp = table_xp + thorax_list_xp + out2_list_xp
+
+    diff_xp = table_xp + thorax_list_xp + rot_matrix_list_xp + pivot_xp
     diff_tab_xp = np.array(diff_xp)
+
     diff = diff_tab_xp - diff_tab_model
 
     weight_table = [1000]*len(table_xp)
     weight_thorax = [1000]*len(thorax_list_xp)
-    weight_rot_matrix = [1]*len(out2_list_xp)
+    weight_rot_matrix = [1]*len(rot_matrix_list_xp)
+    weight_pivot = [100]*len(pivot_xp)
 
-    weight_list = weight_table + weight_thorax + weight_rot_matrix
+    weight_list = weight_table + weight_thorax + weight_rot_matrix + weight_pivot
 
-    # return 1000 * table5_xyz + 1000 * table6_xy + out2 + mark_out + 10 * out3 + out4
-    # return 1000 * table5_xyz + 1000 * table6_xy + out2 + 1000 * mark_out
     return diff * weight_list
 
 
@@ -404,7 +402,6 @@ def step_2_least_square(
             jac="3-point",
             xtol=1e-5,
         )
-        print(f"frame {f} done")
 
         q_output[:nb_dof_wu_model, f] = IK_i.x[:nb_dof_wu_model]
         q_output[nb_dof_wu_model + nb_parameters :, f] = IK_i.x[nb_dof_wu_model:]
@@ -417,6 +414,7 @@ def step_2_least_square(
         for j in range(len(thorax_markers[0, :])):
             mark = np.linalg.norm(markers_model[j].to_array()[:] - markers_to_compare[:, j]) ** 2
             espilon_markers += mark
+    print("step 2 done")
 
     return q_output, espilon_markers
 
@@ -471,7 +469,7 @@ def arm_support_calibration(
     epsilon_markers_n = 10
     epsilon_markers_n_minus_1 = 0
     delta_epsilon_markers = epsilon_markers_n - epsilon_markers_n_minus_1
-    seuil = 1e-12
+    seuil = 1e-10
     while abs(delta_epsilon_markers) > seuil:
 
         epsilon_markers_n_minus_1 = epsilon_markers_n
@@ -506,6 +504,7 @@ def arm_support_calibration(
             markers_xp_data=markers_xp_data,
             markers_names=markers_names,
         )
+
         delta_epsilon_markers = epsilon_markers_n - epsilon_markers_n_minus_1
         print("delta_epsilon_markers:", delta_epsilon_markers)
         print("epsilon_markers_n:", epsilon_markers_n)
