@@ -241,7 +241,7 @@ def ik_step_least_square(
     ------
     The value of the objective function
     """
-    x_with_p = np.zeros(22)
+    x_with_p = np.zeros(biorbd_model.nbQ())
     x_with_p[:10] = x[:10]
     x_with_p[10:16] = p
     x_with_p[16:] = x[10:]
@@ -279,20 +279,20 @@ def ik_step_least_square(
         pivot_xp.append(x_with_p[-h])
     pivot_model = [0]*len(pivot_xp)
 
-    diff_model = table + mark_list + rot_matrix_list + pivot_model
+    diff_model = table + mark_list + rot_matrix_list
     diff_tab_model = np.array(diff_model)
 
-    diff_xp = table_xp + thorax_list_xp + rot_matrix_list_xp + pivot_xp
+    diff_xp = table_xp + thorax_list_xp + rot_matrix_list_xp
     diff_tab_xp = np.array(diff_xp)
 
     diff = diff_tab_xp - diff_tab_model
 
-    weight_table = [1000]*len(table_xp)
-    weight_thorax = [1000]*len(thorax_list_xp)
-    weight_rot_matrix = [1]*len(rot_matrix_list_xp)
-    weight_pivot = [100]*len(pivot_xp)
+    weight_table = [100000]*len(table_xp)
+    weight_thorax = [10000]*len(thorax_list_xp)
+    weight_rot_matrix = [100]*len(rot_matrix_list_xp)
+    # weight_pivot = [100]*len(pivot_xp)
 
-    weight_list = weight_table + weight_thorax + weight_rot_matrix + weight_pivot
+    weight_list = weight_table + weight_thorax + weight_rot_matrix
 
     return diff * weight_list
 
@@ -469,9 +469,10 @@ def arm_support_calibration(
     epsilon_markers_n = 10
     epsilon_markers_n_minus_1 = 0
     delta_epsilon_markers = epsilon_markers_n - epsilon_markers_n_minus_1
-    seuil = 1e-10
+    # seuil = 1e-10
+    seuil = 5e-5
     while abs(delta_epsilon_markers) > seuil:
-
+        print("seuil", seuil, "delta", abs(delta_epsilon_markers))
         epsilon_markers_n_minus_1 = epsilon_markers_n
         # step 1 - param opt
         param_opt = optimize.minimize(
@@ -511,8 +512,7 @@ def arm_support_calibration(
         print("epsilon_markers_n_minus_1:", epsilon_markers_n_minus_1)
         iteration += 1
         print("iteration:", iteration)
-
-
+        q_first_ik = q_output
 
     # return support parameters, q_output
     return q_out
