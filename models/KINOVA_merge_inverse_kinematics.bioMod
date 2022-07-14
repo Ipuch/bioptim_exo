@@ -707,12 +707,12 @@ endsegment
 
 marker    Table:Table5
         parent    part1
-        position  -0.120 0 0
+        position  -0.120 0 0.02
     endmarker
 
      marker    Table:Table6
         parent    part1
-        position  -0.120 0 0.1
+        position  -0.120 0 0.02
     endmarker
 /*
     marker    Contact_mk1
