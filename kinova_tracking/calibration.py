@@ -469,10 +469,12 @@ def arm_support_calibration(
     epsilon_markers_n = 10
     epsilon_markers_n_minus_1 = 0
     delta_epsilon_markers = epsilon_markers_n - epsilon_markers_n_minus_1
-    # seuil = 1e-10
+
     seuil = 5e-5
     while abs(delta_epsilon_markers) > seuil:
+
         print("seuil", seuil, "delta", abs(delta_epsilon_markers))
+
         epsilon_markers_n_minus_1 = epsilon_markers_n
         # step 1 - param opt
         param_opt = optimize.minimize(
