@@ -14,6 +14,16 @@ from utils import get_range_q
 import random
 
 
+def move_marker_table(labels_markers_list, c3d_file, offset):
+
+    new_points = c3d_file["data"]["points"].copy()
+    new_points[1, labels_markers_list.index("Table:Table5"), :] \
+        = c3d_file["data"]["points"][1,labels_markers_list.index("Table:Table5"), :] - offset
+    # # Write the data
+    # c3d.write("../data/F3_aisselle_01_new_table.c3d")
+    return new_points
+
+
 def IK(model_path, points, labels_markers_ik):
     biorbd_model_ik = biorbd.Model(model_path)
 
@@ -37,12 +47,13 @@ if __name__ == "__main__":
     # c3d to treat
     c3d_path = "../data/F3_aisselle_01.c3d"
     c3d_kinova = c3d(c3d_path)
-
-    # Markers trajectories
-    points_c3d = c3d_kinova["data"]["points"]
+    move_marker = True
 
     # Markers labels in c3d
     labels_markers = c3d_kinova["parameters"]["POINT"]["LABELS"]["value"]
+
+    # Markers trajectories
+    points_c3d = c3d_kinova["data"]["points"] if not move_marker else move_marker_table(labels_markers, c3d_kinova, 10)
 
     # model for step 1.1
     model_path_without_kinova = "../models/wu_converted_definitif_inverse_kinematics.bioMod"
