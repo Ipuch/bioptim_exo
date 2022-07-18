@@ -378,7 +378,7 @@ def step_2_least_square(
     bounds_without_p = (np.concatenate((bounds_without_p_1_min, bounds_without_p_2_min)),
                         np.concatenate((bounds_without_p_1_max, bounds_without_p_2_max)))
 
-    for f, frames in enumerate(list_frames):
+    for f in range(nb_frames):
         # todo : comment here
         x0_1 = q_first_ik[:nb_dof_wu_model, 0] if f == 0 else q_output[:nb_dof_wu_model, f - 1]
         x0_2 = (
@@ -450,7 +450,6 @@ def arm_support_calibration(
     ------
         The optimized Generalized coordinates
     """
-
     q0 = q_first_ik[:, 0]
 
     # idx_human = [0, ..., n_dof]
@@ -472,6 +471,9 @@ def arm_support_calibration(
 
     seuil = 5e-5
     while abs(delta_epsilon_markers) > seuil:
+        q_first_ik_not_all_frames = q_first_ik[:, list_frames]
+
+        markers_xp_data_not_all_frames = markers_xp_data[:, :, list_frames]
 
         print("seuil", seuil, "delta", abs(delta_epsilon_markers))
 
@@ -479,7 +481,13 @@ def arm_support_calibration(
         # step 1 - param opt
         param_opt = optimize.minimize(
             fun=objective_function_param,
-            args=(biorbd_model, q_first_ik, q0, markers_xp_data, nb_frames, list_frames, markers_names),
+            args=(biorbd_model,
+                  q_first_ik_not_all_frames,
+                  q0,
+                  markers_xp_data_not_all_frames,
+                  nb_frames,
+                  list_frames,
+                  markers_names),
             x0=p,
             bounds=bounds[10:16],
             method="trust-constr",
@@ -488,9 +496,9 @@ def arm_support_calibration(
         )
         print(param_opt.x)
 
-        q_first_ik[nb_dof_wu_model : nb_dof_wu_model + nb_parameters, :] = np.array([param_opt.x] * len(list_frames)).T
+        q_first_ik[nb_dof_wu_model : nb_dof_wu_model + nb_parameters, :] = np.array([param_opt.x] * q_first_ik.shape[1]).T
         p = param_opt.x
-        q_output[nb_dof_wu_model : nb_dof_wu_model + nb_parameters, :] = np.array([param_opt.x] * len(list_frames)).T
+        q_output[nb_dof_wu_model : nb_dof_wu_model + nb_parameters, :] = np.array([param_opt.x] * q_output.shape[1]).T
 
 
         # step 2 - ik step

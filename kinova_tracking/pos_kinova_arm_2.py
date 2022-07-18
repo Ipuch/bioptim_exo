@@ -52,7 +52,7 @@ if __name__ == "__main__":
     # Markers labels in c3d
     labels_markers = c3d_kinova["parameters"]["POINT"]["LABELS"]["value"]
 
-    offset = 10
+    offset = 50
     print("offset", offset)
     # Markers trajectories
     points_c3d = c3d_kinova["data"]["points"] if not move_marker else move_marker_table(labels_markers, c3d_kinova, offset)
@@ -112,7 +112,7 @@ if __name__ == "__main__":
     nb_parameters = 6
     nb_dof_kinova = 6
     nb_frames = markers.shape[2]
-    nb_frames_needed = 100
+    nb_frames_needed = 50
     all_frames = False
     frames_list = random.sample(range(nb_frames), nb_frames_needed) if not all_frames \
         else [i for i in range(nb_frames)]
@@ -138,6 +138,20 @@ if __name__ == "__main__":
         )
     p = np.zeros(6)
 
+    # q_step_2, epsilon = calibration.step_2_least_square(
+    #     biorbd_model=biorbd_model_merge,
+    #     p=p,
+    #     bounds=get_range_q(biorbd_model_merge),
+    #     nb_dof_wu_model=nb_dof_wu_model,
+    #     nb_parameters=nb_parameters,
+    #     nb_frames=nb_frames,
+    #     list_frames=frames_list,
+    #     q_first_ik=q_first_ik[:, frames_list],
+    #     q_output=q_output[:, frames_list],
+    #     markers_xp_data=markers[:, :, frames_list],
+    #     markers_names=markers_names,
+    # )
+
     q_step_2, epsilon = calibration.step_2_least_square(
         biorbd_model=biorbd_model_merge,
         p=p,
@@ -146,14 +160,13 @@ if __name__ == "__main__":
         nb_parameters=nb_parameters,
         nb_frames=nb_frames,
         list_frames=frames_list,
-        q_first_ik=q_first_ik[:, frames_list],
-        q_output=q_output[:, frames_list],
-        markers_xp_data=markers[:, :, frames_list],
+        q_first_ik=q_first_ik,
+        q_output=q_output,
+        markers_xp_data=markers,
         markers_names=markers_names,
     )
-
     # b1 = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
-    # b1.load_experimental_markers(markers[:, :, :10])
+    # b1.load_experimental_markers(markers[:, :, :])
     # # b.load_movement(np.array(q0, q0).T)
     # b1.load_movement(q_step_2)
     #
@@ -162,7 +175,7 @@ if __name__ == "__main__":
     pos_init = calibration.arm_support_calibration(
         biorbd_model_merge,
         markers_names,
-        markers[:, :, frames_list],
+        markers,
         q_step_2,
         nb_dof_wu_model,
         nb_parameters,
@@ -171,7 +184,7 @@ if __name__ == "__main__":
     )
 
     b = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
-    b.load_experimental_markers(markers[:, :, frames_list])
+    b.load_experimental_markers(markers)
     # b.load_movement(np.array(q0, q0).T)
     b.load_movement(pos_init)
 
