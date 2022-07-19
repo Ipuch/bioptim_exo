@@ -68,7 +68,9 @@ if __name__ == "__main__":
 
     # rewrite the models with the location of the floating base
     template_file_merge = "../models/KINOVA_merge_without_floating_base_with_6_dof_support_template.bioMod"
-    new_biomod_file_merge = "../models/KINOVA_merge_without_floating_base_with_6_dof_support_template_with_variables.bioMod"
+    new_biomod_file_merge = (
+        "../models/KINOVA_merge_without_floating_base_with_6_dof_support_template_with_variables.bioMod"
+    )
 
     template_file_wu = "../models/wu_converted_definitif_without_floating_base_template.bioMod"
     new_biomod_file_wu = "../models/wu_converted_definitif_without_floating_base_template_with_variables.bioMod"

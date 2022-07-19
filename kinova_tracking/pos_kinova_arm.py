@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
     for i, name in enumerate(markers_names):
         if name in labels_markers:
-            if name == "Table:Table6": # we artificially added a marker so we have to add his position
+            if name == "Table:Table6":  # we artificially added a marker so we have to add his position
                 markers[:, i, :] = points[:3, labels_markers.index("Table:Table5"), :] / 1000
             else:
                 markers[:, i, :] = points[:3, labels_markers.index(name), :] / 1000
@@ -88,4 +88,3 @@ if __name__ == "__main__":
     b.load_movement(pos_init)
 
     b.exec()
-

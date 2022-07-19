@@ -20,7 +20,13 @@ def IK_Kinova(
     :param q0:
     """
 
-    def objective_function(x: np.ndarray, biorbd_model: biorbd.Model, q_ik_thorax: np.ndarray, table_markers: np.ndarray, thorax_markers: np.ndarray):
+    def objective_function(
+        x: np.ndarray,
+        biorbd_model: biorbd.Model,
+        q_ik_thorax: np.ndarray,
+        table_markers: np.ndarray,
+        thorax_markers: np.ndarray,
+    ):
         markers_model = biorbd_model.markers(x)
         table5_xyz = (
             np.linalg.norm(markers_model[markers_names.index("Table:Table5")].to_array()[:] - table_markers[:, 0]) ** 2
@@ -51,8 +57,16 @@ def IK_Kinova(
 
         return 1000 * table5_xyz + 1000 * table6_xy + out2 + mark_out + 10 * out3 + out4
 
-    idx_markers_kinova = [i for i, value in enumerate(biorbd_model.markerNames()) if value.to_string() == "Table:Table6" or value.to_string() == "Table:Table5"]
-    idx_markers_human_body = [i for i, value in enumerate(biorbd_model.markerNames()) if not value.to_string() == "Table:Table6" or value.to_string() == "Table:Table5"]
+    idx_markers_kinova = [
+        i
+        for i, value in enumerate(biorbd_model.markerNames())
+        if value.to_string() == "Table:Table6" or value.to_string() == "Table:Table5"
+    ]
+    idx_markers_human_body = [
+        i
+        for i, value in enumerate(biorbd_model.markerNames())
+        if not value.to_string() == "Table:Table6" or value.to_string() == "Table:Table5"
+    ]
 
     q = np.zeros((biorbd_model.nbQ(), markers.shape[2]))
     bounds = [
@@ -73,4 +87,3 @@ def IK_Kinova(
         print(f"frame {f} done")
 
     return q
-
