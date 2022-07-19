@@ -16,8 +16,9 @@ import random
 def move_marker_table(labels_markers_list, c3d_file, offset):
 
     new_points = c3d_file["data"]["points"].copy()
-    new_points[1, labels_markers_list.index("Table:Table5"), :] \
-        = c3d_file["data"]["points"][1,labels_markers_list.index("Table:Table5"), :] - offset
+    new_points[1, labels_markers_list.index("Table:Table5"), :] = (
+        c3d_file["data"]["points"][1, labels_markers_list.index("Table:Table5"), :] - offset
+    )
     # # Write the data
     # c3d.write("../data/F3_aisselle_01_new_table.c3d")
     return new_points
@@ -54,7 +55,9 @@ if __name__ == "__main__":
     offset = 50
     print("offset", offset)
     # Markers trajectories
-    points_c3d = c3d_kinova["data"]["points"] if not move_marker else move_marker_table(labels_markers, c3d_kinova, offset)
+    points_c3d = (
+        c3d_kinova["data"]["points"] if not move_marker else move_marker_table(labels_markers, c3d_kinova, offset)
+    )
 
     # model for step 1.1
     model_path_without_kinova = "../models/wu_converted_definitif_inverse_kinematics.bioMod"
@@ -113,8 +116,7 @@ if __name__ == "__main__":
     nb_frames = markers.shape[2]
     nb_frames_needed = 10
     all_frames = False
-    frames_list = random.sample(range(nb_frames), nb_frames_needed) if not all_frames \
-        else [i for i in range(nb_frames)]
+    frames_list = random.sample(range(nb_frames), nb_frames_needed) if not all_frames else [i for i in range(nb_frames)]
     frames_list.sort()
     print(frames_list)
     print(nb_frames)
@@ -127,13 +129,13 @@ if __name__ == "__main__":
     ]
 
     for j in range((q_first_ik[16:, :].shape[1])):
-        q_first_ik[16:, j] = (
-            np.array(
-                [(bounds_inf + bounds_sup) / 2
-                 for bounds_inf, bounds_sup in zip(get_range_q(biorbd_model_merge)[0][16:],
-                                                   get_range_q(biorbd_model_merge)[1][16:])
-                 ]
-            )
+        q_first_ik[16:, j] = np.array(
+            [
+                (bounds_inf + bounds_sup) / 2
+                for bounds_inf, bounds_sup in zip(
+                    get_range_q(biorbd_model_merge)[0][16:], get_range_q(biorbd_model_merge)[1][16:]
+                )
+            ]
         )
     p = np.zeros(6)
 
@@ -158,14 +160,7 @@ if __name__ == "__main__":
     # b1.exec()
 
     pos_init = calibration.arm_support_calibration(
-        biorbd_model_merge,
-        markers_names,
-        markers,
-        q_step_2,
-        nb_dof_wu_model,
-        nb_parameters,
-        nb_frames,
-        frames_list
+        biorbd_model_merge, markers_names, markers, q_step_2, nb_dof_wu_model, nb_parameters, nb_frames, frames_list
     )
 
     b = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)

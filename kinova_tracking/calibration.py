@@ -251,11 +251,15 @@ def ik_step_least_square(
     vect_pos_markers = np.zeros(3 * len(markers_model))
 
     for m, value in enumerate(markers_model):
-        vect_pos_markers[m * 3: (m + 1) * 3] = value.to_array()
+        vect_pos_markers[m * 3 : (m + 1) * 3] = value.to_array()
 
-    table5_xyz = vect_pos_markers[markers_names.index("Table:Table5")*3:markers_names.index("Table:Table5")*3+3][:]
+    table5_xyz = vect_pos_markers[
+        markers_names.index("Table:Table5") * 3 : markers_names.index("Table:Table5") * 3 + 3
+    ][:]
     table_xp = table_markers[:, 0].tolist()
-    table6_xy = vect_pos_markers[markers_names.index("Table:Table6") * 3:markers_names.index("Table:Table6") * 3 + 3][:2]
+    table6_xy = vect_pos_markers[markers_names.index("Table:Table6") * 3 : markers_names.index("Table:Table6") * 3 + 3][
+        :2
+    ]
     table_xp += table_markers[:2, 1].tolist()
     table = table5_xyz.tolist() + table6_xy.tolist()
 
@@ -264,7 +268,7 @@ def ik_step_least_square(
     for j, name in enumerate(markers_names):
         if name != "Table:Table5" and name != "Table:Table6":
             # print(name)
-            mark = vect_pos_markers[markers_names.index(name)*3:markers_names.index(name)*3+3][:].tolist()
+            mark = vect_pos_markers[markers_names.index(name) * 3 : markers_names.index(name) * 3 + 3][:].tolist()
             thorax = thorax_markers[:, markers_names.index(name)].tolist()
             mark_list += mark
             thorax_list_xp += thorax
@@ -272,7 +276,7 @@ def ik_step_least_square(
     T = biorbd_model.globalJCS(x_with_p, biorbd_model.nbSegment() - 1).to_array()
     # out2 = T[2, 0] ** 2 + T[2, 1] ** 2 + T[0, 2] ** 2 + T[1, 2] ** 2 + (1 - T[2, 2]) ** 2
     rot_matrix_list = [T[2, 0], T[2, 1], T[0, 2], T[1, 2], (1 - T[2, 2])]
-    rot_matrix_list_xp = [0]*len(rot_matrix_list)
+    rot_matrix_list_xp = [0] * len(rot_matrix_list)
 
     # mat_pos_part1 = biorbd_model.globalJCS("part1").to_array()
     # pos_part1_x_vector_xy = mat_pos_part1[:, 0][:2]
@@ -309,9 +313,9 @@ def ik_step_least_square(
 
     diff = diff_tab_xp - diff_tab_model
 
-    weight_table = [100000]*len(table_xp)
-    weight_thorax = [10000]*len(thorax_list_xp)
-    weight_rot_matrix = [100]*len(rot_matrix_list_xp)
+    weight_table = [100000] * len(table_xp)
+    weight_thorax = [10000] * len(thorax_list_xp)
+    weight_rot_matrix = [100] * len(rot_matrix_list_xp)
     # weight_theta = [5000]
 
     weight_list = weight_table + weight_thorax + weight_rot_matrix
@@ -393,12 +397,14 @@ def step_2_least_square(
 ):
     # build the bounds for step 2
     bounds_without_p_1_min = bounds[0][:nb_dof_wu_model]
-    bounds_without_p_2_min = bounds[0][nb_dof_wu_model + nb_parameters:]
+    bounds_without_p_2_min = bounds[0][nb_dof_wu_model + nb_parameters :]
     bounds_without_p_1_max = bounds[1][:nb_dof_wu_model]
-    bounds_without_p_2_max = bounds[1][nb_dof_wu_model + nb_parameters:]
+    bounds_without_p_2_max = bounds[1][nb_dof_wu_model + nb_parameters :]
 
-    bounds_without_p = (np.concatenate((bounds_without_p_1_min, bounds_without_p_2_min)),
-                        np.concatenate((bounds_without_p_1_max, bounds_without_p_2_max)))
+    bounds_without_p = (
+        np.concatenate((bounds_without_p_1_min, bounds_without_p_2_min)),
+        np.concatenate((bounds_without_p_1_max, bounds_without_p_2_max)),
+    )
 
     for f in range(nb_frames):
         # todo : comment here
@@ -503,13 +509,15 @@ def arm_support_calibration(
         # step 1 - param opt
         param_opt = optimize.minimize(
             fun=objective_function_param,
-            args=(biorbd_model,
-                  q_first_ik_not_all_frames,
-                  q0,
-                  markers_xp_data_not_all_frames,
-                  nb_frames,
-                  list_frames,
-                  markers_names),
+            args=(
+                biorbd_model,
+                q_first_ik_not_all_frames,
+                q0,
+                markers_xp_data_not_all_frames,
+                nb_frames,
+                list_frames,
+                markers_names,
+            ),
             x0=p,
             bounds=bounds[10:16],
             method="trust-constr",
@@ -518,10 +526,11 @@ def arm_support_calibration(
         )
         print(param_opt.x)
 
-        q_first_ik[nb_dof_wu_model : nb_dof_wu_model + nb_parameters, :] = np.array([param_opt.x] * q_first_ik.shape[1]).T
+        q_first_ik[nb_dof_wu_model : nb_dof_wu_model + nb_parameters, :] = np.array(
+            [param_opt.x] * q_first_ik.shape[1]
+        ).T
         p = param_opt.x
         q_output[nb_dof_wu_model : nb_dof_wu_model + nb_parameters, :] = np.array([param_opt.x] * q_output.shape[1]).T
-
 
         # step 2 - ik step
         q_out, epsilon_markers_n = step_2_least_square(
