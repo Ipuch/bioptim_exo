@@ -23,7 +23,5 @@ event_tracking/ocp_graph.gv
 
 data/__pycache__/
 
-kinova_tracking/solution/
-
 event_tracking/__pycache__/
 
