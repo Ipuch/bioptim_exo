@@ -11,12 +11,9 @@ gravity	0 0 -9.81
     segment thorax_parent_offset
         parent ground 
         RTinMatrix    0
-        //RT	0.0 0.0 0.0	xyz	0.0 0.0 0.0
-        RT $thoraxRT1 $thoraxRT2 $thoraxRT3 xyz $thoraxRT4 $thoraxRT5 $thoraxRT6
-        // this position correspond to the c3d: "F0_aisselle_05.c3d"
+        RT	0.0 0.0 0.0	xyz	0.0 0.0 0.0
     endsegment
 
-    // Segments to define transformation axis.
     // Segment
     segment thorax_translation
         parent thorax_parent_offset 
@@ -26,12 +23,18 @@ gravity	0 0 -9.81
             0.0    1.0    0.0    0
             0.0    0.0    1.0    0
             0    0    0    1
-        //translations xyz
-        //ranges		-20.0	20.0
-	//-2.0	4.0
-	//-5.0	5.0
+        translations xyz
+        rotations xyz
+        ranges		-20.0	20.0
+	-2.0	4.0
+	-5.0	5.0
+	-pi     pi
+	-pi     pi
+	-pi     pi
     endsegment
+
 // The following segment were removed: thorax_rotation_transform, thorax_reset_axis
+
 
     //True segment where are applied inertial values.
     // Segment
@@ -48,6 +51,26 @@ gravity	0 0 -9.81
         meshfile geometry/thorax.vtp
     endsegment
 
+    // Markers
+    marker    MAN
+        parent    thorax
+        position    0.042419427613834632 -0.0023252897183505539 0.0099660835588140095
+    endmarker
+
+    marker    XYP
+        parent    thorax
+        position    0.082340062255294305 -0.16583819844340569 0.0031414666224537369
+    endmarker
+
+    marker    C7
+        parent    thorax
+        position    -0.095938308749567075 0.060837752331682482 0.014285418115368542
+    endmarker
+
+    marker    T10
+        parent    thorax
+        position    -0.13903237860548628 -0.19141883195932308 -0.0087898669234391935
+    endmarker
 
 // Information about clavicle segment
     // Segment
@@ -139,12 +162,12 @@ gravity	0 0 -9.81
         parent    clavicle
         position    0.033445913099119665 -0.010391785839228396 0.0028632585370065855
     endmarker
-
+    /*
     marker    CLAV_AC
         parent    clavicle
         position    0.019644638836381262 -0.0077436347940661454 0.12124945256646524
     endmarker
-	/*
+
     marker    SCAP_Cor
         parent    clavicle
         position    0.0019290725106974466 0.018492327009970166 0.10270227481847716
@@ -265,7 +288,7 @@ gravity	0 0 -9.81
             0.0001    0.97951422    0.20137498    0
             0    0    0    1
         //rotations x
-        //ranges		-pi	pi
+        //ranges		-pi pi
     endsegment
     // Segment
     segment humerus_shoulder_ele
@@ -288,9 +311,10 @@ gravity	0 0 -9.81
             0.998047048    -0.062466719    0.0    0
             0.060042519    0.959314972    -0.275879829    0
             0    0    0    1
-        rotations q
+        rotations xyz
         //ranges		0.0	3.0
         //ranges		-1.9	0.35
+        ranges		-pi  pi  -pi/2  3.0  -2   pi
     endsegment
 
     // Segment to cancel transformation bases effect.
@@ -390,8 +414,8 @@ gravity	0 0 -9.81
             -0.006469738    -0.114683666    0.993380994    0
             0    0    0    1
         rotations z
-        //ranges		0.0	2.268928027593
-        ranges		-pi	pi
+        ranges		0.0	2.268928027593
+        //ranges		-pi	pi
     endsegment
 
     // Segment to cancel transformation bases effect.
@@ -471,7 +495,7 @@ gravity	0 0 -9.81
             0.059472709    -0.985360294    0.159775114    0
             0    0    0    1
         rotations y
-        ranges		-1.570796326795	1.570796326795
+        ranges		-pi/2 pi/2
     endsegment
     // Segment
     segment radius_rotation3

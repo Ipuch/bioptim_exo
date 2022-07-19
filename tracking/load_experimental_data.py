@@ -174,7 +174,7 @@ class LoadData:
     def get_marker_ref(
         self,
         number_shooting_points: list[int],
-        phase_time: list[int],
+        phase_time: list[float],
         markers_names: list[str] = None,
         start: int = None,
         end: int = None,
