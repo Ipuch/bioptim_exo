@@ -12,3 +12,9 @@ tracking/save/
 kinova_tracking/inverse_kinematics_run.py
 
 kinova_tracking/inverse_kinematics.py
+
+kinova_tracking/__pycache__/
+
+models/__pycache__/
+
+kinova_tracking/solution/

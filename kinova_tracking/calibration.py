@@ -274,10 +274,32 @@ def ik_step_least_square(
     rot_matrix_list = [T[2, 0], T[2, 1], T[0, 2], T[1, 2], (1 - T[2, 2])]
     rot_matrix_list_xp = [0]*len(rot_matrix_list)
 
-    pivot_xp = []
-    for h in range(1, 3):
-        pivot_xp.append(x_with_p[-h])
-    pivot_model = [0]*len(pivot_xp)
+    # mat_pos_part1 = biorbd_model.globalJCS("part1").to_array()
+    # pos_part1_x_vector_xy = mat_pos_part1[:, 0][:2]
+    # y = pos_part1_x_vector_xy[1]
+    # x = pos_part1_x_vector_xy[0]
+    #
+    # theta = np.arctan2(y, x)
+    #
+    # theta_min = np.pi/2
+    # # theta_max = 5*np.pi/4
+    # theta_max = 3 * np.pi / 2
+    #
+    # if theta < theta_min:
+    #     theta_cost = (theta - theta_min)
+    #     # print(theta, "<", theta_min)
+    #     diff_model = table + mark_list + rot_matrix_list + [theta]
+    #     diff_xp = table_xp + thorax_list_xp + rot_matrix_list_xp + [theta_min]
+    # elif theta > theta_max:
+    #     theta_cost = (theta - theta_max)
+    #     # print(theta, ">", theta_max)
+    #     diff_model = table + mark_list + rot_matrix_list + [theta]
+    #     diff_xp = table_xp + thorax_list_xp + rot_matrix_list_xp + [theta_max]
+    # else:  # theta_min < theta < theta_max:
+    #     theta_cost = 0
+    #     # print(theta_min, "<", theta, "<", theta_max)
+    #     diff_model = table + mark_list + rot_matrix_list + [theta_cost]
+    #     diff_xp = table_xp + thorax_list_xp + rot_matrix_list_xp + [theta_cost]
 
     diff_model = table + mark_list + rot_matrix_list
     diff_tab_model = np.array(diff_model)
@@ -290,7 +312,7 @@ def ik_step_least_square(
     weight_table = [100000]*len(table_xp)
     weight_thorax = [10000]*len(thorax_list_xp)
     weight_rot_matrix = [100]*len(rot_matrix_list_xp)
-    # weight_pivot = [100]*len(pivot_xp)
+    # weight_theta = [5000]
 
     weight_list = weight_table + weight_thorax + weight_rot_matrix
 

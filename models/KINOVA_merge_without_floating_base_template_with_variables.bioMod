@@ -713,8 +713,6 @@ endsegment
         parent    part1
         position  -0.120 0 0.12
     endmarker
-
-    endmarker
 /*
     marker    Contact_mk1
         parent    part1
