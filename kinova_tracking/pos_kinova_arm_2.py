@@ -5,7 +5,6 @@ converged, like this!
 import bioviz
 
 import calibration
-import inverse_kinematics as ik
 import numpy as np
 from ezc3d import c3d
 import biorbd
@@ -36,7 +35,7 @@ def IK(model_path, points, labels_markers_ik):
         markers_ik[:, i, :] = points[:3, labels_markers_ik.index(name), :] / 1000
 
     # the actual inverse kinematics
-    my_ik = ik.InverseKinematics(model_path, markers_ik)
+    my_ik = biorbd.InverseKinematics(biorbd_model_ik, markers_ik)
     my_ik.solve("trf")
 
     return my_ik
