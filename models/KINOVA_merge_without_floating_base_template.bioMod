@@ -572,7 +572,8 @@ segment part2
     rtinmatrix 0
     rt 0   0   0  xyz -0.120 0 0 // ajouter rot
     rotations z
-    ranges 	-pi/6 2*pi/3 // 0 2*pi/3
+    //ranges 	-pi/6 2*pi/3 // 0 2*pi/3
+    ranges 0 9*pi/20
     mass 0.164
     inertia
         0.04434446 0.04527663 0
@@ -588,7 +589,8 @@ segment part1
     rtinmatrix 0
     rt 0   0   pi/6 xyz -0.08842 -0.02369 0 // ajouter rot
     rotations z
-    ranges 	-pi/6 2*pi/3 // 0 2*pi/3
+    //ranges 	-pi/6 2*pi/3 // 0 2*pi/3
+    ranges 0 9*pi/20
     mass 0.172
     inertia
         0.00001545 0 0

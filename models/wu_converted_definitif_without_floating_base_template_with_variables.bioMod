@@ -1,11 +1,11 @@
 version 4
 variables
-	$thoraxRT1 -1.6228728303487001
-	$thoraxRT2 -3.0757992396775964
-	$thoraxRT3 3.1415926535897443
-	$thoraxRT4 -0.4988578481180906
-	$thoraxRT5 0.6174932040883456
-	$thoraxRT6 0.3767186534865115
+	$thoraxRT1 1.5216588838182759
+	$thoraxRT2 -0.06133364388506507
+	$thoraxRT3 0.02521188859448283
+	$thoraxRT4 -0.5003904963877283
+	$thoraxRT5 0.6176353264153525
+	$thoraxRT6 0.37707333289748435
 endvariables
 
 // File extracted from C:/Users/remi6/Desktop/S5/Wu_shoulder_model/Wu_Shoulder_Model_kinova_definitif.osim

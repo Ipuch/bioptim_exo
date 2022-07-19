@@ -1,11 +1,11 @@
 version 4
 variables
-	$thoraxRT1 -1.6228728303487001
-	$thoraxRT2 -3.0757992396775964
-	$thoraxRT3 3.1415926535897443
-	$thoraxRT4 -0.4988578481180906
-	$thoraxRT5 0.6174932040883456
-	$thoraxRT6 0.3767186534865115
+	$thoraxRT1 1.5216588910343205
+	$thoraxRT2 -0.06133360166032518
+	$thoraxRT3 0.025211879204138435
+	$thoraxRT4 -0.5003904947848203
+	$thoraxRT5 0.6176353259713947
+	$thoraxRT6 0.3770733287461074
 endvariables
 
 // File extracted from C:/Users/remi6/Desktop/S5/Wu_shoulder_model/Wu_Shoulder_Model_kinova_definitif.osim
@@ -494,12 +494,12 @@ segment part7
          0.            0.            0.            1.
     translations xyz
     rotations xyz
-    ranges		-0.1	0.1
-	-0.1	0.1
-	-0.1	0.1
-	-pi/4     pi/4
-	-pi/4     pi/4
-	-pi/4     pi/4
+    ranges		-0.01	0.01
+	-0.05	0.05
+	-0.01	0.01
+	-pi/12     pi/12
+	-pi/12     pi/12
+	-pi/12     pi/12
     mass 0.35022
     inertia
         0.00264324  -0.00042419  -0.00019927
@@ -580,7 +580,8 @@ segment part2
     rtinmatrix 0
     rt 0   0   0  xyz -0.120 0 0 // ajouter rot
     rotations z
-    ranges 	-pi/6 2*pi/3 // 0 2*pi/3
+    //ranges 	-pi/6 2*pi/3 // 0 2*pi/3
+    ranges 0 9*pi/20
     mass 0.164
     inertia
         0.04434446 0.04527663 0
@@ -596,7 +597,8 @@ segment part1
     rtinmatrix 0
     rt 0   0   pi/6 xyz -0.08842 -0.02369 0 // ajouter rot
     rotations z
-    ranges 	-pi/6 2*pi/3 // 0 2*pi/3
+    //ranges 	-pi/6 2*pi/3 // 0 2*pi/3
+    ranges 0 9*pi/20
     mass 0.172
     inertia
         0.00001545 0 0
@@ -704,12 +706,14 @@ endsegment
 
     marker    Table:Table5
         parent    part1
-        position  -0.120 0 0
+        position  -0.120 0 0.02
     endmarker
 
      marker    Table:Table6
         parent    part1
-        position  -0.120 0 0.1
+        position  -0.120 0 0.12
+    endmarker
+
     endmarker
 /*
     marker    Contact_mk1
