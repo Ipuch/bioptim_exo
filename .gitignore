@@ -17,4 +17,12 @@ kinova_tracking/__pycache__/
 
 models/__pycache__/
 
+event_tracking/ocp_graph.gv.pdf
+
+event_tracking/ocp_graph.gv
+
+data/__pycache__/
+
 kinova_tracking/solution/
+
+
