@@ -392,7 +392,7 @@ def step_2_least_square(
             args=(
                 biorbd_model,
                 p,
-                markers_xp_data[:, 14:, f],  # todo: remove the raw hard coded walues
+                markers_xp_data[:, 14:16, f],  # todo: remove the raw hard coded walues
                 markers_xp_data[:, 0:14, f],
                 markers_names,
             ),
@@ -407,7 +407,7 @@ def step_2_least_square(
         q_output[nb_dof_wu_model + nb_parameters :, f] = IK_i.x[nb_dof_wu_model:]
 
         markers_model = biorbd_model.markers(q_output[:, f])
-        table_markers = markers_xp_data[:, 14:, f]
+        table_markers = markers_xp_data[:, 14:16, f]
         thorax_markers = markers_xp_data[:, 0:14, f]
         markers_to_compare = markers_xp_data[:, :, f]
         espilon_markers = 0

@@ -46,7 +46,7 @@ if __name__ == "__main__":
     # c3d to treat
     c3d_path = "../data/F3_aisselle_01.c3d"
     c3d_kinova = c3d(c3d_path)
-    move_marker = True
+    move_marker = False
 
     # Markers labels in c3d
     labels_markers = c3d_kinova["parameters"]["POINT"]["LABELS"]["value"]
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     nb_parameters = 6
     nb_dof_kinova = 6
     nb_frames = markers.shape[2]
-    nb_frames_needed = 50
+    nb_frames_needed = 10
     all_frames = False
     frames_list = random.sample(range(nb_frames), nb_frames_needed) if not all_frames \
         else [i for i in range(nb_frames)]
@@ -136,20 +136,6 @@ if __name__ == "__main__":
             )
         )
     p = np.zeros(6)
-
-    # q_step_2, epsilon = calibration.step_2_least_square(
-    #     biorbd_model=biorbd_model_merge,
-    #     p=p,
-    #     bounds=get_range_q(biorbd_model_merge),
-    #     nb_dof_wu_model=nb_dof_wu_model,
-    #     nb_parameters=nb_parameters,
-    #     nb_frames=nb_frames,
-    #     list_frames=frames_list,
-    #     q_first_ik=q_first_ik[:, frames_list],
-    #     q_output=q_output[:, frames_list],
-    #     markers_xp_data=markers[:, :, frames_list],
-    #     markers_names=markers_names,
-    # )
 
     q_step_2, epsilon = calibration.step_2_least_square(
         biorbd_model=biorbd_model_merge,
