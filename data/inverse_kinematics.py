@@ -31,11 +31,12 @@ except ModuleNotFoundError:
     biorbd_viz_found = False
 
 # Load a predefined model
-model_path = "../models/wu_converted_definitif_inverse_kinematics.bioMod"
-model = biorbd.Model(model_path)
+model_path_without_kinova = "../models/wu_converted_definitif_inverse_kinematics.bioMod"
 
-file_path = Path("../event_tracking/")
-file_list = list(file_path.glob("*.c3d"))  # We get the file names with a .c3d extension
+model_without_kinova = biorbd.Model(model_path_without_kinova)
+
+file_path = Path("")
+file_list = list(file_path.glob("F0*.c3d"))  # We get the file names with a .c3d extension
 
 for file in file_list:
     c3d = ezc3d.c3d(file.name)  # c3d files are loaded as ezc3d object
@@ -44,15 +45,15 @@ for file in file_list:
     # initialization of kalman filter
     freq = get_c3d_frequencies(c3d)  # Hz
     params = biorbd.KalmanParam(freq)
-    kalman = biorbd.KalmanReconsMarkers(model, params)
+    kalman = biorbd.KalmanReconsMarkers(model_without_kinova, params)
 
-    Q = biorbd.GeneralizedCoordinates(model)
-    Qdot = biorbd.GeneralizedVelocity(model)
-    Qddot = biorbd.GeneralizedAcceleration(model)
-    tau = model.InverseDynamics(Q, Qdot, Qddot)
+    Q = biorbd.GeneralizedCoordinates(model_without_kinova)
+    Qdot = biorbd.GeneralizedVelocity(model_without_kinova)
+    Qddot = biorbd.GeneralizedAcceleration(model_without_kinova)
+    tau = model_without_kinova.InverseDynamics(Q, Qdot, Qddot)
 
     # create the list of marker from the .biomod file
-    marker_names = [model.markerNames()[i].to_string() for i in range(len(model.markerNames()))]
+    marker_names = [model_without_kinova.markerNames()[i].to_string() for i in range(len(model_without_kinova.markerNames()))]
 
     # retrieve markers from c3d file and load them with ezc3d
     Xmarkers = Markers.from_c3d(file, usecols=marker_names)
@@ -67,14 +68,20 @@ for file in file_list:
 
     # initialized q_recons with the right shape.
     n_frames = c3d["parameters"]["POINT"]["FRAMES"]["value"][0]
-    q_recons = np.ndarray((model.nbQ(), n_frames))
-    qdot_recons = np.ndarray((model.nbQdot(), n_frames))
-    qddot_recons = np.ndarray((model.nbQddot(), n_frames))
-    tau_recons = np.ndarray((model.nbGeneralizedTorque(), n_frames)) 
+    q_recons = np.ndarray((model_without_kinova.nbQ(), n_frames))
 
+    # We use the Class InverseKinematics in biorbd to generate q
+    my_ik = biorbd.InverseKinematics(model_without_kinova, markers)
+    q_recons = my_ik.solve()
+
+    qdot_recons = np.ndarray((model_without_kinova.nbQdot(), n_frames))
+    qddot_recons = np.ndarray((model_without_kinova.nbQddot(), n_frames))
+    tau_recons = np.ndarray((model_without_kinova.nbGeneralizedTorque(), n_frames))
+
+    # We use kalman filter to generate the qdot and qddot
     for i, targetMarkers in enumerate(markersOverFrames):
-        kalman.reconstructFrame(model, targetMarkers, Q, Qdot, Qddot)
-        q_recons[:, i] = Q.to_array()
+        kalman.reconstructFrame(model_without_kinova, targetMarkers, Q, Qdot, Qddot)
+
         qdot_recons[:, i] = Qdot.to_array()
         qddot_recons[:, i] = Qddot.to_array()
         tau_recons[:, i] = tau.to_array()
@@ -83,18 +90,18 @@ for file in file_list:
 
     # list_dof = [11, 12, 13]
     list_dof = [i for i in range(16)]
-    q_recons = apply_offset(model, q_recons, list_dof, 2 * np.pi)
-    plot_dof(q_recons_old, q_recons, model)
+    q_recons = apply_offset(model_without_kinova, q_recons, list_dof, 2 * np.pi)
+    plot_dof(q_recons_old, q_recons, model_without_kinova)
 
     np.savetxt(os.path.splitext(file)[0] + "_q.txt", q_recons)
     np.savetxt(os.path.splitext(file)[0] + "_qdot.txt", qdot_recons)
     np.savetxt(os.path.splitext(file)[0] + "_qddot.txt", qddot_recons)
     np.savetxt(os.path.splitext(file)[0] + "_tau.txt", tau_recons)
 
-    if biorbd_viz_found:
-        b = bioviz.Viz(loaded_model=model, show_muscles=False)
-        b.load_experimental_markers(markers)
-        b.load_movement(q_recons)
-        b.exec()
+if biorbd_viz_found:
+    b = bioviz.Viz(loaded_model=model_without_kinova, show_muscles=False)
+    b.load_experimental_markers(markers)
+    b.load_movement(q_recons)
+    b.exec()
 
 print(Xmarkers)
