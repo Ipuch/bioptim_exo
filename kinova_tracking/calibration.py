@@ -5,14 +5,14 @@ import utils
 
 
 def objective_function_param(
-        p0: np.ndarray,
-        biorbd_model: biorbd.Model,
-        x: np.ndarray,
-        x0: np.ndarray,
-        markers: np.ndarray,
-        nb_frames: int,
-        list_frames,
-        markers_names,
+    p0: np.ndarray,
+    biorbd_model: biorbd.Model,
+    x: np.ndarray,
+    x0: np.ndarray,
+    markers: np.ndarray,
+    nb_frames: int,
+    list_frames,
+    markers_names,
 ):
     """
     Objective function
@@ -100,13 +100,13 @@ def theta_pivot_penalty(q):
 
 
 def ik_step_least_square(
-        x: np.ndarray,
-        biorbd_model: biorbd.Model,
-        p: np.ndarray,
-        table_markers: np.ndarray,
-        thorax_markers: np.ndarray,
-        markers_names,
-        q_init,
+    x: np.ndarray,
+    biorbd_model: biorbd.Model,
+    p: np.ndarray,
+    table_markers: np.ndarray,
+    thorax_markers: np.ndarray,
+    markers_names,
+    q_init,
 ):
     """
     Objective function
@@ -260,6 +260,7 @@ def step_2_least_square(
         for j in range(len(thorax_markers[0, :])):
             mark = np.linalg.norm(markers_model[j].to_array()[:] - markers_to_compare[:, j]) ** 2
             espilon_markers += mark
+
     print("step 2 done")
 
     return q_output, espilon_markers
