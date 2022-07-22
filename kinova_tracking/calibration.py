@@ -5,14 +5,14 @@ import utils
 
 
 def objective_function_param(
-    p0: np.ndarray,
-    biorbd_model: biorbd.Model,
-    x: np.ndarray,
-    x0: np.ndarray,
-    markers: np.ndarray,
-    nb_frames: int,
-    list_frames,
-    markers_names,
+        p0: np.ndarray,
+        biorbd_model: biorbd.Model,
+        x: np.ndarray,
+        x0: np.ndarray,
+        markers: np.ndarray,
+        nb_frames: int,
+        list_frames,
+        markers_names,
 ):
     """
     Objective function
@@ -78,13 +78,35 @@ def objective_function_param(
     return 1000 * table5_xyz_all_frames + 1000 * table6_xy_all_frames + mark_out_all_frames + out2_all_frames
 
 
+def theta_pivot_penalty(q):
+    """
+    doc string
+    :param q:
+    :return:
+    """
+    theta_part1_3 = q[20] + q[21]
+
+    theta_part1_3_lim = 7 * np.pi / 10
+
+    if theta_part1_3 > theta_part1_3_lim:
+        diff_model_pivot = [theta_part1_3]
+        diff_xp_pivot = [theta_part1_3_lim]
+    else:  # theta_part1_3_min < theta_part1_3:
+        theta_cost = 0
+        diff_model_pivot = [theta_cost]
+        diff_xp_pivot = [theta_cost]
+
+    return diff_model_pivot, diff_xp_pivot
+
+
 def ik_step_least_square(
-    x: np.ndarray,
-    biorbd_model: biorbd.Model,
-    p: np.ndarray,
-    table_markers: np.ndarray,
-    thorax_markers: np.ndarray,
-    markers_names,
+        x: np.ndarray,
+        biorbd_model: biorbd.Model,
+        p: np.ndarray,
+        table_markers: np.ndarray,
+        thorax_markers: np.ndarray,
+        markers_names,
+        q_init,
 ):
     """
     Objective function
@@ -143,37 +165,23 @@ def ik_step_least_square(
     rot_matrix_list = [T[2, 0], T[2, 1], T[0, 2], T[1, 2], (1 - T[2, 2])]
     rot_matrix_list_xp = [0] * len(rot_matrix_list)
 
-    # mat_pos_part1 = biorbd_model.globalJCS("part1").to_array()
-    # pos_part1_x_vector_xy = mat_pos_part1[:, 0][:2]
-    # y = pos_part1_x_vector_xy[1]
-    # x = pos_part1_x_vector_xy[0]
-    #
-    # theta = np.arctan2(y, x)
-    #
-    # theta_min = np.pi/2
-    # # theta_max = 5*np.pi/4
-    # theta_max = 3 * np.pi / 2
-    #
-    # if theta < theta_min:
-    #     theta_cost = (theta - theta_min)
-    #     # print(theta, "<", theta_min)
-    #     diff_model = table + mark_list + rot_matrix_list + [theta]
-    #     diff_xp = table_xp + thorax_list_xp + rot_matrix_list_xp + [theta_min]
-    # elif theta > theta_max:
-    #     theta_cost = (theta - theta_max)
-    #     # print(theta, ">", theta_max)
-    #     diff_model = table + mark_list + rot_matrix_list + [theta]
-    #     diff_xp = table_xp + thorax_list_xp + rot_matrix_list_xp + [theta_max]
-    # else:  # theta_min < theta < theta_max:
-    #     theta_cost = 0
-    #     # print(theta_min, "<", theta, "<", theta_max)
-    #     diff_model = table + mark_list + rot_matrix_list + [theta_cost]
-    #     diff_xp = table_xp + thorax_list_xp + rot_matrix_list_xp + [theta_cost]
+    # Minimize the q of thorax
+    q_continuity_diff_model = []
+    q_continuity_diff_xp = []
+    for i, value in enumerate(x):
+        q_continuity_diff_xp += [q_init[i]]
+        q_continuity_diff_model += [value]
 
-    diff_model = table + mark_list + rot_matrix_list
+    diff_model = table + mark_list + rot_matrix_list + q_continuity_diff_model
+    diff_xp = table_xp + thorax_list_xp + rot_matrix_list_xp + q_continuity_diff_xp
+
+    pivot_diff_model, pivot_diff_xp = theta_pivot_penalty(x_with_p)
+
+    diff_model += pivot_diff_model
+    diff_xp += pivot_diff_xp
+
     diff_tab_model = np.array(diff_model)
 
-    diff_xp = table_xp + thorax_list_xp + rot_matrix_list_xp
     diff_tab_xp = np.array(diff_xp)
 
     diff = diff_tab_xp - diff_tab_model
@@ -181,9 +189,11 @@ def ik_step_least_square(
     weight_table = [100000] * len(table_xp)
     weight_thorax = [10000] * len(thorax_list_xp)
     weight_rot_matrix = [100] * len(rot_matrix_list_xp)
-    # weight_theta = [5000]
+    weight_theta_13 = [50000]
 
-    weight_list = weight_table + weight_thorax + weight_rot_matrix
+    weight_continuity = [500] * x.shape[0]
+
+    weight_list = weight_table + weight_thorax + weight_rot_matrix + weight_theta_13 + weight_continuity
 
     return diff * weight_list
 
@@ -229,6 +239,7 @@ def step_2_least_square(
                 markers_xp_data[:, 14:16, f],  # todo: remove the raw hard coded walues
                 markers_xp_data[:, 0:14, f],
                 markers_names,
+                x0,
             ),
             x0=x0,  # x0 q sans p
             bounds=bounds_without_p,
@@ -245,6 +256,7 @@ def step_2_least_square(
         thorax_markers = markers_xp_data[:, 0:14, f]
         markers_to_compare = markers_xp_data[:, :, f]
         espilon_markers = 0
+
         for j in range(len(thorax_markers[0, :])):
             mark = np.linalg.norm(markers_model[j].to_array()[:] - markers_to_compare[:, j]) ** 2
             espilon_markers += mark
