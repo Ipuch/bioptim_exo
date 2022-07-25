@@ -78,6 +78,36 @@ def objective_function_param(
     return 1000 * table5_xyz_all_frames + 1000 * table6_xy_all_frames + mark_out_all_frames + out2_all_frames
 
 
+def penalty_table_markers(markers_names: list[str], vect_pos_markers: np.ndarray, table_markers: np.ndarray):
+    """
+    The penalty function which put the pivot joint vertical
+
+    Parameters
+    ----------
+    markers_names: list[str]
+        The list of markers names
+    vect_pos_markers: np.ndarray
+        The generalized coordinates from the model
+    table_markers: np.ndarray
+        The markers position from experimental data
+
+    Return
+    ------
+    The value of the penalty function
+    """
+    #
+    table5_xyz = vect_pos_markers[
+        markers_names.index("Table:Table5") * 3 : markers_names.index("Table:Table5") * 3 + 3][:]
+    table_xp = table_markers[:, 0].tolist()
+    table6_xy = vect_pos_markers[markers_names.index("Table:Table6") * 3 : markers_names.index("Table:Table6") * 3 + 3][
+        :2
+    ]
+    table_xp += table_markers[:2, 1].tolist()
+    table = table5_xyz.tolist() + table6_xy.tolist()
+
+    return table, table_xp
+
+
 def theta_pivot_penalty(q: np.ndarray):
     """
     Penalty function, prevent part 1 and 3 to cross
@@ -106,13 +136,95 @@ def theta_pivot_penalty(q: np.ndarray):
     return diff_model_pivot, diff_xp_pivot
 
 
+def penalty_markers_thorax(markers_names: list[str], vect_pos_markers: np.ndarray, thorax_markers: np.ndarray):
+    """
+    The penalty function which minimize the difference between thorax markers position from experimental data
+    and from the model
+
+    Parameters
+    ----------
+    markers_names: list[str]
+        The list of markers names
+    vect_pos_markers: np.ndarray
+        The generalized coordinates from the model
+    thorax_markers: np.ndarray
+        The thorax markers position form experimental data
+
+    Return
+    ------
+    The value of the penalty function
+    """
+    thorax_list_model = []
+    thorax_list_xp = []
+    for j, name in enumerate(markers_names):
+        if name != "Table:Table5" and name != "Table:Table6":
+            mark = vect_pos_markers[markers_names.index(name) * 3 : markers_names.index(name) * 3 + 3][:].tolist()
+            thorax = thorax_markers[:, markers_names.index(name)].tolist()
+            thorax_list_model += mark
+            thorax_list_xp += thorax
+
+    return thorax_list_model, thorax_list_xp
+
+
+def penalty_rotation_matrix(biorbd_model: biorbd.Model, x_with_p: np.ndarray):
+    """
+    The penalty function which force the model to stay horizontal
+
+    Parameters
+    ----------
+    biorbd_model: biorbd.Model
+        The biorbd model
+    x_with_p: np.ndarray
+        Generalized coordinates for all dof, unique for all frames
+
+    Return
+    ------
+    The value of the penalty function
+    """
+    rotation_matrix = biorbd_model.globalJCS(x_with_p, biorbd_model.nbSegment() - 1).to_array()
+
+    rot_matrix_list_model = [rotation_matrix[2, 0],
+                             rotation_matrix[2, 1],
+                             rotation_matrix[0, 2],
+                             rotation_matrix[1, 2],
+                             (1 - rotation_matrix[2, 2])]
+    rot_matrix_list_xp = [0] * len(rot_matrix_list_model)
+
+    return rot_matrix_list_model, rot_matrix_list_xp
+
+
+def penalty_q_thorax(x, q_init):
+    """
+    Minimize the q of thorax
+
+    Parameters
+    ----------
+    x: np.ndarray
+        Generalized coordinates for all dof except those between ulna and piece 7, unique for all frames
+    q_init: np.ndarray
+        The initial values of generalized coordinates fo the actual frame
+
+    Return
+    ------
+    The value of the penalty function
+    """
+    #
+    q_continuity_diff_model = []
+    q_continuity_diff_xp = []
+    for i, value in enumerate(x):
+        q_continuity_diff_xp += [q_init[i]]
+        q_continuity_diff_model += [value]
+
+    return q_continuity_diff_model, q_continuity_diff_xp
+
+
 def ik_step_least_square(
     x: np.ndarray,
     biorbd_model: biorbd.Model,
     p: np.ndarray,
     table_markers: np.ndarray,
     thorax_markers: np.ndarray,
-    markers_names: list(str),
+    markers_names: list[str],
     q_init: np.ndarray,
 ):
     """
@@ -151,57 +263,52 @@ def ik_step_least_square(
     for m, value in enumerate(markers_model):
         vect_pos_markers[m * 3 : (m + 1) * 3] = value.to_array()
 
-    table5_xyz = vect_pos_markers[
-        markers_names.index("Table:Table5") * 3 : markers_names.index("Table:Table5") * 3 + 3
-    ][:]
-    table_xp = table_markers[:, 0].tolist()
-    table6_xy = vect_pos_markers[markers_names.index("Table:Table6") * 3 : markers_names.index("Table:Table6") * 3 + 3][
-        :2
-    ]
-    table_xp += table_markers[:2, 1].tolist()
-    table = table5_xyz.tolist() + table6_xy.tolist()
+    # We create the two main vectors that will be used to create the difference vector
+    diff_model = []
+    diff_xp = []
 
-    mark_list = []
-    thorax_list_xp = []
-    for j, name in enumerate(markers_names):
-        if name != "Table:Table5" and name != "Table:Table6":
-            # print(name)
-            mark = vect_pos_markers[markers_names.index(name) * 3 : markers_names.index(name) * 3 + 3][:].tolist()
-            thorax = thorax_markers[:, markers_names.index(name)].tolist()
-            mark_list += mark
-            thorax_list_xp += thorax
+    # Put the pivot joint vertical
 
-    T = biorbd_model.globalJCS(x_with_p, biorbd_model.nbSegment() - 1).to_array()
-    # out2 = T[2, 0] ** 2 + T[2, 1] ** 2 + T[0, 2] ** 2 + T[1, 2] ** 2 + (1 - T[2, 2]) ** 2
-    rot_matrix_list = [T[2, 0], T[2, 1], T[0, 2], T[1, 2], (1 - T[2, 2])]
-    rot_matrix_list_xp = [0] * len(rot_matrix_list)
+    table_model, table_xp = penalty_table_markers(markers_names, vect_pos_markers, table_markers)
+
+    # We add our vector to the main lists
+    diff_model += table_model
+    diff_xp += table_xp
+
+    # Minimize difference between thorax markers from model and from experimental data
+    thorax_list_model, thorax_list_xp = penalty_markers_thorax(markers_names, vect_pos_markers, thorax_markers)
+
+    diff_model += thorax_list_model
+    diff_xp += thorax_list_xp
+
+    # Force the model horizontality
+    rot_matrix_list_model, rot_matrix_list_xp = penalty_rotation_matrix(biorbd_model, x_with_p)
+    diff_model += rot_matrix_list_model
+    diff_xp += rot_matrix_list_xp
 
     # Minimize the q of thorax
-    q_continuity_diff_model = []
-    q_continuity_diff_xp = []
-    for i, value in enumerate(x):
-        q_continuity_diff_xp += [q_init[i]]
-        q_continuity_diff_model += [value]
+    q_continuity_diff_model, q_continuity_diff_xp = penalty_q_thorax(x, q_init)
 
-    diff_model = table + mark_list + rot_matrix_list + q_continuity_diff_model
-    diff_xp = table_xp + thorax_list_xp + rot_matrix_list_xp + q_continuity_diff_xp
+    diff_model += q_continuity_diff_model
+    diff_xp += q_continuity_diff_xp
 
     pivot_diff_model, pivot_diff_xp = theta_pivot_penalty(x_with_p)
 
     diff_model += pivot_diff_model
     diff_xp += pivot_diff_xp
 
+    # We converted our list into array in order to be used by least_square
     diff_tab_model = np.array(diff_model)
-
     diff_tab_xp = np.array(diff_xp)
 
+    # We created the difference vector
     diff = diff_tab_xp - diff_tab_model
 
+    # We created a vector which contains the weight of each penalty
     weight_table = [100000] * len(table_xp)
     weight_thorax = [10000] * len(thorax_list_xp)
     weight_rot_matrix = [100] * len(rot_matrix_list_xp)
     weight_theta_13 = [50000]
-
     weight_continuity = [500] * x.shape[0]
 
     weight_list = weight_table + weight_thorax + weight_rot_matrix + weight_theta_13 + weight_continuity
