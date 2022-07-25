@@ -507,6 +507,6 @@ def arm_support_calibration(
         q_first_ik = q_output
 
     # return support parameters, q_output
-    return q_out
+    return q_out, p
 
 # todo: futur steps, redo IK with identified postion and orientation of arm support.

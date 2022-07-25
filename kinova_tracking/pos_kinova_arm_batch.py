@@ -161,7 +161,7 @@ if __name__ == "__main__":
     #
     # b1.exec()
 
-    pos_init, parameters = calibration.arm_support_calibration(
+    pos_init, p = calibration.arm_support_calibration(
         biorbd_model_merge, markers_names, markers, q_step_2, nb_dof_wu_model, nb_parameters, nb_frames, frames_list
     )
 
@@ -172,3 +172,32 @@ if __name__ == "__main__":
 
     b.exec()
     print("done")
+
+    segments_names = [i.name().to_string() for i in biorbd_model_merge.segments()]
+
+    Rototrans_matrix_world_ulna = biorbd_model_merge.globalJCS(pos_init[:,0], segments_names.index("ulna")).to_array()
+    Rototrans_matrix_world_support = biorbd_model_merge.globalJCS(pos_init[:,0], segments_names.index("part7")).to_array()
+
+    Rototrans_matrix_ulna_world = biorbd_model_merge.globalJCS(pos_init[:,0], segments_names.index("ulna")).to_array()
+
+    # Finally
+    Rototrans_matrix_ulna_support = np.matmul(Rototrans_matrix_ulna_world, Rototrans_matrix_world_support)
+
+    print(Rototrans_matrix_ulna_support)
+
+    template_file_wu = "../models/wu_converted_definitif_without_floating_base_template.bioMod"
+    new_biomod_file_wu = "../models/wu_converted_definitif_without_floating_base_template_with_variables.bioMod"
+
+    # todo: rewrite this part of the code with Thasaarah's function add header
+    # todo: to externalize
+    parameters_values = {
+        "parametersRT1": p[3, :],
+        "parametersRT2": p[4, :],
+        "parametersRT3": p[5, :],
+        "parametersRT4": p[0, :],
+        "parametersRT5": p[1, :],
+        "parametersRT6": p[2, :],
+    }
+
+    add_header(template_file_wu, new_biomod_file_wu, thorax_values)
+    add_header(template_file_merge, new_biomod_file_merge, thorax_values)
