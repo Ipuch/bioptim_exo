@@ -97,7 +97,8 @@ def penalty_table_markers(markers_names: list[str], vect_pos_markers: np.ndarray
     """
     #
     table5_xyz = vect_pos_markers[
-        markers_names.index("Table:Table5") * 3 : markers_names.index("Table:Table5") * 3 + 3][:]
+        markers_names.index("Table:Table5") * 3 : markers_names.index("Table:Table5") * 3 + 3
+    ][:]
     table_xp = table_markers[:, 0].tolist()
     table6_xy = vect_pos_markers[markers_names.index("Table:Table6") * 3 : markers_names.index("Table:Table6") * 3 + 3][
         :2
@@ -183,11 +184,13 @@ def penalty_rotation_matrix(biorbd_model: biorbd.Model, x_with_p: np.ndarray):
     """
     rotation_matrix = biorbd_model.globalJCS(x_with_p, biorbd_model.nbSegment() - 1).to_array()
 
-    rot_matrix_list_model = [rotation_matrix[2, 0],
-                             rotation_matrix[2, 1],
-                             rotation_matrix[0, 2],
-                             rotation_matrix[1, 2],
-                             (1 - rotation_matrix[2, 2])]
+    rot_matrix_list_model = [
+        rotation_matrix[2, 0],
+        rotation_matrix[2, 1],
+        rotation_matrix[0, 2],
+        rotation_matrix[1, 2],
+        (1 - rotation_matrix[2, 2]),
+    ]
     rot_matrix_list_xp = [0] * len(rot_matrix_list_model)
 
     return rot_matrix_list_model, rot_matrix_list_xp
