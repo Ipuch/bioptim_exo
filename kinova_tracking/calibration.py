@@ -78,11 +78,18 @@ def objective_function_param(
     return 1000 * table5_xyz_all_frames + 1000 * table6_xy_all_frames + mark_out_all_frames + out2_all_frames
 
 
-def theta_pivot_penalty(q):
+def theta_pivot_penalty(q: np.ndarray):
     """
-    doc string
-    :param q:
-    :return:
+    Penalty function, prevent part 1 and 3 to cross
+
+    Parameters
+    ----------
+    q: np.ndarray
+        Generalized coordinates for all dof, unique for all frames
+
+    Return
+    ------
+    The value of the penalty function
     """
     theta_part1_3 = q[20] + q[21]
 
@@ -105,8 +112,8 @@ def ik_step_least_square(
     p: np.ndarray,
     table_markers: np.ndarray,
     thorax_markers: np.ndarray,
-    markers_names,
-    q_init,
+    markers_names: list(str),
+    q_init: np.ndarray,
 ):
     """
     Objective function
@@ -123,6 +130,10 @@ def ik_step_least_square(
         (3 x n_markers_on_table x n_frames) marker values for all frames
     thorax_markers: np.ndarray
         (3 x n_markers_on_wu_model x n_frames) marker values for all frames
+    markers_names: list(str)
+        The list of markers names
+    q_init: np.ndarray
+        The initial values of generalized coordinates fo the actual frame
 
     Return
     ------
@@ -252,7 +263,6 @@ def step_2_least_square(
         q_output[nb_dof_wu_model + nb_parameters :, f] = IK_i.x[nb_dof_wu_model:]
 
         markers_model = biorbd_model.markers(q_output[:, f])
-        table_markers = markers_xp_data[:, 14:16, f]
         thorax_markers = markers_xp_data[:, 0:14, f]
         markers_to_compare = markers_xp_data[:, :, f]
         espilon_markers = 0
