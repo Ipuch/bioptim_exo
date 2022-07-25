@@ -10,8 +10,7 @@ def objective_function_param(
     x: np.ndarray,
     x0: np.ndarray,
     markers: np.ndarray,
-    nb_frames: int,
-    list_frames,
+    list_frames: list[int],
     markers_names,
 ):
     """
@@ -29,6 +28,10 @@ def objective_function_param(
         Generalized coordinates for the first frame
     markers: np.ndarray
         (3 x n_markers x n_frames) marker values for all frames
+    list_frames: list[int]
+        The list of frames on which we will do the calibration
+    markers_names: list[str]
+        The list of markers names
 
     Return
     ------
@@ -271,7 +274,6 @@ def ik_step_least_square(
     diff_xp = []
 
     # Put the pivot joint vertical
-
     table_model, table_xp = penalty_table_markers(markers_names, vect_pos_markers, table_markers)
 
     # We add our vector to the main lists
