@@ -13,18 +13,52 @@ from utils import get_range_q
 import random
 
 
-def move_marker_table(labels_markers_list, c3d_file, offset):
+def move_marker_table(labels_markers_list: list[str], c3d_file: c3d, offset: float) -> np.array:
+    """
+    This function applies an offet to the marker of the table
+     so that the hinge is displaced at a given distance on the horizontal plane.
+
+    Parameters
+    ----------
+    labels_markers_list : list[str]
+        List of markers labels
+    c3d_file : c3d
+        c3d file to move the markers.
+    offset : float
+        Offset to apply to the markers in mm.
+
+    Returns
+    -------
+    new_points : np.array
+        The markers with the displaced ones at a given distance on the horizontal plane.
+    """
 
     new_points = c3d_file["data"]["points"].copy()
     new_points[1, labels_markers_list.index("Table:Table5"), :] = (
         c3d_file["data"]["points"][1, labels_markers_list.index("Table:Table5"), :] - offset
     )
-    # # Write the data
-    # c3d.write("../data/F3_aisselle_01_new_table.c3d")
+
     return new_points
 
 
-def IK(model_path, points, labels_markers_ik):
+def IK(model_path: str, points: np.array, labels_markers_ik: list[str]) -> np.array:
+    """
+    This function computes the inverse kinematics of the model.
+
+    Parameters
+    ----------
+    model_path : str
+        Path to the model.
+    points : np.array
+        marker trajectories over time
+    labels_markers_ik : list[str]
+        List of markers labels
+
+    Returns
+    -------
+    q : np.array
+        The generalized coordinates of the model for each frame
+    """
     biorbd_model_ik = biorbd.Model(model_path)
 
     # Markers labels in the model
@@ -45,38 +79,37 @@ def IK(model_path, points, labels_markers_ik):
 if __name__ == "__main__":
 
     # c3d to treat
-    c3d_path = "../data/F3_aisselle_01.c3d"
+    c3d_path = "../data/F3_aisselle_01.c3d"  # todo: use an Enum for all C3D files
     c3d_kinova = c3d(c3d_path)
-    move_marker = False
 
     # Markers labels in c3d
     labels_markers = c3d_kinova["parameters"]["POINT"]["LABELS"]["value"]
 
-    offset = 50
+    move_marker = False
+    offset = 50  # mm
     print("offset", offset)
     # Markers trajectories
     points_c3d = (
-        c3d_kinova["data"]["points"] if not move_marker else move_marker_table(labels_markers, c3d_kinova, offset)
+        c3d_kinova["data"]["points"] if not move_marker else move_marker_table(labels_markers_list=labels_markers, c3d_file=c3d_kinova, offset=offset)
     )
 
     # model for step 1.1
-    model_path_without_kinova = "../models/wu_converted_definitif_inverse_kinematics.bioMod"
+    model_path_without_kinova = "../models/wu_converted_definitif_inverse_kinematics.bioMod" # todo: use an Enum for all models
 
     # Step 1.1: IK of wu model with floating base
-    ik_with_floating_base = IK(model_path_without_kinova, points_c3d, labels_markers)
+    ik_with_floating_base = IK(model_path=model_path_without_kinova, points=points_c3d, labels_markers_ik=labels_markers)
     # ik_with_floating_base.animate()
 
     # rewrite the models with the location of the floating base
     template_file_merge = "../models/KINOVA_merge_without_floating_base_with_6_dof_support_template.bioMod"
     new_biomod_file_merge = (
         "../models/KINOVA_merge_without_floating_base_with_6_dof_support_template_with_variables.bioMod"
-    )
+    ) # todo: use an Enum for all models
 
     template_file_wu = "../models/wu_converted_definitif_without_floating_base_template.bioMod"
     new_biomod_file_wu = "../models/wu_converted_definitif_without_floating_base_template_with_variables.bioMod"
+    # todo: use an Enum for all models
 
-    # todo: rewrite this part of the code with Thasaarah's function add header
-    # todo: to externalize
     thorax_values = {
         "thoraxRT1": ik_with_floating_base.q[3, :].mean(),
         "thoraxRT2": ik_with_floating_base.q[4, :].mean(),
@@ -86,11 +119,11 @@ if __name__ == "__main__":
         "thoraxRT6": ik_with_floating_base.q[2, :].mean(),
     }
 
-    add_header(template_file_wu, new_biomod_file_wu, thorax_values)
-    add_header(template_file_merge, new_biomod_file_merge, thorax_values)
+    add_header(biomod_file_name=template_file_wu, new_biomod_file_name=new_biomod_file_wu, variables=thorax_values)
+    add_header(biomod_file_name=template_file_merge, new_biomod_file_name=new_biomod_file_merge, variables=thorax_values)
 
     # Step 1.2: IK of wu model without floating base
-    ik_without_floating_base = IK(new_biomod_file_wu, points_c3d, labels_markers)
+    ik_without_floating_base = IK(model_path=new_biomod_file_wu, points=points_c3d, labels_markers_ik=labels_markers)
     # ik_without_floating_base.animate()
 
     # exo for step 2
@@ -99,6 +132,8 @@ if __name__ == "__main__":
     markers_names = [value.to_string() for value in biorbd_model_merge.markerNames()]
     markers = np.zeros((3, len(markers_names), len(points_c3d[0, 0, :])))
 
+    # add the extra marker Table:Table6 to the experimental data based on the location of the Table:Table5
+    # todo: use a generic function named "duplicate marker"
     labels_markers.append("Table:Table6")
     for i, name in enumerate(markers_names):
         if name in labels_markers:
@@ -107,40 +142,58 @@ if __name__ == "__main__":
             else:
                 markers[:, i, :] = points_c3d[:3, labels_markers.index(name), :] / 1000
 
-    markers[2, markers_names.index("Table:Table6"), :] = markers[2, markers_names.index("Table:Table6"), :] + 0.1
+    # apply offset to the markers
+    # todo: make generic the function "move_marker_table"
+    offset = 0.1  # meters
+    markers[2, markers_names.index("Table:Table6"), :] = markers[2, markers_names.index("Table:Table6"), :] + offset
 
+
+    #### TODO: THE SUPPORT CALIBRATION STARTS HERE ####
+    #### TODO: THIS SHOULD BE A FUNCTION ####
+
+    # prepare the inverse kinematics of the first step of the algorithm
+    # initialize q with zeros
     q_first_ik = np.zeros((biorbd_model_merge.nbQ(), markers.shape[2]))
+    # initialize human dofs with previous results of inverse kinematics
     q_first_ik[:10, :] = ik_without_floating_base.q  # human
 
-    nb_dof_wu_model = ik_without_floating_base.q.shape[0]  # todo: remove raw hard coded value
-    nb_parameters = 6
-    nb_dof_kinova = 6
+
+    nb_dof_wu_model = ik_without_floating_base.q.shape[0]  # todo: get it from the model
+    nb_parameters = 6  # todo: indicates the list dofs names instead of the number of parameters
+    nb_dof_kinova = 6  # todo: indicates the list dofs names instead of the number of dofs
     nb_frames = markers.shape[2]
     nb_frames_needed = 10
     all_frames = False
-    frames_list = random.sample(range(nb_frames), nb_frames_needed) if not all_frames else [i for i in range(nb_frames)]
+    frames_list = random.sample(range(nb_frames), nb_frames_needed) if not all_frames else [i for i in range(nb_frames)] # todo: make a frame selector function
     frames_list.sort()
     print(frames_list)
     print(nb_frames)
     # nb_frames = 50
 
+    # prepare the size of the output of q
     q_output = np.zeros((biorbd_model_merge.nbQ(), nb_frames))
 
+    # get the bounds of the model for all dofs
     bounds = [
         (mini, maxi) for mini, maxi in zip(get_range_q(biorbd_model_merge)[0], get_range_q(biorbd_model_merge)[1])
     ]
 
+    # initialized q trajectories for each frames for dofs without a priori knowledge of the q (kinova arm here)
+    # todo: also don't use hard coded indexes, 16 should be guessed from predefined names of dofs.
     for j in range((q_first_ik[16:, :].shape[1])):
         q_first_ik[16:, j] = np.array(
             [
                 (bounds_inf + bounds_sup) / 2
                 for bounds_inf, bounds_sup in zip(
                     get_range_q(biorbd_model_merge)[0][16:], get_range_q(biorbd_model_merge)[1][16:]
+                # todo: simplify this using bounds you just created before
                 )
             ]
         )
+    # initialized parameters values
     p = np.zeros(6)
 
+    # First IK step - INITIALIZATION
     q_step_2, epsilon = calibration.step_2_least_square(
         biorbd_model=biorbd_model_merge,
         p=p,
@@ -161,8 +214,16 @@ if __name__ == "__main__":
     #
     # b1.exec()
 
+    # Second step - CALIBRATION
     pos_init, parameters = calibration.arm_support_calibration(
-        biorbd_model_merge, markers_names, markers, q_step_2, nb_dof_wu_model, nb_parameters, nb_frames, frames_list
+        biorbd_model=biorbd_model_merge,
+        markers_names=markers_names,
+        markers_xp_data=markers,
+        q_first_ik=q_step_2,
+        nb_dof_wu_model=nb_dof_wu_model, # todo: rename this variable name is misleading
+        nb_parameters=nb_parameters, # todo: rename this variable name is misleading
+        nb_frames=nb_frames,
+        list_frames=frames_list, # todo: Redundant ?
     )
 
     b = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
