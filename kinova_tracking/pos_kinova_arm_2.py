@@ -13,19 +13,18 @@ from utils import get_range_q
 import random
 
 
-def move_marker_table(labels_markers_list: list[str], c3d_file: c3d, offset: float) -> np.array:
+def move_marker(marker_to_move: str, c3d_file: c3d, offset: np.ndarray, ) -> np.array:
     """
-    This function applies an offet to the marker of the table
-     so that the hinge is displaced at a given distance on the horizontal plane.
+    This function applies an offet to a marker
 
     Parameters
     ----------
-    labels_markers_list : list[str]
-        List of markers labels
+    marker_to_move: int
+        indices of the marker to move
     c3d_file : c3d
         c3d file to move the markers.
-    offset : float
-        Offset to apply to the markers in mm.
+    offset : list[int]
+        The vector of offset to apply to the markers in mm.
 
     Returns
     -------
@@ -34,9 +33,9 @@ def move_marker_table(labels_markers_list: list[str], c3d_file: c3d, offset: flo
     """
 
     new_points = c3d_file["data"]["points"].copy()
-    new_points[1, labels_markers_list.index("Table:Table5"), :] = (
-        c3d_file["data"]["points"][1, labels_markers_list.index("Table:Table5"), :] - offset
-    )
+    new_points[0, marker_to_move, :] = (c3d_file["data"]["points"][0, marker_to_move, :] - offset[0])
+    new_points[1, marker_to_move, :] = (c3d_file["data"]["points"][1, marker_to_move, :] - offset[1])
+    new_points[2, marker_to_move, :] = (c3d_file["data"]["points"][2, marker_to_move, :] - offset[2])
 
     return new_points
 
@@ -85,12 +84,15 @@ if __name__ == "__main__":
     # Markers labels in c3d
     labels_markers = c3d_kinova["parameters"]["POINT"]["LABELS"]["value"]
 
-    move_marker = False
-    offset = 50  # mm
+    marker_move = False
+    offset = np.array([0, 50, 0])  # [offsetX,offsetY,offsetZ] mm
     print("offset", offset)
     # Markers trajectories
     points_c3d = (
-        c3d_kinova["data"]["points"] if not move_marker else move_marker_table(labels_markers_list=labels_markers, c3d_file=c3d_kinova, offset=offset)
+        c3d_kinova["data"]["points"] if not marker_move
+        else move_marker(marker_to_move=labels_markers.index("Table:Table5"),
+                         c3d_file=c3d_kinova,
+                         offset=offset)
     )
 
     # model for step 1.1
