@@ -159,6 +159,9 @@ if __name__ == "__main__":
     # initialize human dofs with previous results of inverse kinematics
     q_first_ik[:10, :] = ik_without_floating_base.q  # human
 
+    name_dof = [i.to_string() for i in biorbd_model_merge.nameDof()]
+    parameters = [i for i in name_dof if "part7" in i]
+    kinova_dof = [i for i in name_dof if "part" in i and not "7" in i]
 
     nb_dof_wu_model = ik_without_floating_base.q.shape[0]  # todo: get it from the model
     nb_parameters = 6  # todo: indicates the list dofs names instead of the number of parameters
