@@ -13,7 +13,7 @@ from utils import get_range_q
 import random
 
 
-def move_marker(marker_to_move: str, c3d_file: c3d, offset: np.ndarray, ) -> np.array:
+def move_marker(marker_to_move: int, c3d_file: c3d, offset: np.ndarray, ) -> np.array:
     """
     This function applies an offet to a marker
 
@@ -23,7 +23,7 @@ def move_marker(marker_to_move: str, c3d_file: c3d, offset: np.ndarray, ) -> np.
         indices of the marker to move
     c3d_file : c3d
         c3d file to move the markers.
-    offset : list[int]
+    offset: np.ndarray
         The vector of offset to apply to the markers in mm.
 
     Returns
@@ -188,7 +188,7 @@ if __name__ == "__main__":
     # initialized q trajectories for each frames for dofs without a priori knowledge of the q (kinova arm here)
     for j in range((q_first_ik[nb_dof_wu_model + nb_parameters:, :].shape[1])):
         q_first_ik[nb_dof_wu_model + nb_parameters:, j] = kinova_q0
-        
+
     # initialized parameters values
     p = np.zeros(nb_parameters)
 
