@@ -160,12 +160,14 @@ if __name__ == "__main__":
     q_first_ik[:10, :] = ik_without_floating_base.q  # human
 
     name_dof = [i.to_string() for i in biorbd_model_merge.nameDof()]
+    wu_dof = [i for i in name_dof if not "part" in i]
     parameters = [i for i in name_dof if "part7" in i]
     kinova_dof = [i for i in name_dof if "part" in i and not "7" in i]
 
-    nb_dof_wu_model = ik_without_floating_base.q.shape[0]  # todo: get it from the model
-    nb_parameters = 6  # todo: indicates the list dofs names instead of the number of parameters
-    nb_dof_kinova = 6  # todo: indicates the list dofs names instead of the number of dofs
+    nb_dof_wu_model = len(wu_dof)  # todo: get it from the model
+    nb_parameters = len(parameters)  # todo: indicates the list dofs names instead of the number of parameters
+    nb_dof_kinova = len(kinova_dof)  # todo: indicates the list dofs names instead of the number of dofs
+
     nb_frames = markers.shape[2]
     nb_frames_needed = 10
     all_frames = False
@@ -184,19 +186,18 @@ if __name__ == "__main__":
     ]
 
     # initialized q trajectories for each frames for dofs without a priori knowledge of the q (kinova arm here)
-    # todo: also don't use hard coded indexes, 16 should be guessed from predefined names of dofs.
-    for j in range((q_first_ik[16:, :].shape[1])):
-        q_first_ik[16:, j] = np.array(
+    for j in range((q_first_ik[nb_dof_wu_model + nb_parameters:, :].shape[1])):
+        q_first_ik[nb_dof_wu_model + nb_parameters:, j] = np.array(
             [
                 (bounds_inf + bounds_sup) / 2
                 for bounds_inf, bounds_sup in zip(
-                    get_range_q(biorbd_model_merge)[0][16:], get_range_q(biorbd_model_merge)[1][16:]
+                    get_range_q(biorbd_model_merge)[0][nb_dof_wu_model + nb_parameters:], get_range_q(biorbd_model_merge)[1][nb_dof_wu_model + nb_parameters:]
                 # todo: simplify this using bounds you just created before
                 )
             ]
         )
     # initialized parameters values
-    p = np.zeros(6)
+    p = np.zeros(nb_parameters)
 
     # First IK step - INITIALIZATION
     q_step_2, epsilon = calibration.step_2_least_square(
