@@ -153,20 +153,20 @@ if __name__ == "__main__":
     #### TODO: THE SUPPORT CALIBRATION STARTS HERE ####
     #### TODO: THIS SHOULD BE A FUNCTION ####
 
-    # prepare the inverse kinematics of the first step of the algorithm
-    # initialize q with zeros
-    q_first_ik = np.zeros((biorbd_model_merge.nbQ(), markers.shape[2]))
-    # initialize human dofs with previous results of inverse kinematics
-    q_first_ik[:10, :] = ik_without_floating_base.q  # human
-
     name_dof = [i.to_string() for i in biorbd_model_merge.nameDof()]
     wu_dof = [i for i in name_dof if not "part" in i]
     parameters = [i for i in name_dof if "part7" in i]
     kinova_dof = [i for i in name_dof if "part" in i and not "7" in i]
 
-    nb_dof_wu_model = len(wu_dof)  # todo: get it from the model
+    nb_dof_wu_model = len(wu_dof)
     nb_parameters = len(parameters)  # todo: indicates the list dofs names instead of the number of parameters
     nb_dof_kinova = len(kinova_dof)  # todo: indicates the list dofs names instead of the number of dofs
+
+    # prepare the inverse kinematics of the first step of the algorithm
+    # initialize q with zeros
+    q_first_ik = np.zeros((biorbd_model_merge.nbQ(), markers.shape[2]))
+    # initialize human dofs with previous results of inverse kinematics
+    q_first_ik[:nb_dof_wu_model, :] = ik_without_floating_base.q  # human
 
     nb_frames = markers.shape[2]
     nb_frames_needed = 10
@@ -184,18 +184,11 @@ if __name__ == "__main__":
     bounds = [
         (mini, maxi) for mini, maxi in zip(get_range_q(biorbd_model_merge)[0], get_range_q(biorbd_model_merge)[1])
     ]
-
+    kinova_q0 = np.array([(i[0] + i[1]) / 2 for i in bounds[nb_dof_wu_model + nb_parameters:]])
     # initialized q trajectories for each frames for dofs without a priori knowledge of the q (kinova arm here)
     for j in range((q_first_ik[nb_dof_wu_model + nb_parameters:, :].shape[1])):
-        q_first_ik[nb_dof_wu_model + nb_parameters:, j] = np.array(
-            [
-                (bounds_inf + bounds_sup) / 2
-                for bounds_inf, bounds_sup in zip(
-                    get_range_q(biorbd_model_merge)[0][nb_dof_wu_model + nb_parameters:], get_range_q(biorbd_model_merge)[1][nb_dof_wu_model + nb_parameters:]
-                # todo: simplify this using bounds you just created before
-                )
-            ]
-        )
+        q_first_ik[nb_dof_wu_model + nb_parameters:, j] = kinova_q0
+        
     # initialized parameters values
     p = np.zeros(nb_parameters)
 
