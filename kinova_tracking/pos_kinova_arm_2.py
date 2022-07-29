@@ -10,6 +10,8 @@ import biorbd
 from models.utils import add_header, thorax_variables
 from utils import get_range_q
 import random
+import models.enums as modelEnum
+import data.enums as dataEnum
 
 
 def move_marker(marker_to_move: int, c3d_point: np.ndarray, offset: np.ndarray, ) -> np.array:
@@ -32,9 +34,9 @@ def move_marker(marker_to_move: int, c3d_point: np.ndarray, offset: np.ndarray, 
     """
 
     new_points = c3d_point.copy()
-    new_points[0, marker_to_move, :] = (c3d_point[0, marker_to_move, :] - offset[0])
-    new_points[1, marker_to_move, :] = (c3d_point[1, marker_to_move, :] - offset[1])
-    new_points[2, marker_to_move, :] = (c3d_point[2, marker_to_move, :] - offset[2])
+    new_points[0, marker_to_move, :] = (c3d_point[0, marker_to_move, :] + offset[0])
+    new_points[1, marker_to_move, :] = (c3d_point[1, marker_to_move, :] + offset[1])
+    new_points[2, marker_to_move, :] = (c3d_point[2, marker_to_move, :] + offset[2])
 
     return new_points
 
@@ -77,14 +79,14 @@ def IK(model_path: str, points: np.array, labels_markers_ik: list[str]) -> np.ar
 if __name__ == "__main__":
 
     # c3d to treat
-    c3d_path = "../data/F3_aisselle_01.c3d"  # todo: use an Enum for all C3D files
+    c3d_path = dataEnum.TasksKinova.ARMPIT.value
     c3d_kinova = c3d(c3d_path)
 
     # Markers labels in c3d
     labels_markers = c3d_kinova["parameters"]["POINT"]["LABELS"]["value"]
 
     marker_move = False
-    offset = np.array([0, 50, 0])  # [offsetX,offsetY,offsetZ] mm
+    offset = np.array([0, -50, 0])  # [offsetX,offsetY,offsetZ] mm
     print("offset", offset)
     # Markers trajectories
     points_c3d = (
@@ -95,21 +97,19 @@ if __name__ == "__main__":
     )
 
     # model for step 1.1
-    model_path_without_kinova = "../models/wu_converted_definitif_inverse_kinematics.bioMod" # todo: use an Enum for all models
+    model_path_without_kinova = modelEnum.Models.WU_INVERSE_KINEMATICS.value
 
     # Step 1.1: IK of wu model with floating base
     ik_with_floating_base = IK(model_path=model_path_without_kinova, points=points_c3d, labels_markers_ik=labels_markers)
     # ik_with_floating_base.animate()
 
     # rewrite the models with the location of the floating base
-    template_file_merge = "../models/KINOVA_merge_without_floating_base_with_6_dof_support_template.bioMod"
-    new_biomod_file_merge = (
-        "../models/KINOVA_merge_without_floating_base_with_6_dof_support_template_with_variables.bioMod"
-    ) # todo: use an Enum for all models
+    template_file_merge = modelEnum.Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_6_DOF_SUPPORT_TEMPLATE.value
+    new_biomod_file_merge = modelEnum.Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_6_DOF_SUPPORT_VARIABLES.value
 
-    template_file_wu = "../models/wu_converted_definitif_without_floating_base_template.bioMod"
-    new_biomod_file_wu = "../models/wu_converted_definitif_without_floating_base_template_with_variables.bioMod"
-    # todo: use an Enum for all models
+
+    template_file_wu = modelEnum.Models.WU_WITHOUT_FLOATING_BASE_TEMPLATE.value
+    new_biomod_file_wu = modelEnum.Models.WU_WITHOUT_FLOATING_BASE_VARIABLES.value
 
     thorax_values = {
         "thoraxRT1": ik_with_floating_base.q[3, :].mean(),
@@ -134,7 +134,6 @@ if __name__ == "__main__":
     markers = np.zeros((3, len(markers_names), len(points_c3d[0, 0, :])))
 
     # add the extra marker Table:Table6 to the experimental data based on the location of the Table:Table5
-    # todo: use a generic function named "duplicate marker"
 
     new_row = np.zeros((points_c3d.shape[0], 1, points_c3d.shape[2]))
     points_c3d = np.append(points_c3d, new_row, axis=1)
@@ -144,9 +143,8 @@ if __name__ == "__main__":
     points_c3d[:3, labels_markers.index("Table:Table6"), :] = points_c3d[:3, labels_markers.index("Table:Table5"), :]
 
     # apply offset to the markers
-    offset = np.array([0, 100, 0])  # meters
+    offset = np.array([0, 0, 100])  # meters
     points_c3d = move_marker(marker_to_move=labels_markers.index("Table:Table6"), c3d_point=points_c3d, offset=offset)
-
 
     # in the class of calibration
     for i, name in enumerate(markers_names):
