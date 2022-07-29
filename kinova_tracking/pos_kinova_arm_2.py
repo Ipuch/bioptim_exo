@@ -10,8 +10,8 @@ import biorbd
 from models.utils import add_header, thorax_variables
 from utils import get_range_q
 import random
-import models.enums as modelEnum
-import data.enums as dataEnum
+from models.enums import Models
+from data.enums import TasksKinova
 
 
 def move_marker(marker_to_move: int, c3d_point: np.ndarray, offset: np.ndarray, ) -> np.array:
@@ -76,18 +76,109 @@ def IK(model_path: str, points: np.array, labels_markers_ik: list[str]) -> np.ar
     return my_ik
 
 
-def frame_selector(all_frames: bool, nb_frames_needed: int, nb_frames: int):
+def frame_selector(all: bool, frames_needed: int, frames: int):
+    """
+    Give a list of frames for calibration
 
-    frames_list = random.sample(range(nb_frames), nb_frames_needed) if not all_frames else [i for i in range(nb_frames)] # todo: make a frame selector function
+    Parameters
+    ----------
+    all: bool
+        True if you want all frames, False if not
+    frames_needed: int
+        The number of random frames you need
+    frames: int
+        The total number of frames
 
-    frames_list.sort()
+    Returns
+    -------
+    list_frames: list[int]
+        The list of frames use for calibration
+    """
+    list_frames = random.sample(range(frames), frames_needed) if not all else [i for i in range(frames)]
 
-    return frames_list
+    list_frames.sort()
+
+    return list_frames
+
+
+def calibration_step():
+
+    name_dof = [i.to_string() for i in biorbd_model_merge.nameDof()]
+    wu_dof = [i for i in name_dof if not "part" in i]
+    parameters = [i for i in name_dof if "part7" in i]
+    kinova_dof = [i for i in name_dof if "part" in i and not "7" in i]
+
+    nb_dof_wu_model = len(wu_dof)
+    nb_parameters = len(parameters)
+    nb_dof_kinova = len(kinova_dof)
+
+    # prepare the inverse kinematics of the first step of the algorithm
+    # initialize q with zeros
+    q_first_ik = np.zeros((biorbd_model_merge.nbQ(), markers.shape[2]))
+    # initialize human dofs with previous results of inverse kinematics
+    q_first_ik[:nb_dof_wu_model, :] = ik_without_floating_base.q  # human
+
+    nb_frames = markers.shape[2]
+    nb_frames_needed = 10
+    all_frames = False
+
+    frames_list = frame_selector(all_frames, nb_frames_needed, nb_frames)
+
+    # prepare the size of the output of q
+    q_output = np.zeros((biorbd_model_merge.nbQ(), nb_frames))
+
+    # get the bounds of the model for all dofs
+    bounds = [
+        (mini, maxi) for mini, maxi in zip(get_range_q(biorbd_model_merge)[0], get_range_q(biorbd_model_merge)[1])
+    ]
+    kinova_q0 = np.array([(i[0] + i[1]) / 2 for i in bounds[nb_dof_wu_model + nb_parameters:]])
+    # initialized q trajectories for each frames for dofs without a priori knowledge of the q (kinova arm here)
+    for j in range((q_first_ik[nb_dof_wu_model + nb_parameters:, :].shape[1])):
+        q_first_ik[nb_dof_wu_model + nb_parameters:, j] = kinova_q0
+
+    # initialized parameters values
+    p = np.zeros(nb_parameters)
+
+    # First IK step - INITIALIZATION
+    q_step_2, epsilon = calibration.step_2_least_square(
+        biorbd_model=biorbd_model_merge,
+        p=p,
+        bounds=get_range_q(biorbd_model_merge),
+        nb_dof_wu_model=nb_dof_wu_model,
+        nb_parameters=nb_parameters,
+        nb_frames=nb_frames,
+        list_frames=frames_list,
+        q_first_ik=q_first_ik,
+        q_output=q_output,
+        markers_xp_data=markers,
+        markers_names=markers_names,
+    )
+    # b1 = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
+    # b1.load_experimental_markers(markers[:, :, :])
+    # # b.load_movement(np.array(q0, q0).T)
+    # b1.load_movement(q_step_2)
+    #
+    # b1.exec()
+
+    # Second step - CALIBRATION
+    pos_init, parameters = calibration.arm_support_calibration(
+        biorbd_model=biorbd_model_merge,
+        markers_names=markers_names,
+        markers_xp_data=markers,
+        q_first_ik=q_step_2,
+        nb_dof_wu_model=nb_dof_wu_model,  # todo: rename this variable name is misleading
+        nb_parameters=nb_parameters,  # todo: rename this variable name is misleading
+        nb_frames=nb_frames,
+        list_frames=frames_list,  # todo: Redundant ?
+    )
+
+    return pos_init, parameters
+
 
 if __name__ == "__main__":
 
     # c3d to treat
-    c3d_path = dataEnum.TasksKinova.ARMPIT.value
+    c3d_path = TasksKinova.ARMPIT.value
     c3d_kinova = c3d(c3d_path)
 
     # Markers labels in c3d
@@ -105,19 +196,18 @@ if __name__ == "__main__":
     )
 
     # model for step 1.1
-    model_path_without_kinova = modelEnum.Models.WU_INVERSE_KINEMATICS.value
+    model_path_without_kinova = Models.WU_INVERSE_KINEMATICS.value
 
     # Step 1.1: IK of wu model with floating base
     ik_with_floating_base = IK(model_path=model_path_without_kinova, points=points_c3d, labels_markers_ik=labels_markers)
     # ik_with_floating_base.animate()
 
     # rewrite the models with the location of the floating base
-    template_file_merge = modelEnum.Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_6_DOF_SUPPORT_TEMPLATE.value
-    new_biomod_file_merge = modelEnum.Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_6_DOF_SUPPORT_VARIABLES.value
+    template_file_merge = Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_6_DOF_SUPPORT_TEMPLATE.value
+    new_biomod_file_merge = Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_6_DOF_SUPPORT_VARIABLES.value
 
-
-    template_file_wu = modelEnum.Models.WU_WITHOUT_FLOATING_BASE_TEMPLATE.value
-    new_biomod_file_wu = modelEnum.Models.WU_WITHOUT_FLOATING_BASE_VARIABLES.value
+    template_file_wu = Models.WU_WITHOUT_FLOATING_BASE_TEMPLATE.value
+    new_biomod_file_wu = Models.WU_WITHOUT_FLOATING_BASE_VARIABLES.value
 
     thorax_values = {
         "thoraxRT1": ik_with_floating_base.q[3, :].mean(),
