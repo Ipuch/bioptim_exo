@@ -3,7 +3,6 @@ converged, like this!
 """
 
 import bioviz
-
 import calibration
 import numpy as np
 from ezc3d import c3d
@@ -13,7 +12,7 @@ from utils import get_range_q
 import random
 
 
-def move_marker(marker_to_move: int, c3d_file: c3d, offset: np.ndarray, ) -> np.array:
+def move_marker(marker_to_move: int, c3d_point: np.ndarray, offset: np.ndarray, ) -> np.array:
     """
     This function applies an offet to a marker
 
@@ -21,8 +20,8 @@ def move_marker(marker_to_move: int, c3d_file: c3d, offset: np.ndarray, ) -> np.
     ----------
     marker_to_move: int
         indices of the marker to move
-    c3d_file : c3d
-        c3d file to move the markers.
+    c3d_point: np.ndarray
+        Markers trajectories.
     offset: np.ndarray
         The vector of offset to apply to the markers in mm.
 
@@ -32,10 +31,10 @@ def move_marker(marker_to_move: int, c3d_file: c3d, offset: np.ndarray, ) -> np.
         The markers with the displaced ones at a given distance on the horizontal plane.
     """
 
-    new_points = c3d_file["data"]["points"].copy()
-    new_points[0, marker_to_move, :] = (c3d_file["data"]["points"][0, marker_to_move, :] - offset[0])
-    new_points[1, marker_to_move, :] = (c3d_file["data"]["points"][1, marker_to_move, :] - offset[1])
-    new_points[2, marker_to_move, :] = (c3d_file["data"]["points"][2, marker_to_move, :] - offset[2])
+    new_points = c3d_point.copy()
+    new_points[0, marker_to_move, :] = (c3d_point[0, marker_to_move, :] - offset[0])
+    new_points[1, marker_to_move, :] = (c3d_point[1, marker_to_move, :] - offset[1])
+    new_points[2, marker_to_move, :] = (c3d_point[2, marker_to_move, :] - offset[2])
 
     return new_points
 
@@ -91,7 +90,7 @@ if __name__ == "__main__":
     points_c3d = (
         c3d_kinova["data"]["points"] if not marker_move
         else move_marker(marker_to_move=labels_markers.index("Table:Table5"),
-                         c3d_file=c3d_kinova,
+                         c3d_point=c3d_kinova["data"]["points"],
                          offset=offset)
     )
 
@@ -136,18 +135,23 @@ if __name__ == "__main__":
 
     # add the extra marker Table:Table6 to the experimental data based on the location of the Table:Table5
     # todo: use a generic function named "duplicate marker"
+
+    new_row = np.zeros((points_c3d.shape[0], 1, points_c3d.shape[2]))
+    points_c3d = np.append(points_c3d, new_row, axis=1)
+
     labels_markers.append("Table:Table6")
-    for i, name in enumerate(markers_names):
-        if name in labels_markers:
-            if name == "Table:Table6":
-                markers[:, i, :] = points_c3d[:3, labels_markers.index("Table:Table5"), :] / 1000
-            else:
-                markers[:, i, :] = points_c3d[:3, labels_markers.index(name), :] / 1000
+
+    points_c3d[:3, labels_markers.index("Table:Table6"), :] = points_c3d[:3, labels_markers.index("Table:Table5"), :]
 
     # apply offset to the markers
-    # todo: make generic the function "move_marker_table"
-    offset = 0.1  # meters
-    markers[2, markers_names.index("Table:Table6"), :] = markers[2, markers_names.index("Table:Table6"), :] + offset
+    offset = np.array([0, 100, 0])  # meters
+    points_c3d = move_marker(marker_to_move=labels_markers.index("Table:Table6"), c3d_point=points_c3d, offset=offset)
+
+
+    # in the class of calibration
+    for i, name in enumerate(markers_names):
+        if name in labels_markers:
+            markers[:, i, :] = points_c3d[:3, labels_markers.index(name), :] / 1000
 
 
     #### TODO: THE SUPPORT CALIBRATION STARTS HERE ####
