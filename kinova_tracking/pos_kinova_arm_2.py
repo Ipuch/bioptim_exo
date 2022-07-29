@@ -76,6 +76,14 @@ def IK(model_path: str, points: np.array, labels_markers_ik: list[str]) -> np.ar
     return my_ik
 
 
+def frame_selector(all_frames: bool, nb_frames_needed: int, nb_frames: int):
+
+    frames_list = random.sample(range(nb_frames), nb_frames_needed) if not all_frames else [i for i in range(nb_frames)] # todo: make a frame selector function
+
+    frames_list.sort()
+
+    return frames_list
+
 if __name__ == "__main__":
 
     # c3d to treat
@@ -173,11 +181,8 @@ if __name__ == "__main__":
     nb_frames = markers.shape[2]
     nb_frames_needed = 10
     all_frames = False
-    frames_list = random.sample(range(nb_frames), nb_frames_needed) if not all_frames else [i for i in range(nb_frames)] # todo: make a frame selector function
-    frames_list.sort()
-    print(frames_list)
-    print(nb_frames)
-    # nb_frames = 50
+
+    frames_list = frame_selector(all_frames, nb_frames_needed, nb_frames)
 
     # prepare the size of the output of q
     q_output = np.zeros((biorbd_model_merge.nbQ(), nb_frames))
