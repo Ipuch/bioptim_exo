@@ -11,13 +11,13 @@ import biorbd
 from models.utils import add_header, thorax_variables
 from utils import get_range_q
 import random
+from pathlib import Path
 
 
 def move_marker_table(labels_markers_list, c3d_file, offset):
-
     new_points = c3d_file["data"]["points"].copy()
     new_points[1, labels_markers_list.index("Table:Table5"), :] = (
-        c3d_file["data"]["points"][1, labels_markers_list.index("Table:Table5"), :] - offset
+            c3d_file["data"]["points"][1, labels_markers_list.index("Table:Table5"), :] - offset
     )
     # # Write the data
     # c3d.write("../data/F3_aisselle_01_new_table.c3d")
@@ -91,7 +91,6 @@ if __name__ == "__main__":
 
     # Step 1.2: IK of wu model without floating base
     ik_without_floating_base = IK(new_biomod_file_wu, points_c3d, labels_markers)
-    # ik_without_floating_base.animate()
 
     # exo for step 2
     biorbd_model_merge = biorbd.Model(new_biomod_file_merge)
@@ -135,8 +134,8 @@ if __name__ == "__main__":
             [
                 (bounds_inf + bounds_sup) / 2
                 for bounds_inf, bounds_sup in zip(
-                    get_range_q(biorbd_model_merge)[0][16:], get_range_q(biorbd_model_merge)[1][16:]
-                )
+                get_range_q(biorbd_model_merge)[0][16:], get_range_q(biorbd_model_merge)[1][16:]
+            )
             ]
         )
     p = np.zeros(6)
@@ -165,39 +164,107 @@ if __name__ == "__main__":
         biorbd_model_merge, markers_names, markers, q_step_2, nb_dof_wu_model, nb_parameters, nb_frames, frames_list
     )
 
-    b = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
-    b.load_experimental_markers(markers)
-    # b.load_movement(np.array(q0, q0).T)
-    b.load_movement(pos_init)
+    # b = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
+    # b.load_experimental_markers(markers)
+    # # b.load_movement(np.array(q0, q0).T)
+    # b.load_movement(pos_init)
+    #
+    # b.exec()
+    # print("done")
 
-    b.exec()
-    print("done")
+    Rototrans_matrix_world_support = biorbd_model_merge.globalJCS(
+                                        pos_init[:, 0], biorbd_model_merge.getBodyBiorbdId("part7")).to_array()
 
-    segments_names = [i.name().to_string() for i in biorbd_model_merge.segments()]
-
-    Rototrans_matrix_world_ulna = biorbd_model_merge.globalJCS(pos_init[:,0], segments_names.index("ulna")).to_array()
-    Rototrans_matrix_world_support = biorbd_model_merge.globalJCS(pos_init[:,0], segments_names.index("part7")).to_array()
-
-    Rototrans_matrix_ulna_world = biorbd_model_merge.globalJCS(pos_init[:,0], segments_names.index("ulna")).to_array()
+    Rototrans_matrix_ulna_world = biorbd_model_merge.globalJCS(
+                                        pos_init[:, 0], biorbd_model_merge.getBodyBiorbdId("ulna")).transpose().to_array()
 
     # Finally
     Rototrans_matrix_ulna_support = np.matmul(Rototrans_matrix_ulna_world, Rototrans_matrix_world_support)
 
     print(Rototrans_matrix_ulna_support)
 
-    template_file_wu = "../models/wu_converted_definitif_without_floating_base_template.bioMod"
-    new_biomod_file_wu = "../models/wu_converted_definitif_without_floating_base_template_with_variables.bioMod"
+    rototrans_values = {
+        "thoraxRT1": ik_with_floating_base.q[3, :].mean(),
+        "thoraxRT2": ik_with_floating_base.q[4, :].mean(),
+        "thoraxRT3": ik_with_floating_base.q[5, :].mean(),
+        "thoraxRT4": ik_with_floating_base.q[0, :].mean(),
+        "thoraxRT5": ik_with_floating_base.q[1, :].mean(),
+        "thoraxRT6": ik_with_floating_base.q[2, :].mean(),
 
-    # todo: rewrite this part of the code with Thasaarah's function add header
-    # todo: to externalize
-    parameters_values = {
-        "parametersRT1": p[3, :],
-        "parametersRT2": p[4, :],
-        "parametersRT3": p[5, :],
-        "parametersRT4": p[0, :],
-        "parametersRT5": p[1, :],
-        "parametersRT6": p[2, :],
+        "rotationXX": Rototrans_matrix_ulna_support[0, 0],
+        "rotationXY": Rototrans_matrix_ulna_support[0, 1],
+        "rotationXZ": Rototrans_matrix_ulna_support[0, 2],
+        "translationX": Rototrans_matrix_ulna_support[0, 3],
+
+        "rotationYX": Rototrans_matrix_ulna_support[1, 0],
+        "rotationYY": Rototrans_matrix_ulna_support[1, 1],
+        "rotationYZ": Rototrans_matrix_ulna_support[1, 2],
+        "translationY": Rototrans_matrix_ulna_support[1, 3],
+
+        "rotationZX": Rototrans_matrix_ulna_support[2, 0],
+        "rotationZY": Rototrans_matrix_ulna_support[2, 1],
+        "rotationZZ": Rototrans_matrix_ulna_support[2, 2],
+        "translationZ": Rototrans_matrix_ulna_support[2, 3],
+
     }
 
-    add_header(template_file_wu, new_biomod_file_wu, thorax_values)
-    add_header(template_file_merge, new_biomod_file_merge, thorax_values)
+    template_file = "../models/KINOVA_merge_without_floating_base_with_rototrans_template.bioMod"
+    new_biomod_file_new = "../models/KINOVA_merge_without_floating_base_with_rototrans_template_with_variables.bioMod"
+
+    add_header(template_file, new_biomod_file_new, rototrans_values)
+
+    new_model = biorbd.Model(new_biomod_file_new)
+
+    file_path = Path("../data/")
+    file_list = list(file_path.glob("F3_aisselle*.c3d"))
+
+    for file in file_list:
+        print(file.name)
+        c3d_ = c3d(str(file.joinpath()))
+
+        labels_markers = c3d_["parameters"]["POINT"]["LABELS"]["value"]
+
+        # Markers trajectories
+        points = c3d_["data"]["points"]
+
+        markers_names = [value.to_string() for value in biorbd_model_merge.markerNames()]
+        markers = np.zeros((3, len(markers_names), len(points_c3d[0, 0, :])))
+
+        labels_markers.append("Table:Table6")
+        for i, name in enumerate(markers_names):
+            if name in labels_markers:
+                if name == "Table:Table6":
+                    markers[:, i, :] = points_c3d[:3, labels_markers.index("Table:Table5"), :] / 1000
+                else:
+                    markers[:, i, :] = points_c3d[:3, labels_markers.index(name), :] / 1000
+
+        markers[2, markers_names.index("Table:Table6"), :] = markers[2, markers_names.index("Table:Table6"), :] + 0.1
+
+        # Markers labels in the model
+        marker_names_ik = [new_model.markerNames()[i].to_string() for i in range(new_model.nbMarkers())]
+
+        # the actual inverse kinematics
+        my_ik = biorbd.InverseKinematics(new_model, markers)
+        my_ik.solve("trf")
+
+        q_step_2, epsilon = calibration.step_2_least_square(
+            biorbd_model=new_model,
+            p=p,
+            bounds=get_range_q(new_model),
+            nb_dof_wu_model=nb_dof_wu_model,
+            nb_parameters=0,
+            nb_frames=nb_frames,
+            list_frames=frames_list,
+            q_first_ik=q_first_ik,
+            q_output=q_output,
+            markers_xp_data=markers,
+            markers_names=markers_names,
+        )
+
+        b = bioviz.Viz(loaded_model=new_model, show_muscles=False, show_floor=False)
+        b.load_experimental_markers(markers)
+        b.load_movement(my_ik.q)
+
+        b.exec()
+        a=1
+

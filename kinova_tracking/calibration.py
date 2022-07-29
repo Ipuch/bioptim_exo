@@ -288,11 +288,7 @@ def ik_step_least_square(
     vect_pos_markers = np.zeros(3 * len(markers_model))
 
     for m, value in enumerate(markers_model):
-        vect_pos_markers[m * 3 : (m + 1) * 3] = value.to_array()
-
-    # We create the two main vectors that will be used to create the difference vector
-    diff_model = []
-    diff_xp = []
+        vect_pos_markers[m * 3: (m + 1) * 3] = value.to_array()
 
     # Put the pivot joint vertical
     table_model, table_xp = penalty_table_markers(markers_names, vect_pos_markers, table_markers)

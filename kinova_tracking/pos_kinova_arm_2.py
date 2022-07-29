@@ -253,74 +253,74 @@ if __name__ == "__main__":
     #### TODO: THE SUPPORT CALIBRATION STARTS HERE ####
     #### TODO: THIS SHOULD BE A FUNCTION ####
 
-    name_dof = [i.to_string() for i in biorbd_model_merge.nameDof()]
-    wu_dof = [i for i in name_dof if not "part" in i]
-    parameters = [i for i in name_dof if "part7" in i]
-    kinova_dof = [i for i in name_dof if "part" in i and not "7" in i]
-
-    nb_dof_wu_model = len(wu_dof)
-    nb_parameters = len(parameters)  # todo: indicates the list dofs names instead of the number of parameters
-    nb_dof_kinova = len(kinova_dof)  # todo: indicates the list dofs names instead of the number of dofs
-
-    # prepare the inverse kinematics of the first step of the algorithm
-    # initialize q with zeros
-    q_first_ik = np.zeros((biorbd_model_merge.nbQ(), markers.shape[2]))
-    # initialize human dofs with previous results of inverse kinematics
-    q_first_ik[:nb_dof_wu_model, :] = ik_without_floating_base.q  # human
-
-    nb_frames = markers.shape[2]
-    nb_frames_needed = 10
-    all_frames = False
-
-    frames_list = frame_selector(all_frames, nb_frames_needed, nb_frames)
-
-    # prepare the size of the output of q
-    q_output = np.zeros((biorbd_model_merge.nbQ(), nb_frames))
-
-    # get the bounds of the model for all dofs
-    bounds = [
-        (mini, maxi) for mini, maxi in zip(get_range_q(biorbd_model_merge)[0], get_range_q(biorbd_model_merge)[1])
-    ]
-    kinova_q0 = np.array([(i[0] + i[1]) / 2 for i in bounds[nb_dof_wu_model + nb_parameters:]])
-    # initialized q trajectories for each frames for dofs without a priori knowledge of the q (kinova arm here)
-    for j in range((q_first_ik[nb_dof_wu_model + nb_parameters:, :].shape[1])):
-        q_first_ik[nb_dof_wu_model + nb_parameters:, j] = kinova_q0
-
-    # initialized parameters values
-    p = np.zeros(nb_parameters)
-
-    # First IK step - INITIALIZATION
-    q_step_2, epsilon = calibration.step_2_least_square(
-        biorbd_model=biorbd_model_merge,
-        p=p,
-        bounds=get_range_q(biorbd_model_merge),
-        nb_dof_wu_model=nb_dof_wu_model,
-        nb_parameters=nb_parameters,
-        nb_frames=nb_frames,
-        list_frames=frames_list,
-        q_first_ik=q_first_ik,
-        q_output=q_output,
-        markers_xp_data=markers,
-        markers_names=markers_names,
-    )
-    # b1 = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
-    # b1.load_experimental_markers(markers[:, :, :])
-    # # b.load_movement(np.array(q0, q0).T)
-    # b1.load_movement(q_step_2)
+    # name_dof = [i.to_string() for i in biorbd_model_merge.nameDof()]
+    # wu_dof = [i for i in name_dof if not "part" in i]
+    # parameters = [i for i in name_dof if "part7" in i]
+    # kinova_dof = [i for i in name_dof if "part" in i and not "7" in i]
     #
-    # b1.exec()
-
-    # Second step - CALIBRATION
-    pos_init, parameters = calibration.arm_support_calibration(
-        biorbd_model=biorbd_model_merge,
-        markers_names=markers_names,
-        markers_xp_data=markers,
-        q_first_ik=q_step_2,
-        nb_dof_wu_model=nb_dof_wu_model, # todo: rename this variable name is misleading
-        nb_parameters=nb_parameters, # todo: rename this variable name is misleading
-        nb_frames=nb_frames,
-        list_frames=frames_list, # todo: Redundant ?
-    )
+    # nb_dof_wu_model = len(wu_dof)
+    # nb_parameters = len(parameters)
+    # nb_dof_kinova = len(kinova_dof)
+    #
+    # # prepare the inverse kinematics of the first step of the algorithm
+    # # initialize q with zeros
+    # q_first_ik = np.zeros((biorbd_model_merge.nbQ(), markers.shape[2]))
+    # # initialize human dofs with previous results of inverse kinematics
+    # q_first_ik[:nb_dof_wu_model, :] = ik_without_floating_base.q  # human
+    #
+    # nb_frames = markers.shape[2]
+    # nb_frames_needed = 10
+    # all_frames = False
+    #
+    # frames_list = frame_selector(all_frames, nb_frames_needed, nb_frames)
+    #
+    # # prepare the size of the output of q
+    # q_output = np.zeros((biorbd_model_merge.nbQ(), nb_frames))
+    #
+    # # get the bounds of the model for all dofs
+    # bounds = [
+    #     (mini, maxi) for mini, maxi in zip(get_range_q(biorbd_model_merge)[0], get_range_q(biorbd_model_merge)[1])
+    # ]
+    # kinova_q0 = np.array([(i[0] + i[1]) / 2 for i in bounds[nb_dof_wu_model + nb_parameters:]])
+    # # initialized q trajectories for each frames for dofs without a priori knowledge of the q (kinova arm here)
+    # for j in range((q_first_ik[nb_dof_wu_model + nb_parameters:, :].shape[1])):
+    #     q_first_ik[nb_dof_wu_model + nb_parameters:, j] = kinova_q0
+    #
+    # # initialized parameters values
+    # p = np.zeros(nb_parameters)
+    #
+    # # First IK step - INITIALIZATION
+    # q_step_2, epsilon = calibration.step_2_least_square(
+    #     biorbd_model=biorbd_model_merge,
+    #     p=p,
+    #     bounds=get_range_q(biorbd_model_merge),
+    #     nb_dof_wu_model=nb_dof_wu_model,
+    #     nb_parameters=nb_parameters,
+    #     nb_frames=nb_frames,
+    #     list_frames=frames_list,
+    #     q_first_ik=q_first_ik,
+    #     q_output=q_output,
+    #     markers_xp_data=markers,
+    #     markers_names=markers_names,
+    # )
+    # # b1 = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
+    # # b1.load_experimental_markers(markers[:, :, :])
+    # # # b.load_movement(np.array(q0, q0).T)
+    # # b1.load_movement(q_step_2)
+    # #
+    # # b1.exec()
+    #
+    # # Second step - CALIBRATION
+    # pos_init, parameters = calibration.arm_support_calibration(
+    #     biorbd_model=biorbd_model_merge,
+    #     markers_names=markers_names,
+    #     markers_xp_data=markers,
+    #     q_first_ik=q_step_2,
+    #     nb_dof_wu_model=nb_dof_wu_model, # todo: rename this variable name is misleading
+    #     nb_parameters=nb_parameters, # todo: rename this variable name is misleading
+    #     nb_frames=nb_frames,
+    #     list_frames=frames_list, # todo: Redundant ?
+    # )
 
     b = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
     b.load_experimental_markers(markers)
