@@ -2,6 +2,7 @@ import biorbd
 from scipy import optimize
 import numpy as np
 import utils
+from jacobians import calibration_jacobian
 
 
 def objective_function_param(
@@ -383,7 +384,7 @@ def step_2_least_square(
             x0=x0,  # x0 q sans p
             bounds=bounds_without_p,
             method="trf",
-            jac="3-point",
+            jac=calibration_jacobian,
             xtol=1e-5,
         )
 
