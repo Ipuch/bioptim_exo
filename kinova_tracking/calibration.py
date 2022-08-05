@@ -332,8 +332,10 @@ def step_2_least_square(
         biorbd_model,
         p,
         bounds,
-        nb_dof_wu_model,
-        nb_parameters,
+        dof,
+        wu_dof,
+        parameters,
+        kinova_dof,
         nb_frames,
         list_frames,
         q_first_ik,
@@ -341,6 +343,13 @@ def step_2_least_square(
         markers_xp_data,
         markers_names,
 ):
+    nb_dof_wu_model = len(wu_dof)
+    nb_parameters = len(parameters)
+    nb_dof_kinova = len(kinova_dof)
+
+    index_table_markers = [i for i, value in enumerate(markers_names) if "Table" in value]
+    index_wu_markers = [i for i, value in enumerate(markers_names) if "Table" not in value]
+
     # build the bounds for step 2
     bounds_without_p_1_min = bounds[0][:nb_dof_wu_model]
     bounds_without_p_2_min = bounds[0][nb_dof_wu_model + nb_parameters:]
@@ -366,8 +375,8 @@ def step_2_least_square(
             args=(
                 biorbd_model,
                 p,
-                markers_xp_data[:, 14:16, f],  # todo: remove the raw hard coded walues
-                markers_xp_data[:, 0:14, f],
+                markers_xp_data[:, index_table_markers, f],  # todo: remove the raw hard coded walues
+                markers_xp_data[:, index_wu_markers, f],
                 markers_names,
                 x0,
             ),
@@ -400,8 +409,10 @@ def arm_support_calibration(
         markers_names: list[str],
         markers_xp_data: np.ndarray,
         q_first_ik: np.ndarray,
-        nb_dof_wu_model,
-        nb_parameters,
+        dof,
+        wu_dof,
+        parameters,
+        kinova_dof,
         nb_frames,
         list_frames,
 ):
@@ -426,6 +437,10 @@ def arm_support_calibration(
     ------
         The optimized Generalized coordinates
     """
+    nb_dof_wu_model = len(wu_dof)
+    nb_parameters = len(parameters)
+    nb_dof_kinova = len(kinova_dof)
+
     q0 = q_first_ik[:, 0]
 
     # idx_human = [0, ..., n_dof]
@@ -484,8 +499,10 @@ def arm_support_calibration(
             biorbd_model=biorbd_model,
             p=p,
             bounds=utils.get_range_q(biorbd_model),
-            nb_dof_wu_model=nb_dof_wu_model,
-            nb_parameters=nb_parameters,
+            dof=dof,
+            wu_dof=wu_dof,
+            parameters=parameters,
+            kinova_dof=kinova_dof,
             nb_frames=nb_frames,
             list_frames=list_frames,
             q_first_ik=q_first_ik,

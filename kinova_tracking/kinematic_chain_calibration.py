@@ -160,8 +160,10 @@ def kinematic_chain_calibration(
         biorbd_model=biorbd_model_merge,
         p=p,
         bounds=get_range_q(biorbd_model_merge),
-        nb_dof_wu_model=nb_dof_wu_model,
-        nb_parameters=nb_parameters,
+        dof=name_dof,
+        wu_dof=wu_dof,
+        parameters=parameters,
+        kinova_dof=kinova_dof,
         nb_frames=nb_frames,
         list_frames=frames_list,
         q_first_ik=q_first_ik,
@@ -182,8 +184,10 @@ def kinematic_chain_calibration(
         markers_names=markers_names,
         markers_xp_data=markers,
         q_first_ik=q_step_2,
-        nb_dof_wu_model=nb_dof_wu_model,  # todo: rename this variable name is misleading
-        nb_parameters=nb_parameters,  # todo: rename this variable name is misleading
+        dof=name_dof,
+        wu_dof=wu_dof,
+        parameters=parameters,
+        kinova_dof=kinova_dof,  # todo: rename this variable name is misleading
         nb_frames=nb_frames,
         list_frames=frames_list,  # todo: Redundant ?
     )
