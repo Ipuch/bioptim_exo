@@ -14,17 +14,17 @@ def marker_jacobian_model(q, biorbd_model, wu_markers):
     ------
         The Jacobian matrix with right dimension
     """
-    jacobian_matrix = biorbd_model.technicalMarkersJacobian(q)[wu_markers[0]:wu_markers[1]]
+    jacobian_matrix = biorbd_model.technicalMarkersJacobian(q)[wu_markers[0]:wu_markers[1]+1]
     nb_markers = len(jacobian_matrix)
     jacobian = np.zeros((3 * nb_markers, len(q)))
 
     for m, value in enumerate(jacobian_matrix):
-        a = value.to_array()[:, :10]
-        b = value.to_array()[:, 16:]
-        c = np.concatenate((a, b), axis=1)
-        jacobian[m * 3: (m + 1) * 3, :] = c
+        jacobian[m * 3: (m + 1) * 3, :] = value.to_array()
 
-    return jacobian
+    l = [i for i in range(22) if i < 10 or i > 15]
+    jacobian_without_p = jacobian[:, l]
+
+    return jacobian_without_p
 
 
 def marker_jacobian_table(q, biorbd_model, table_markers):
@@ -40,17 +40,19 @@ def marker_jacobian_table(q, biorbd_model, table_markers):
     ------
         The Jacobian matrix with right dimension
     """
-    jacobian_matrix = biorbd_model.technicalMarkersJacobian(q)[table_markers[0]:table_markers[1]]
+    jacobian_matrix = biorbd_model.technicalMarkersJacobian(q)[table_markers[0]:table_markers[1]+1]
     nb_markers = len(jacobian_matrix)
     jacobian = np.zeros((3 * nb_markers, len(q)))
 
     for m, value in enumerate(jacobian_matrix):
-        a = value.to_array()[:, :10]
-        b = value.to_array()[:, 16:]
-        c = np.concatenate((a, b), axis=1)
-        jacobian[m * 3: (m + 1) * 3, :] = c
+        jacobian[m * 3: (m + 1) * 3, :] = value.to_array()
 
-    return jacobian
+    l = [i for i in range(22) if i < 10 or i > 15]
+    jacobian_without_p = jacobian[:, l]
+
+    jacobian_without_p = jacobian_without_p[:5, :] # we removed the value in z for the market Table:Table6
+
+    return jacobian_without_p
 
 
 def marker_jacobian_theta(q):
@@ -72,12 +74,12 @@ def marker_jacobian_theta(q):
     theta_part1_3_lim = 7 * np.pi / 10
 
     if theta_part1_3 > theta_part1_3_lim:
-        J = np.zeros((1, q.shape[0]))
+        J = np.zeros((1, 16))
         J[0, 20] = 1
         J[0, 21] = 1
         return J # ajouter les poids
     else:  # theta_part1_3_min < theta_part1_3:
-        return np.zeros((1, q.shape[0]))
+        return np.zeros((1, 16))
 
 
 def jacobian_q_continuity(q):
@@ -96,7 +98,8 @@ def jacobian_q_continuity(q):
     The value of the penalty function
     """
 
-    return np.eye(q.shape[0])
+    # return np.eye(q.shape[0])
+    return np.eye(16)
 
 
 def calibration_jacobian(q, biorbd_model, p, table_markers, wu_markers, markers_names, x0):
@@ -125,5 +128,6 @@ def calibration_jacobian(q, biorbd_model, p, table_markers, wu_markers, markers_
 
     # Force part 1 and 3 to not cross
     pivot = marker_jacobian_theta(q_with_p)
+    jacobian = np.concatenate((table*100000, model*10000, continuity*500, pivot*50000)) # ligne par ligne axis=0
 
-    return np.concatenate((table, model, continuity, pivot)) # ligne par ligne axis=0
+    return jacobian
