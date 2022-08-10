@@ -147,7 +147,7 @@ def theta_pivot_penalty(q: np.ndarray):
     ------
     The value of the penalty function
     """
-    theta_part1_3 = q[20] + q[21]
+    theta_part1_3 = q[-2] + q[-1]
 
     theta_part1_3_lim = 7 * np.pi / 10
 
@@ -244,6 +244,83 @@ def penalty_q_thorax(x, q_init):
         q_continuity_diff_model += [value]
 
     return q_continuity_diff_model, q_continuity_diff_xp
+
+
+def ik_step_batch(
+        x: np.ndarray,
+        biorbd_model: biorbd.Model,
+        table_markers: np.ndarray,
+        thorax_markers: np.ndarray,
+        markers_names: list[str],
+        q_init: np.ndarray,
+):
+    """
+    Objective function
+
+    Parameters
+    ----------
+    x: np.ndarray
+        Generalized coordinates for all dof except those between ulna and piece 7, unique for all frames
+    biorbd_model: biorbd.Model
+        The biorbd model
+    p: np.ndarray
+        Generalized coordinates between ulna and piece 7
+    table_markers: np.ndarray
+        (3 x n_markers_on_table x n_frames) marker values for all frames
+    thorax_markers: np.ndarray
+        (3 x n_markers_on_wu_model x n_frames) marker values for all frames
+    markers_names: list(str)
+        The list of markers names
+    q_init: np.ndarray
+        The initial values of generalized coordinates fo the actual frame
+
+    Return
+    ------
+    The value of the objective function
+    """
+    markers_model = biorbd_model.markers(x)
+
+    vect_pos_markers = np.zeros(3 * len(markers_model))
+
+    for m, value in enumerate(markers_model):
+        vect_pos_markers[m * 3: (m + 1) * 3] = value.to_array()
+
+    # Put the pivot joint vertical
+    table_model, table_xp = penalty_table_markers(markers_names, vect_pos_markers, table_markers)
+
+    # Minimize difference between thorax markers from model and from experimental data
+    thorax_list_model, thorax_list_xp = penalty_markers_thorax(markers_names, vect_pos_markers, thorax_markers)
+
+    # Force the model horizontality
+    # rot_matrix_list_model, rot_matrix_list_xp = penalty_rotation_matrix(biorbd_model, x_with_p)
+
+    # Minimize the q of thorax
+    q_continuity_diff_model, q_continuity_diff_xp = penalty_q_thorax(x, q_init)
+
+    # Force part 1 and 3 to not cross
+    pivot_diff_model, pivot_diff_xp = theta_pivot_penalty(x)
+
+    # We add our vector to the main lists
+    diff_model = table_model + thorax_list_model + q_continuity_diff_model + pivot_diff_model
+    diff_xp = table_xp + thorax_list_xp + q_continuity_diff_xp + pivot_diff_xp
+
+    # We converted our list into array in order to be used by least_square
+    diff_tab_model = np.array(diff_model)
+    diff_tab_xp = np.array(diff_xp)
+
+    # We created the difference vector
+    diff = diff_tab_xp - diff_tab_model
+
+    # We created a vector which contains the weight of each penalty
+    weight_table = [100000] * len(table_xp)
+    weight_thorax = [10000] * len(thorax_list_xp)
+    # weight_rot_matrix = [100] * len(rot_matrix_list_xp)
+    weight_theta_13 = [50000]
+    weight_continuity = [500] * x.shape[0]
+
+    weight_list = weight_table + weight_thorax + weight_continuity + weight_theta_13
+
+    return diff * weight_list
 
 
 def ik_step_least_square(
@@ -384,7 +461,7 @@ def step_2_least_square(
             x0=x0,  # x0 q sans p
             bounds=bounds_without_p,
             method="trf",
-            jac=calibration_jacobian,
+            jac="3-point",
             xtol=1e-5,
         )
 
@@ -403,6 +480,83 @@ def step_2_least_square(
     print("step 2 done")
 
     return q_output, espilon_markers
+
+
+def step_2_batch(
+        biorbd_model,
+        bounds,
+        dof,
+        wu_dof,
+        parameters,
+        kinova_dof,
+        nb_frames,
+        q_first_ik,
+        q_output,
+        markers_xp_data,
+        markers_names,
+):
+    nb_dof_wu_model = len(wu_dof)
+    nb_parameters = len(parameters)
+    nb_dof_kinova = len(kinova_dof)
+
+    index_table_markers = [i for i, value in enumerate(markers_names) if "Table" in value]
+    index_wu_markers = [i for i, value in enumerate(markers_names) if "Table" not in value]
+
+    # build the bounds for step 2
+    bounds_without_p_1_min = bounds[0][:nb_dof_wu_model]
+    bounds_without_p_2_min = bounds[0][nb_dof_wu_model + nb_parameters:]
+    bounds_without_p_1_max = bounds[1][:nb_dof_wu_model]
+    bounds_without_p_2_max = bounds[1][nb_dof_wu_model + nb_parameters:]
+
+    bounds_without_p = (
+        np.concatenate((bounds_without_p_1_min, bounds_without_p_2_min)),
+        np.concatenate((bounds_without_p_1_max, bounds_without_p_2_max)),
+    )
+
+    all_epsilon = []
+    for f in range(nb_frames):
+        # todo : comment here
+        x0_1 = q_first_ik[:nb_dof_wu_model, 0] if f == 0 else q_output[:nb_dof_wu_model, f - 1]
+        x0_2 = (
+            q_first_ik[nb_dof_wu_model + nb_parameters:, 0]
+            if f == 0
+            else q_output[nb_dof_wu_model + nb_parameters:, f - 1]
+        )
+        x0 = np.concatenate((x0_1, x0_2))
+        IK_i = optimize.least_squares(
+            fun=ik_step_batch,
+            args=(
+                biorbd_model,
+                markers_xp_data[:, index_table_markers, f],  # todo: remove the raw hard coded walues
+                markers_xp_data[:, index_wu_markers, f],
+                markers_names,
+                x0,
+            ),
+            x0=x0,  # x0 q sans p
+            bounds=bounds_without_p,
+            method="trf",
+            jac="3-point",
+            xtol=1e-5,
+        )
+
+        q_output[:nb_dof_wu_model, f] = IK_i.x[:nb_dof_wu_model]
+        q_output[nb_dof_wu_model + nb_parameters:, f] = IK_i.x[nb_dof_wu_model:]
+
+        markers_model = biorbd_model.markers(q_output[:, f])
+        thorax_markers = markers_xp_data[:, 0:14, f]
+        markers_to_compare = markers_xp_data[:, :, f]
+        espilon_markers = 0
+        epsilon = []
+
+        for j in range(len(thorax_markers[0, :])):
+            mark = np.linalg.norm(markers_model[j].to_array()[:] - markers_to_compare[:, j]) ** 2
+            espilon_markers += mark
+            epsilon.append(mark)
+
+        all_epsilon.append(epsilon)
+    print("step 2 done")
+
+    return q_output, espilon_markers, all_epsilon
 
 
 def arm_support_calibration(
