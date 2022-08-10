@@ -311,3 +311,44 @@ if __name__ == "__main__":
 
     b.exec()
     print("done")
+
+    Rototrans_matrix_world_support = biorbd_model_merge.globalJCS(
+        pos_init[:, 0], biorbd_model_merge.getBodyBiorbdId("part7")).to_array()
+
+    Rototrans_matrix_ulna_world = biorbd_model_merge.globalJCS(
+        pos_init[:, 0], biorbd_model_merge.getBodyBiorbdId("ulna")).transpose().to_array()
+
+    # Finally
+    Rototrans_matrix_ulna_support = np.matmul(Rototrans_matrix_ulna_world, Rototrans_matrix_world_support)
+
+    print(Rototrans_matrix_ulna_support)
+
+    rototrans_values = {
+        "thoraxRT1": ik_with_floating_base.q[3, :].mean(),
+        "thoraxRT2": ik_with_floating_base.q[4, :].mean(),
+        "thoraxRT3": ik_with_floating_base.q[5, :].mean(),
+        "thoraxRT4": ik_with_floating_base.q[0, :].mean(),
+        "thoraxRT5": ik_with_floating_base.q[1, :].mean(),
+        "thoraxRT6": ik_with_floating_base.q[2, :].mean(),
+
+        "rotationXX": Rototrans_matrix_ulna_support[0, 0],
+        "rotationXY": Rototrans_matrix_ulna_support[0, 1],
+        "rotationXZ": Rototrans_matrix_ulna_support[0, 2],
+        "translationX": Rototrans_matrix_ulna_support[0, 3],
+
+        "rotationYX": Rototrans_matrix_ulna_support[1, 0],
+        "rotationYY": Rototrans_matrix_ulna_support[1, 1],
+        "rotationYZ": Rototrans_matrix_ulna_support[1, 2],
+        "translationY": Rototrans_matrix_ulna_support[1, 3],
+
+        "rotationZX": Rototrans_matrix_ulna_support[2, 0],
+        "rotationZY": Rototrans_matrix_ulna_support[2, 1],
+        "rotationZZ": Rototrans_matrix_ulna_support[2, 2],
+        "translationZ": Rototrans_matrix_ulna_support[2, 3],
+
+    }
+
+    template_file = "../models/KINOVA_merge_without_floating_base_with_rototrans_template.bioMod"
+    new_biomod_file_new = "../models/KINOVA_merge_without_floating_base_with_rototrans_template_with_variables.bioMod"
+
+    add_header(template_file, new_biomod_file_new, rototrans_values)
