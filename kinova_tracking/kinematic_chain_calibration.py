@@ -588,14 +588,12 @@ class KinematicChainCalibration:
             q_output[self.parameter_idx[-1] + 1:, f] = IK_i.x[self.parameter_idx[0]:]
 
             markers_model = self.biorbd_model.markers(q_output[:, f])
-            thorax_markers = self.markers[:, index_wu_markers[0]:index_wu_markers[-1]+1, f]
             markers_to_compare = self.markers[:, :, f]
             espilon_markers = 0
 
             # sum of squared norm of difference
-            # todo: all markers not only thorax hardcoded
             # todo: next trainee, verify the metric
-            for j in range(len(thorax_markers[0, :])):
+            for j in range(index_table_markers[0]):
                 mark = np.linalg.norm(markers_model[j].to_array()[:] - markers_to_compare[:, j]) ** 2
                 espilon_markers += mark
 
