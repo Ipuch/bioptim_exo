@@ -158,6 +158,7 @@ if __name__ == "__main__":
                 c3d_kinova)
 
     name_dof = [i.to_string() for i in biorbd_model_merge.nameDof()]
+    kinematic_dof = [i for i in name_dof if "part7" not in i]
     wu_dof = [i for i in name_dof if not "part" in i]
     parameters = [i for i in name_dof if "part7" in i]
     kinova_dof = [i for i in name_dof if "part" in i and not "7" in i]
@@ -176,20 +177,21 @@ if __name__ == "__main__":
     nb_frames_needed = 10
     all_frames = False
 
-    kcc = KinematicChainCalibration(biorbd_model=biorbd_model_merge,
-                                    markers_model=markers_names,
-                                    markers=markers,
-                                    closed_loop_markers=["Table:Table5", "Table:Table6"],
-                                    tracked_markers=markers_names,
-                                    parameter_dofs=parameters,
-                                    kinematic_dofs=name_dof,
-                                    weights=np.zeros(70),  #
-                                    q_ik_initial_guess=q_first_ik,
-                                    nb_frames_ik_step=nb_frames,
-                                    nb_frames_param_step=100,
-                                    randomize_param_step_frames=True,
-                                    use_analytical_jacobians=False
-                                    )
+    kcc = KinematicChainCalibration(
+        biorbd_model=biorbd_model_merge,
+        markers_model=markers_names,
+        markers=markers,
+        closed_loop_markers=["Table:Table5", "Table:Table6"],
+        tracked_markers=markers_names,
+        parameter_dofs=parameters,
+        kinematic_dofs=kinematic_dof,
+        weights=np.zeros(70),  #
+        q_ik_initial_guess=q_first_ik,
+        nb_frames_ik_step=nb_frames,
+        nb_frames_param_step=100,
+        randomize_param_step_frames=True,
+        use_analytical_jacobians=False,
+    )
     pos_init, parameters = kcc.solve()
 
     b = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)

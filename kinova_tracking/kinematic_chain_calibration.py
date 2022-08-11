@@ -30,23 +30,25 @@ class KinematicChainCalibration:
     kkc.results()
     """
 
-    def __init__(self,
-                 biorbd_model: biorbd.Model,
-                 markers_model: list[str],
-                 markers: np.array,  # [3 x nb_markers, x nb_frames]
-                 closed_loop_markers: list[str],
-                 tracked_markers: list[str],
-                 parameter_dofs: list[str],
-                 kinematic_dofs: list[str],
-                 weights: Union[list[float], np.ndarray],
-                 q_ik_initial_guess: np.ndarray,
-                 objectives_functions: ObjectivesFunctions = None,  # [n_dof x n_frames]
-                 nb_frames_ik_step: int = None,
-                 nb_frames_param_step: int = None,
-                 randomize_param_step_frames: bool = True,
-                 use_analytical_jacobians: bool = False,
-                 ):
+    def __init__(
+        self,
+        biorbd_model: biorbd.Model,
+        markers_model: list[str],
+        markers: np.array,  # [3 x nb_markers, x nb_frames]
+        closed_loop_markers: list[str],
+        tracked_markers: list[str],
+        parameter_dofs: list[str],
+        kinematic_dofs: list[str],
+        weights: Union[list[float], np.ndarray],
+        q_ik_initial_guess: np.ndarray,
+        objectives_functions: ObjectivesFunctions = None,  # [n_dof x n_frames]
+        nb_frames_ik_step: int = None,
+        nb_frames_param_step: int = None,
+        randomize_param_step_frames: bool = True,
+        use_analytical_jacobians: bool = False,
+    ):
         self.biorbd_model = biorbd_model
+        self.model_dofs = [dof.to_string() for dof in biorbd_model.nameDof()]
 
         # check if markers_model are in model
         # otherwise raise
@@ -61,14 +63,21 @@ class KinematicChainCalibration:
         if markers.shape == (3, len(markers_model), nb_frames_ik_step):
             self.markers = markers
         else:
-            raise ValueError(f"markers and markers model must have same shape, markers shape is {markers.shape()},"
-                             f" and markers_model shape is {markers_model.shape()}")
+            raise ValueError(
+                f"markers and markers model must have same shape, markers shape is {markers.shape()},"
+                f" and markers_model shape is {markers_model.shape()}"
+            )
         self.closed_loop_markers = closed_loop_markers
         self.tracked_markers = tracked_markers
         self.parameter_dofs = parameter_dofs
         self.kinematic_dofs = kinematic_dofs
 
-        self.parameter_idx = [kinematic_dofs.index(i) for i in self.parameter_dofs]
+        # find the indexes of parameters and kinematic dofs in the model
+        self.parameter_index = [self.model_dofs.index(dof) for dof in self.parameter_dofs]
+        self.kinematic_index = [self.model_dofs.index(dof) for dof in self.kinematic_dofs]
+
+        self.nb_parameters_dofs = len(parameter_dofs)
+        self.nb_kinematic_dofs = len(kinematic_dofs)
 
         # self.objectives_function
 
@@ -83,8 +92,6 @@ class KinematicChainCalibration:
         self.randomize_param_step_frames = randomize_param_step_frames
         self.use_analytical_jacobians = use_analytical_jacobians
 
-        self.nb_parameters_dofs = self.parameter_idx[-1]
-
         self.list_frames_param_step = self.frame_selector(self.nb_frames_param_step, self.nb_frames_ik_step)
 
     # if nb_frames_ik_step> markers.shape[2]:
@@ -95,8 +102,8 @@ class KinematicChainCalibration:
     # def solve(self, tolerance, use_analytical_jacobians:bool=True, objectives_functions: ObjectivesFunctions)
 
     def solve(
-            self,
-            threshold: int = 5e-5,
+        self,
+        threshold: int = 5e-5,
     ):
         """
         Parameters
@@ -114,13 +121,22 @@ class KinematicChainCalibration:
         bounds = [
             (mini, maxi) for mini, maxi in zip(get_range_q(self.biorbd_model)[0], get_range_q(self.biorbd_model)[1])
         ]
-        kinova_q0 = np.array([(i[0] + i[1]) / 2 for i in bounds[self.parameter_idx[-1] + 1:]])
+
+        # find kinematic dof with initial guess at zeros
+        idx_zeros = np.where(np.sum(self.q_ik_initial_guess, axis=1) == 0)[0]
+        kinematic_idx_zeros = [idx for idx in idx_zeros if idx in self.kinematic_index]
+
+        # inititialize q_ik with in the half-way between bounds
+        bounds_kinematic_idx_zeros = [b for i, b in enumerate(bounds) if i in kinematic_idx_zeros]
+        kinova_q0 = np.array([(b[0] + b[1]) / 2 for b in bounds_kinematic_idx_zeros])
+
         # initialized q trajectories for each frames for dofs without a priori knowledge of the q (kinova arm here)
-        for j in range((self.q_ik_initial_guess[self.parameter_idx[-1] + 1:, :].shape[1])):
-            self.q_ik_initial_guess[self.parameter_idx[-1] + 1:, j] = kinova_q0
+        self.q_ik_initial_guess[kinematic_idx_zeros, :] = np.repeat(
+            kinova_q0[:, np.newaxis], self.nb_frames_ik_step, axis=1
+        )
 
         # initialized parameters values
-        p = np.zeros(len(self.parameter_idx))
+        p = np.zeros(self.nb_parameters_dofs)
 
         # First IK step - INITIALIZATION
         q_step_2, epsilon = self.step_2(
@@ -128,7 +144,6 @@ class KinematicChainCalibration:
             bounds=get_range_q(self.biorbd_model),
             nb_frames=self.nb_frames_ik_step,
             q_output=q_output,
-
         )
 
         q0 = self.q_ik_initial_guess[:, 0]
@@ -136,11 +151,10 @@ class KinematicChainCalibration:
         q_output = np.zeros((self.biorbd_model.nbQ(), self.markers.shape[2]))
 
         bounds = [
-            (mini, maxi) for mini, maxi in
-            zip(get_range_q(self.biorbd_model)[0], get_range_q(self.biorbd_model)[1])
+            (mini, maxi) for mini, maxi in zip(get_range_q(self.biorbd_model)[0], get_range_q(self.biorbd_model)[1])
         ]
 
-        p = q_step_2[self.parameter_idx[0]: self.parameter_idx[-1] + 1, 0]
+        p = q_step_2[self.parameter_idx, 0]
 
         iteration = 0
         epsilon_markers_n = 10
@@ -158,11 +172,7 @@ class KinematicChainCalibration:
             # step 1 - param opt
             param_opt = optimize.minimize(
                 fun=self.objective_function_param,
-                args=(
-                    q_first_ik_not_all_frames,
-                    q0,
-                    markers_xp_data_not_all_frames
-                ),
+                args=(q_first_ik_not_all_frames, q0, markers_xp_data_not_all_frames),
                 x0=p,
                 bounds=bounds[10:16],
                 method="trust-constr",
@@ -171,12 +181,9 @@ class KinematicChainCalibration:
             )
             print(param_opt.x)
 
-            self.q_ik_initial_guess[self.parameter_idx[0]: self.parameter_idx[-1] + 1, :] = np.array(
-                [param_opt.x] * self.nb_frames_ik_step
-            ).T
+            self.q_ik_initial_guess[self.parameter_idx, :] = np.array([param_opt.x] * self.nb_frames_ik_step).T
             p = param_opt.x
-            q_output[self.parameter_idx[0]: self.parameter_idx[-1] + 1, :] = \
-                np.array([param_opt.x] * q_output.shape[1]).T
+            q_output[self.parameter_idx, :] = np.array([param_opt.x] * q_output.shape[1]).T
 
             # step 2 - ik step
             # todo : verify the metric of the step 2 please make a RMSE
@@ -236,13 +243,12 @@ class KinematicChainCalibration:
         """
         # todo: hardcoded names, put it as an argument of the method
         table5_xyz = vect_pos_markers[
-                     self.markers_model.index("Table:Table5") * 3: self.markers_model.index("Table:Table5") * 3 + 3
-                     ][:]
+            self.markers_model.index("Table:Table5") * 3 : self.markers_model.index("Table:Table5") * 3 + 3
+        ][:]
         table_xp = table_markers[:, 0].tolist()
         table6_xy = vect_pos_markers[
-                    self.markers_model.index("Table:Table6") * 3: self.markers_model.index("Table:Table6") * 3 + 3][
-                    :2
-                    ]
+            self.markers_model.index("Table:Table6") * 3 : self.markers_model.index("Table:Table6") * 3 + 3
+        ][:2]
         table_xp += table_markers[:2, 1].tolist()
         table = table5_xyz.tolist() + table6_xy.tolist()
 
@@ -297,8 +303,9 @@ class KinematicChainCalibration:
         for j, name in enumerate(self.markers_model):
             if name != "Table:Table5" and name != "Table:Table6":
                 # todo: next trainee, remove the hardcoded makers name and specify it as a new attribute of the class
-                mark = vect_pos_markers[self.markers_model.index(name) * 3: self.markers_model.index(name) * 3 + 3][
-                       :].tolist()
+                mark = vect_pos_markers[self.markers_model.index(name) * 3 : self.markers_model.index(name) * 3 + 3][
+                    :
+                ].tolist()
                 open_loop = open_loop_markers[:, self.markers_model.index(name)].tolist()
                 thorax_list_model += mark
                 thorax_list_xp += open_loop
@@ -357,13 +364,7 @@ class KinematicChainCalibration:
 
         return q_continuity_diff_model, q_continuity_diff_xp
 
-    def objective_function_param(
-            self,
-            p0: np.ndarray,
-            x: np.ndarray,
-            x0: np.ndarray,
-            markers_calibration: np.ndarray
-    ):
+    def objective_function_param(self, p0: np.ndarray, x: np.ndarray, x0: np.ndarray, markers_calibration: np.ndarray):
         """
         Objective function
 
@@ -397,21 +398,20 @@ class KinematicChainCalibration:
 
         Q = np.zeros(x.shape[0])
 
-        Q[self.parameter_idx[0]: self.parameter_idx[-1] + 1] = p0
+        Q[self.parameter_index] = p0
 
         for f, frame in enumerate(self.list_frames_param_step):
-            thorax_markers = markers_calibration[:, index_wu_markers[0]:index_wu_markers[-1] + 1, f]
-            table_markers = markers_calibration[:, index_wu_markers[-1] + 1:, f]
+            thorax_markers = markers_calibration[:, index_wu_markers[0] : index_wu_markers[-1] + 1, f]
+            table_markers = markers_calibration[:, index_wu_markers[-1] + 1 :, f]
 
-            Q[:self.parameter_idx[0]] = x[:self.parameter_idx[0], f]
-            Q[self.parameter_idx[-1] + 1:] = x[self.parameter_idx[-1] + 1:, f]
+            Q[self.kinematic_index] = x[self.kinematic_index, f]
 
             markers_model = self.biorbd_model.markers(Q)
 
             vect_pos_markers = np.zeros(3 * len(markers_model))
 
             for m, value in enumerate(markers_model):
-                vect_pos_markers[m * 3: (m + 1) * 3] = value.to_array()
+                vect_pos_markers[m * 3 : (m + 1) * 3] = value.to_array()
 
             table_model, table_xp = self.penalty_table_markers(vect_pos_markers, table_markers)
 
@@ -421,12 +421,11 @@ class KinematicChainCalibration:
             table6_xy = np.linalg.norm(np.array(table_model[3:]) - np.array(table_xp[3:])) ** 2
             table6_xy_all_frames += table6_xy
 
-            thorax_list_model, thorax_list_xp = self.penalty_open_loop_markers(vect_pos_markers,
-                                                                               thorax_markers)
+            thorax_list_model, thorax_list_xp = self.penalty_open_loop_markers(vect_pos_markers, thorax_markers)
 
             mark_out = 0
             for j in range(len(thorax_markers[0, :])):
-                mark = np.linalg.norm(np.array(thorax_list_model[j:j + 3]) - np.array(thorax_list_xp[j:j + 3])) ** 2
+                mark = np.linalg.norm(np.array(thorax_list_model[j : j + 3]) - np.array(thorax_list_xp[j : j + 3])) ** 2
                 mark_out += mark
             mark_out_all_frames += mark_out
 
@@ -434,7 +433,7 @@ class KinematicChainCalibration:
 
             rotation_matrix = 0
             for i in rot_matrix_list_model:
-                rotation_matrix += i ** 2
+                rotation_matrix += i**2
 
             rotation_matrix_all_frames += rotation_matrix
 
@@ -447,19 +446,21 @@ class KinematicChainCalibration:
 
             x0 = Q
         # todo: move the weights in init
-        return 100000 * (table5_xyz_all_frames + table6_xy_all_frames) + \
-               10000 * mark_out_all_frames + \
-               100 * rotation_matrix_all_frames + \
-               50000 * pivot + \
-               500 * q_continuity
+        return (
+            100000 * (table5_xyz_all_frames + table6_xy_all_frames)
+            + 10000 * mark_out_all_frames
+            + 100 * rotation_matrix_all_frames
+            + 50000 * pivot
+            + 500 * q_continuity
+        )
 
     def ik_step(
-            self,
-            x: np.ndarray,
-            p: np.ndarray,
-            table_markers: np.ndarray,
-            thorax_markers: np.ndarray,
-            q_init: np.ndarray,
+        self,
+        x: np.ndarray,
+        p: np.ndarray,
+        table_markers: np.ndarray,
+        thorax_markers: np.ndarray,
+        q_init: np.ndarray,
     ):
         """
         Objective function
@@ -484,23 +485,21 @@ class KinematicChainCalibration:
         The value of the objective function
         """
         x_with_p = np.zeros(self.biorbd_model.nbQ())
-        x_with_p[:self.parameter_idx[0]] = x[:self.parameter_idx[0]]
-        x_with_p[self.parameter_idx[0]: self.parameter_idx[-1] + 1] = p
-        x_with_p[self.parameter_idx[-1] + 1:] = x[self.parameter_idx[0]:]
+        x_with_p[self.kinematic_index] = x
+        x_with_p[self.parameter_index] = p
 
         markers_model = self.biorbd_model.markers(x_with_p)
 
         vect_pos_markers = np.zeros(3 * len(markers_model))
 
         for m, value in enumerate(markers_model):
-            vect_pos_markers[m * 3: (m + 1) * 3] = value.to_array()
+            vect_pos_markers[m * 3 : (m + 1) * 3] = value.to_array()
 
         # Put the pivot joint vertical
         table_model, table_xp = self.penalty_table_markers(vect_pos_markers, table_markers)
 
         # Minimize difference between open loop markers from model and from experimental data
-        thorax_list_model, thorax_list_xp = self.penalty_open_loop_markers(vect_pos_markers,
-                                                                           thorax_markers)
+        thorax_list_model, thorax_list_xp = self.penalty_open_loop_markers(vect_pos_markers, thorax_markers)
 
         # Force the model horizontality
         # rot_matrix_list_model, rot_matrix_list_xp = penalty_rotation_matrix(self.biorbd_model, x_with_p)
@@ -535,11 +534,11 @@ class KinematicChainCalibration:
         return diff * weight_list
 
     def step_2(
-            self,
-            p,
-            bounds,
-            nb_frames,
-            q_output,
+        self,
+        p,
+        bounds,
+        nb_frames,
+        q_output,
     ):
         # todo: docstring
 
@@ -547,28 +546,16 @@ class KinematicChainCalibration:
         index_wu_markers = [i for i, value in enumerate(self.markers_model) if "Table" not in value]
 
         # build the bounds for step 2
-        bounds_without_p_1_min = bounds[0][:self.parameter_idx[0]]
-        bounds_without_p_2_min = bounds[0][self.parameter_idx[-1] + 1:]
-        bounds_without_p_1_max = bounds[1][:self.parameter_idx[0]]
-        bounds_without_p_2_max = bounds[1][self.parameter_idx[-1] + 1:]
+        bounds_without_p_min = bounds[0][self.kinematic_index]
+        bounds_without_p_max = bounds[1][self.kinematic_index]
 
-        bounds_without_p = (
-            np.concatenate((bounds_without_p_1_min, bounds_without_p_2_min)),
-            np.concatenate((bounds_without_p_1_max, bounds_without_p_2_max)),
-        )
+        bounds_without_p = (bounds_without_p_min, bounds_without_p_max)
 
         for f in range(self.nb_frames_ik_step):
             # todo : comment here
 
-            x0_1 = self.q_ik_initial_guess[:self.parameter_idx[0], 0] if f == 0\
-                else q_output[:self.parameter_idx[0], f - 1]
+            x0 = self.q_ik_initial_guess[self.kinematic_index, 0] if f == 0 else q_output[self.kinematic_index, f - 1]
 
-            x0_2 = (
-                self.q_ik_initial_guess[self.parameter_idx[-1] + 1:, 0]
-                if f == 0
-                else q_output[self.parameter_idx[-1] + 1:, f - 1]
-            )
-            x0 = np.concatenate((x0_1, x0_2))
             IK_i = optimize.least_squares(
                 fun=self.ik_step,
                 args=(
@@ -584,8 +571,7 @@ class KinematicChainCalibration:
                 xtol=1e-5,
             )
 
-            q_output[:self.parameter_idx[0], f] = IK_i.x[:self.parameter_idx[0]]
-            q_output[self.parameter_idx[-1] + 1:, f] = IK_i.x[self.parameter_idx[0]:]
+            q_output[self.kinematic_index, f] = IK_i.x
 
             markers_model = self.biorbd_model.markers(q_output[:, f])
             markers_to_compare = self.markers[:, :, f]
