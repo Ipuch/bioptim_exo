@@ -1,3 +1,9 @@
+"""
+Deprecated
+This file was used before implementation of the class in: kinematic_chain_calibration.py
+All functions were transfered into the class, maybe it can be deleted
+"""
+
 import biorbd
 from scipy import optimize
 import numpy as np
@@ -293,6 +299,7 @@ def ik_step_batch(
 
     # Force the model horizontality
     # rot_matrix_list_model, rot_matrix_list_xp = penalty_rotation_matrix(biorbd_model, x_with_p)
+    #  commented because the jacobian was not implemented
 
     # Minimize the q of thorax
     q_continuity_diff_model, q_continuity_diff_xp = penalty_q_thorax(x, q_init)
@@ -315,6 +322,7 @@ def ik_step_batch(
     weight_table = [100000] * len(table_xp)
     weight_thorax = [10000] * len(thorax_list_xp)
     # weight_rot_matrix = [100] * len(rot_matrix_list_xp)
+    #  commented because the jacobian was not implemented
     weight_theta_13 = [50000]
     weight_continuity = [500] * x.shape[0]
 
@@ -375,7 +383,8 @@ def ik_step_least_square(
     thorax_list_model, thorax_list_xp = penalty_markers_thorax(markers_names, vect_pos_markers, thorax_markers)
 
     # Force the model horizontality
-    rot_matrix_list_model, rot_matrix_list_xp = penalty_rotation_matrix(biorbd_model, x_with_p)
+    # rot_matrix_list_model, rot_matrix_list_xp = penalty_rotation_matrix(biorbd_model, x_with_p)
+    #  commented because the jacobian was not implemented
 
     # Minimize the q of thorax
     q_continuity_diff_model, q_continuity_diff_xp = penalty_q_thorax(x, q_init)
@@ -384,8 +393,8 @@ def ik_step_least_square(
     pivot_diff_model, pivot_diff_xp = theta_pivot_penalty(x_with_p)
 
     # We add our vector to the main lists
-    diff_model = table_model + thorax_list_model + rot_matrix_list_model + q_continuity_diff_model + pivot_diff_model
-    diff_xp = table_xp + thorax_list_xp + rot_matrix_list_xp + q_continuity_diff_xp + pivot_diff_xp
+    diff_model = table_model + thorax_list_model + q_continuity_diff_model + pivot_diff_model
+    diff_xp = table_xp + thorax_list_xp + q_continuity_diff_xp + pivot_diff_xp
 
     # We converted our list into array in order to be used by least_square
     diff_tab_model = np.array(diff_model)
@@ -397,11 +406,11 @@ def ik_step_least_square(
     # We created a vector which contains the weight of each penalty
     weight_table = [100000] * len(table_xp)
     weight_thorax = [10000] * len(thorax_list_xp)
-    weight_rot_matrix = [100] * len(rot_matrix_list_xp)
+    # weight_rot_matrix = [100] * len(rot_matrix_list_xp)
     weight_theta_13 = [50000]
     weight_continuity = [500] * x.shape[0]
 
-    weight_list = weight_table + weight_thorax + weight_rot_matrix + weight_theta_13 + weight_continuity
+    weight_list = weight_table + weight_thorax + weight_continuity + weight_theta_13
 
     return diff * weight_list
 
@@ -423,7 +432,6 @@ def step_2_least_square(
 ):
     nb_dof_wu_model = len(wu_dof)
     nb_parameters = len(parameters)
-    nb_dof_kinova = len(kinova_dof)
 
     index_table_markers = [i for i, value in enumerate(markers_names) if "Table" in value]
     index_wu_markers = [i for i, value in enumerate(markers_names) if "Table" not in value]
@@ -440,7 +448,7 @@ def step_2_least_square(
     )
 
     for f in range(nb_frames):
-        # todo : comment here
+
         x0_1 = q_first_ik[:nb_dof_wu_model, 0] if f == 0 else q_output[:nb_dof_wu_model, f - 1]
         x0_2 = (
             q_first_ik[nb_dof_wu_model + nb_parameters:, 0]
@@ -453,7 +461,7 @@ def step_2_least_square(
             args=(
                 biorbd_model,
                 p,
-                markers_xp_data[:, index_table_markers, f],  # todo: remove the raw hard coded walues
+                markers_xp_data[:, index_table_markers, f],
                 markers_xp_data[:, index_wu_markers, f],
                 markers_names,
                 x0,
@@ -481,7 +489,7 @@ def step_2_least_square(
 
     return q_output, espilon_markers
 
-
+# todo: please use the same as in calibration
 def step_2_batch(
         biorbd_model,
         bounds,
@@ -515,7 +523,7 @@ def step_2_batch(
 
     all_epsilon = []
     for f in range(nb_frames):
-        # todo : comment here
+
         x0_1 = q_first_ik[:nb_dof_wu_model, 0] if f == 0 else q_output[:nb_dof_wu_model, f - 1]
         x0_2 = (
             q_first_ik[nb_dof_wu_model + nb_parameters:, 0]
@@ -527,7 +535,7 @@ def step_2_batch(
             fun=ik_step_batch,
             args=(
                 biorbd_model,
-                markers_xp_data[:, index_table_markers, f],  # todo: remove the raw hard coded walues
+                markers_xp_data[:, index_table_markers, f],
                 markers_xp_data[:, index_wu_markers, f],
                 markers_names,
                 x0,
@@ -594,13 +602,8 @@ def arm_support_calibration(
     """
     nb_dof_wu_model = len(wu_dof)
     nb_parameters = len(parameters)
-    nb_dof_kinova = len(kinova_dof)
 
     q0 = q_first_ik[:, 0]
-
-    # idx_human = [0, ..., n_dof]
-    # idx_support = [n_dof + 1, ..., n_dof + parameter]
-    # idx_exo =
 
     q_output = np.zeros((biorbd_model.nbQ(), markers_xp_data.shape[2]))
 
@@ -674,7 +677,4 @@ def arm_support_calibration(
         print("iteration:", iteration)
         q_first_ik = q_output
 
-    # return support parameters, q_output
     return q_out, p
-
-# todo: futur steps, redo IK with identified postion and orientation of arm support.
