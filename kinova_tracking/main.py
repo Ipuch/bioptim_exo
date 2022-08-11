@@ -1,9 +1,8 @@
 """
-converged, like this!
+Main script to calibrate the arm support
 """
 
 import bioviz
-import calibration
 import numpy as np
 from ezc3d import c3d
 import biorbd
@@ -12,6 +11,9 @@ from utils import get_range_q
 import random
 from models.enums import Models
 from data.enums import TasksKinova
+
+from kinematic_chain_calibration import KinematicChainCalibration
+
 
 
 def move_marker(marker_to_move: int, c3d_point: np.ndarray, offset: np.ndarray, ) -> np.array:
@@ -42,6 +44,7 @@ def move_marker(marker_to_move: int, c3d_point: np.ndarray, offset: np.ndarray, 
 
 
 def IK(model_path: str, points: np.array, labels_markers_ik: list[str]) -> np.array:
+    # todo: reformat inverse_kinematics_inferface
     """
     This function computes the inverse kinematics of the model.
 
@@ -67,7 +70,7 @@ def IK(model_path: str, points: np.array, labels_markers_ik: list[str]) -> np.ar
     # reformat the makers trajectories
     markers_ik = np.zeros((3, len(marker_names_ik), len(points[0, 0, :])))
     for i, name in enumerate(marker_names_ik):
-        markers_ik[:, i, :] = points[:3, labels_markers_ik.index(name), :] / 1000
+        markers_ik[:, i, :] = points[:3, labels_markers_ik.index(name), :] / 1000  #todo: use get_unit_division_factor
 
     # the actual inverse kinematics
     my_ik = biorbd.InverseKinematics(biorbd_model_ik, markers_ik)
@@ -77,6 +80,7 @@ def IK(model_path: str, points: np.array, labels_markers_ik: list[str]) -> np.ar
 
 
 def frame_selector(all: bool, frames_needed: int, frames: int):
+    # todo: to be removed
     """
     Give a list of frames for calibration
 
@@ -99,101 +103,6 @@ def frame_selector(all: bool, frames_needed: int, frames: int):
     list_frames.sort()
 
     return list_frames
-
-
-def kinematic_chain_calibration(
-            name_dof: list[str],
-            wu_dof: list[str],
-            parameters: list[str],
-            kinova_dof: list[str],
-            q_first_ik: np.ndarray,
-            nb_frames: int,
-            frames_list: list[int]):
-    """
-    Support calibration step, give the optimize parameters and generalized coordinates
-
-    Parameters
-    ----------
-    name_dof: list[str]
-        The list of dof name
-    wu_dof: list[str]
-        The list of dof name from the wu model
-    parameters: list[str]
-        The list of dof which are parameters for support calibration
-    kinova_dof: list[str]
-        The list of dof name from kinova model
-    q_first_ik: np.ndarray
-        The generalized coordinates from the first inverse kinematics
-    nb_frames: int
-        The total number of frames
-     frames_list: list[int]
-        The list of frames use for calibration
-
-    Returns
-    -------
-    pos_ini: np.ndarray
-        The generalized coordinates for optimize parameters
-     parameters: np.ndarray
-        The optimize parameters
-    """
-    nb_dof_wu_model = len(wu_dof)
-    nb_parameters = len(parameters)
-    nb_dof_kinova = len(kinova_dof)
-
-    # prepare the size of the output of q
-    q_output = np.zeros((biorbd_model_merge.nbQ(), nb_frames))
-
-    # get the bounds of the model for all dofs
-    bounds = [
-        (mini, maxi) for mini, maxi in zip(get_range_q(biorbd_model_merge)[0], get_range_q(biorbd_model_merge)[1])
-    ]
-    kinova_q0 = np.array([(i[0] + i[1]) / 2 for i in bounds[nb_dof_wu_model + nb_parameters:]])
-    # initialized q trajectories for each frames for dofs without a priori knowledge of the q (kinova arm here)
-    for j in range((q_first_ik[nb_dof_wu_model + nb_parameters:, :].shape[1])):
-        q_first_ik[nb_dof_wu_model + nb_parameters:, j] = kinova_q0
-
-    # initialized parameters values
-    p = np.zeros(nb_parameters)
-
-    # First IK step - INITIALIZATION
-    q_step_2, epsilon = calibration.step_2_least_square(
-        biorbd_model=biorbd_model_merge,
-        p=p,
-        bounds=get_range_q(biorbd_model_merge),
-        dof=name_dof,
-        wu_dof=wu_dof,
-        parameters=parameters,
-        kinova_dof=kinova_dof,
-        nb_frames=nb_frames,
-        list_frames=frames_list,
-        q_first_ik=q_first_ik,
-        q_output=q_output,
-        markers_xp_data=markers,
-        markers_names=markers_names,
-    )
-    # b1 = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
-    # b1.load_experimental_markers(markers[:, :, :])
-    # # b.load_movement(np.array(q0, q0).T)
-    # b1.load_movement(q_step_2)
-    #
-    # b1.exec()
-
-    # Second step - CALIBRATION
-    pos_init, parameters = calibration.arm_support_calibration(
-        biorbd_model=biorbd_model_merge,
-        markers_names=markers_names,
-        markers_xp_data=markers,
-        q_first_ik=q_step_2,
-        dof=name_dof,
-        wu_dof=wu_dof,
-        parameters=parameters,
-        kinova_dof=kinova_dof,  # todo: rename this variable name is misleading
-        nb_frames=nb_frames,
-        list_frames=frames_list,  # todo: Redundant ?
-    )
-
-    return pos_init, parameters
-
 
 if __name__ == "__main__":
 
@@ -267,7 +176,7 @@ if __name__ == "__main__":
     # in the class of calibration
     for i, name in enumerate(markers_names):
         if name in labels_markers:
-            markers[:, i, :] = points_c3d[:3, labels_markers.index(name), :] / 1000
+            markers[:, i, :] = points_c3d[:3, labels_markers.index(name), :] / 1000  #todo: use get_unit_division_factor
 
 
     #### TODO: THE SUPPORT CALIBRATION STARTS HERE ####
@@ -294,15 +203,22 @@ if __name__ == "__main__":
 
     frames_list = frame_selector(all_frames, nb_frames_needed, nb_frames)
 
-    pos_init, parameters = kinematic_chain_calibration(
-        name_dof=name_dof,
-        wu_dof=wu_dof,
-        parameters=parameters,
-        kinova_dof = kinova_dof,
-        q_first_ik=q_first_ik,
-        nb_frames=nb_frames,
-        frames_list=frames_list
-    )
+    kcc = KinematicChainCalibration(biorbd_model=biorbd_model_merge,
+                                    markers_model=markers_names,
+                                    markers=markers,
+                                    closed_loop_markers=["Table:Table5", "Table:Table6"],
+                                    tracked_markers=markers_names,
+                                    parameter_dofs=parameters,
+                                    kinematic_dofs=name_dof,
+                                    kinova_dofs=kinova_dof,
+                                    weights=np.zeros(70),  #
+                                    q_ik_initial_guess=q_first_ik,
+                                    nb_frames_ik_step=nb_frames,
+                                    nb_frames_param_step=100,
+                                    randomize_param_step_frames=True,
+                                    use_analytical_jacobians=False
+                                    )
+    pos_init, parameters = kcc.solve()
 
     b = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
     b.load_experimental_markers(markers)
