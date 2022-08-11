@@ -14,7 +14,11 @@ from data.enums import TasksKinova
 from kinematic_chain_calibration import KinematicChainCalibration
 
 
-def move_marker(marker_to_move: int, c3d_point: np.ndarray, offset: np.ndarray, ) -> np.array:
+def move_marker(
+    marker_to_move: int,
+    c3d_point: np.ndarray,
+    offset: np.ndarray,
+) -> np.array:
     """
     This function applies an offet to a marker
 
@@ -34,9 +38,9 @@ def move_marker(marker_to_move: int, c3d_point: np.ndarray, offset: np.ndarray, 
     """
 
     new_points = c3d_point.copy()
-    new_points[0, marker_to_move, :] = (c3d_point[0, marker_to_move, :] + offset[0])
-    new_points[1, marker_to_move, :] = (c3d_point[1, marker_to_move, :] + offset[1])
-    new_points[2, marker_to_move, :] = (c3d_point[2, marker_to_move, :] + offset[2])
+    new_points[0, marker_to_move, :] = c3d_point[0, marker_to_move, :] + offset[0]
+    new_points[1, marker_to_move, :] = c3d_point[1, marker_to_move, :] + offset[1]
+    new_points[2, marker_to_move, :] = c3d_point[2, marker_to_move, :] + offset[2]
 
     return new_points
 
@@ -93,18 +97,20 @@ if __name__ == "__main__":
     print("offset", offset)
     # Markers trajectories
     points_c3d = (
-        c3d_kinova["data"]["points"] if not marker_move
-        else move_marker(marker_to_move=labels_markers.index("Table:Table5"),
-                         c3d_point=c3d_kinova["data"]["points"],
-                         offset=offset)
+        c3d_kinova["data"]["points"]
+        if not marker_move
+        else move_marker(
+            marker_to_move=labels_markers.index("Table:Table5"), c3d_point=c3d_kinova["data"]["points"], offset=offset
+        )
     )
 
     # model for step 1.1
     model_path_without_kinova = Models.WU_INVERSE_KINEMATICS.value
 
     # Step 1.1: IK of wu model with floating base
-    ik_with_floating_base = inverse_kinematics_inferface(c3d=c3d_kinova, model_path=model_path_without_kinova,
-                                                         points=points_c3d, labels_markers_ik=labels_markers)
+    ik_with_floating_base = inverse_kinematics_inferface(
+        c3d=c3d_kinova, model_path=model_path_without_kinova, points=points_c3d, labels_markers_ik=labels_markers
+    )
     # ik_with_floating_base.animate()
 
     # rewrite the models with the location of the floating base
@@ -124,12 +130,14 @@ if __name__ == "__main__":
     }
 
     add_header(biomod_file_name=template_file_wu, new_biomod_file_name=new_biomod_file_wu, variables=thorax_values)
-    add_header(biomod_file_name=template_file_merge, new_biomod_file_name=new_biomod_file_merge,
-               variables=thorax_values)
+    add_header(
+        biomod_file_name=template_file_merge, new_biomod_file_name=new_biomod_file_merge, variables=thorax_values
+    )
 
     # Step 1.2: IK of wu model without floating base
-    ik_without_floating_base = inverse_kinematics_inferface(c3d=c3d_kinova, model_path=new_biomod_file_wu,
-                                                            points=points_c3d, labels_markers_ik=labels_markers)
+    ik_without_floating_base = inverse_kinematics_inferface(
+        c3d=c3d_kinova, model_path=new_biomod_file_wu, points=points_c3d, labels_markers_ik=labels_markers
+    )
     # ik_without_floating_base.animate()
 
     # exo for step 2
@@ -154,8 +162,7 @@ if __name__ == "__main__":
     # in the class of calibration
     for i, name in enumerate(markers_names):
         if name in labels_markers:
-            markers[:, i, :] = points_c3d[:3, labels_markers.index(name), :] / get_unit_division_factor(
-                c3d_kinova)
+            markers[:, i, :] = points_c3d[:3, labels_markers.index(name), :] / get_unit_division_factor(c3d_kinova)
 
     name_dof = [i.to_string() for i in biorbd_model_merge.nameDof()]
     kinematic_dof = [i for i in name_dof if "part7" not in i]
@@ -203,10 +210,12 @@ if __name__ == "__main__":
     print("done")
 
     Rototrans_matrix_world_support = biorbd_model_merge.globalJCS(
-        pos_init[:, 0], biorbd_model_merge.getBodyBiorbdId("part7")).to_array()
+        pos_init[:, 0], biorbd_model_merge.getBodyBiorbdId("part7")
+    ).to_array()
 
-    Rototrans_matrix_ulna_world = biorbd_model_merge.globalJCS(
-        pos_init[:, 0], biorbd_model_merge.getBodyBiorbdId("ulna")).transpose().to_array()
+    Rototrans_matrix_ulna_world = (
+        biorbd_model_merge.globalJCS(pos_init[:, 0], biorbd_model_merge.getBodyBiorbdId("ulna")).transpose().to_array()
+    )
 
     # Finally
     Rototrans_matrix_ulna_support = np.matmul(Rototrans_matrix_ulna_world, Rototrans_matrix_world_support)
@@ -220,22 +229,18 @@ if __name__ == "__main__":
         "thoraxRT4": ik_with_floating_base.q[0, :].mean(),
         "thoraxRT5": ik_with_floating_base.q[1, :].mean(),
         "thoraxRT6": ik_with_floating_base.q[2, :].mean(),
-
         "rotationXX": Rototrans_matrix_ulna_support[0, 0],
         "rotationXY": Rototrans_matrix_ulna_support[0, 1],
         "rotationXZ": Rototrans_matrix_ulna_support[0, 2],
         "translationX": Rototrans_matrix_ulna_support[0, 3],
-
         "rotationYX": Rototrans_matrix_ulna_support[1, 0],
         "rotationYY": Rototrans_matrix_ulna_support[1, 1],
         "rotationYZ": Rototrans_matrix_ulna_support[1, 2],
         "translationY": Rototrans_matrix_ulna_support[1, 3],
-
         "rotationZX": Rototrans_matrix_ulna_support[2, 0],
         "rotationZY": Rototrans_matrix_ulna_support[2, 1],
         "rotationZZ": Rototrans_matrix_ulna_support[2, 2],
         "translationZ": Rototrans_matrix_ulna_support[2, 3],
-
     }
 
     template_file = "../models/KINOVA_merge_without_floating_base_with_rototrans_template.bioMod"

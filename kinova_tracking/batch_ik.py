@@ -73,16 +73,14 @@ for file in file_list:
 
     q_first_ik = np.zeros((new_model.nbQ(), markers.shape[2]))
     # initialize human dofs with previous results of inverse kinematics
-    q_first_ik= my_ik.q  # human
+    q_first_ik = my_ik.q  # human
 
     # get the bounds of the model for all dofs
-    bounds = [
-        (mini, maxi) for mini, maxi in zip(get_range_q(new_model)[0], get_range_q(new_model)[1])
-    ]
-    kinova_q0 = np.array([(i[0] + i[1]) / 2 for i in bounds[nb_dof_wu_model + nb_parameters:]])
+    bounds = [(mini, maxi) for mini, maxi in zip(get_range_q(new_model)[0], get_range_q(new_model)[1])]
+    kinova_q0 = np.array([(i[0] + i[1]) / 2 for i in bounds[nb_dof_wu_model + nb_parameters :]])
     # initialized q trajectories for each frames for dofs without a priori knowledge of the q (kinova arm here)
-    for j in range((q_first_ik[nb_dof_wu_model + nb_parameters:, :].shape[1])):
-        q_first_ik[nb_dof_wu_model + nb_parameters:, j] = kinova_q0
+    for j in range((q_first_ik[nb_dof_wu_model + nb_parameters :, :].shape[1])):
+        q_first_ik[nb_dof_wu_model + nb_parameters :, j] = kinova_q0
 
     # initialized parameters values
     p = np.zeros(nb_parameters)
@@ -109,6 +107,6 @@ for file in file_list:
     b.exec()
     epsilon_tab = np.array(epsilon)
     end = time.time()
-    print("Duration", end-start)
+    print("Duration", end - start)
     print(f"moyenne sur toutes les frames sur tous les markers: {np.mean(epsilon_tab)} m")
     print(f"moyenne sur toutes les frames par marker: {np.mean(epsilon_tab, axis=0)} m")

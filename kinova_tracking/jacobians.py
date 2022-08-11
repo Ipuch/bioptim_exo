@@ -14,12 +14,12 @@ def marker_jacobian_model(q, biorbd_model, wu_markers):
     ------
         The Jacobian matrix with right dimension
     """
-    jacobian_matrix = biorbd_model.technicalMarkersJacobian(q)[wu_markers[0]:wu_markers[1]+1]
+    jacobian_matrix = biorbd_model.technicalMarkersJacobian(q)[wu_markers[0] : wu_markers[1] + 1]
     nb_markers = len(jacobian_matrix)
     jacobian = np.zeros((3 * nb_markers, len(q)))
 
     for m, value in enumerate(jacobian_matrix):
-        jacobian[m * 3: (m + 1) * 3, :] = value.to_array()
+        jacobian[m * 3 : (m + 1) * 3, :] = value.to_array()
 
     l = [i for i in range(22) if i < 10 or i > 15]
     jacobian_without_p = jacobian[:, l]
@@ -40,17 +40,17 @@ def marker_jacobian_table(q, biorbd_model, table_markers):
     ------
         The Jacobian matrix with right dimension
     """
-    jacobian_matrix = biorbd_model.technicalMarkersJacobian(q)[table_markers[0]:table_markers[1]+1]
+    jacobian_matrix = biorbd_model.technicalMarkersJacobian(q)[table_markers[0] : table_markers[1] + 1]
     nb_markers = len(jacobian_matrix)
     jacobian = np.zeros((3 * nb_markers, len(q)))
 
     for m, value in enumerate(jacobian_matrix):
-        jacobian[m * 3: (m + 1) * 3, :] = value.to_array()
+        jacobian[m * 3 : (m + 1) * 3, :] = value.to_array()
 
     l = [i for i in range(22) if i < 10 or i > 15]
     jacobian_without_p = jacobian[:, l]
 
-    jacobian_without_p = jacobian_without_p[:5, :] # we removed the value in z for the market Table:Table6
+    jacobian_without_p = jacobian_without_p[:5, :]  # we removed the value in z for the market Table:Table6
 
     return jacobian_without_p
 
@@ -77,7 +77,7 @@ def marker_jacobian_theta(q):
         J = np.zeros((1, 16))
         J[0, 20] = 1
         J[0, 21] = 1
-        return J # ajouter les poids
+        return J  # ajouter les poids
     else:  # theta_part1_3_min < theta_part1_3:
         return np.zeros((1, 16))
 
@@ -128,6 +128,8 @@ def calibration_jacobian(q, biorbd_model, p, table_markers, wu_markers, markers_
 
     # Force part 1 and 3 to not cross
     pivot = marker_jacobian_theta(q_with_p)
-    jacobian = np.concatenate((table*100000, model*10000, continuity*500, pivot*50000)) # ligne par ligne axis=0
+    jacobian = np.concatenate(
+        (table * 100000, model * 10000, continuity * 500, pivot * 50000)
+    )  # ligne par ligne axis=0
 
     return jacobian
