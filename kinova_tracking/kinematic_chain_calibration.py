@@ -1,354 +1,575 @@
-"""
-converged, like this!
-"""
+from typing import Union
+from enum import Enum
 
-import bioviz
-import calibration
 import numpy as np
-from ezc3d import c3d
+
 import biorbd
-from models.utils import add_header, thorax_variables
-from utils import get_range_q
+
+from scipy import optimize
+import utils
 import random
-from models.enums import Models
-from data.enums import TasksKinova
 
 
-def move_marker(marker_to_move: int, c3d_point: np.ndarray, offset: np.ndarray, ) -> np.array:
-    """
-    This function applies an offet to a marker
+class ObjectivesFunctions(Enum):
+    ALL_OBJECTIVES = "all objectives"
+    ALL_OBJECTIVES_WITHOUT_FINAL_ROTMAT = "all objectives without final rotmat"
 
-    Parameters
-    ----------
-    marker_to_move: int
-        indices of the marker to move
-    c3d_point: np.ndarray
-        Markers trajectories.
-    offset: np.ndarray
-        The vector of offset to apply to the markers in mm.
 
-    Returns
-    -------
-    new_points : np.array
-        The markers with the displaced ones at a given distance on the horizontal plane.
+class KinematicChainCalibration:
     """
 
-    new_points = c3d_point.copy()
-    new_points[0, marker_to_move, :] = (c3d_point[0, marker_to_move, :] + offset[0])
-    new_points[1, marker_to_move, :] = (c3d_point[1, marker_to_move, :] + offset[1])
-    new_points[2, marker_to_move, :] = (c3d_point[2, marker_to_move, :] + offset[2])
 
-    return new_points
-
-
-def IK(model_path: str, points: np.array, labels_markers_ik: list[str]) -> np.array:
+    Examples
+    ---------
+    kcc = KinematicChainCalibration()
+    kcc.solve()
+    kkc.results()
     """
-    This function computes the inverse kinematics of the model.
 
-    Parameters
-    ----------
-    model_path : str
-        Path to the model.
-    points : np.array
-        marker trajectories over time
-    labels_markers_ik : list[str]
-        List of markers labels
+    def __init__(self,
+                 biorbd_model: biorbd.Model,
+                 markers_model: list[str],
+                 markers: np.array,  # [3 x nb_markers, x nb_frames]
+                 closed_loop_markers: list[str],
+                 tracked_markers: list[str],
+                 parameter_dofs: list[str],
+                 kinematic_dofs: list[str],
+                 kinova_dofs: list[str],
+                 weights: Union[list[float], np.ndarray],
+                 q_ik_initial_guess: np.ndarray,
+                 objectives_functions: ObjectivesFunctions = None,  # [n_dof x n_frames]
+                 nb_frames_ik_step: int = None,
+                 nb_frames_param_step: int = None,
+                 randomize_param_step_frames: bool = True,
+                 use_analytical_jacobians: bool = False,
+                 ):
+        self.biorbd_model = biorbd_model
 
-    Returns
-    -------
-    q : np.array
-        The generalized coordinates of the model for each frame
-    """
-    biorbd_model_ik = biorbd.Model(model_path)
+        # check if markers_model are in model
+        # otherwise raise
+        for marker in markers_model:
+            if marker not in [i.to_string() for i in biorbd_model.markerNames()]:
+                raise ValueError(f"The following marker is not in markers_model:{marker}")
+            else:
+                self.markers_model = markers_model
 
-    # Markers labels in the model
-    marker_names_ik = [biorbd_model_ik.markerNames()[i].to_string() for i in range(biorbd_model_ik.nbMarkers())]
+        # check if markers model and makers have the same size
+        # otherwise raise
+        if markers.shape == (3, len(markers_model), nb_frames_ik_step):
+            self.markers = markers
+        else:
+            raise ValueError(f"markers and markers model must have same shape, markers shape is {markers.shape()},"
+                             f" and markers_model shape is {markers_model.shape()}")
+        self.closed_loop_markers = closed_loop_markers
+        self.tracked_markers = tracked_markers
+        self.parameter_dofs = parameter_dofs
+        self.kinematic_dofs = kinematic_dofs
+        self.kinova_dofs = kinova_dofs
+        # self.objectives_function
 
-    # reformat the makers trajectories
-    markers_ik = np.zeros((3, len(marker_names_ik), len(points[0, 0, :])))
-    for i, name in enumerate(marker_names_ik):
-        markers_ik[:, i, :] = points[:3, labels_markers_ik.index(name), :] / 1000
+        # number of wieghts has to be checked
+        # raise Error if not the right number
+        self.weights = weights
 
-    # the actual inverse kinematics
-    my_ik = biorbd.InverseKinematics(biorbd_model_ik, markers_ik)
-    my_ik.solve("trf")
+        # check if q_ik_initial_guess has the right size
+        self.q_ik_initial_guess = q_ik_initial_guess
+        self.nb_frames_ik_step = nb_frames_ik_step
+        self.nb_frames_param_step = nb_frames_param_step
+        self.randomize_param_step_frames = randomize_param_step_frames
+        self.use_analytical_jacobians = use_analytical_jacobians
 
-    return my_ik
+        self.nb_wu_model_dofs = len(self.kinematic_dofs) - len(self.parameter_dofs) - len(self.kinova_dofs)
+        self.nb_parameters_dofs = len(self.parameter_dofs)
+        self.kinova_dofs = len(self.kinova_dofs)
 
+        self.list_frames_param_step = self.frame_selector(self.nb_frames_param_step, self.nb_frames_ik_step)
 
-def frame_selector(all: bool, frames_needed: int, frames: int):
-    """
-    Give a list of frames for calibration
-
-    Parameters
-    ----------
-    all: bool
-        True if you want all frames, False if not
-    frames_needed: int
-        The number of random frames you need
-    frames: int
-        The total number of frames
-
-    Returns
-    -------
-    list_frames: list[int]
-        The list of frames use for calibration
-    """
-    list_frames = random.sample(range(frames), frames_needed) if not all else [i for i in range(frames)]
-
-    list_frames.sort()
-
-    return list_frames
-
-
-def kinematic_chain_calibration(
-            name_dof: list[str],
-            wu_dof: list[str],
-            parameters: list[str],
-            kinova_dof: list[str],
-            q_first_ik: np.ndarray,
-            nb_frames: int,
-            frames_list: list[int]):
-    """
-    Support calibration step, give the optimize parameters and generalized coordinates
-
-    Parameters
-    ----------
-    name_dof: list[str]
-        The list of dof name
-    wu_dof: list[str]
-        The list of dof name from the wu model
-    parameters: list[str]
-        The list of dof which are parameters for support calibration
-    kinova_dof: list[str]
-        The list of dof name from kinova model
-    q_first_ik: np.ndarray
-        The generalized coordinates from the first inverse kinematics
-    nb_frames: int
-        The total number of frames
-     frames_list: list[int]
-        The list of frames use for calibration
-
-    Returns
-    -------
-    pos_ini: np.ndarray
-        The generalized coordinates for optimize parameters
-     parameters: np.ndarray
-        The optimize parameters
-    """
-    nb_dof_wu_model = len(wu_dof)
-    nb_parameters = len(parameters)
-    nb_dof_kinova = len(kinova_dof)
-
-    # prepare the size of the output of q
-    q_output = np.zeros((biorbd_model_merge.nbQ(), nb_frames))
-
-    # get the bounds of the model for all dofs
-    bounds = [
-        (mini, maxi) for mini, maxi in zip(get_range_q(biorbd_model_merge)[0], get_range_q(biorbd_model_merge)[1])
-    ]
-    kinova_q0 = np.array([(i[0] + i[1]) / 2 for i in bounds[nb_dof_wu_model + nb_parameters:]])
-    # initialized q trajectories for each frames for dofs without a priori knowledge of the q (kinova arm here)
-    for j in range((q_first_ik[nb_dof_wu_model + nb_parameters:, :].shape[1])):
-        q_first_ik[nb_dof_wu_model + nb_parameters:, j] = kinova_q0
-
-    # initialized parameters values
-    p = np.zeros(nb_parameters)
-
-    # First IK step - INITIALIZATION
-    q_step_2, epsilon = calibration.step_2_least_square(
-        biorbd_model=biorbd_model_merge,
-        p=p,
-        bounds=get_range_q(biorbd_model_merge),
-        dof=name_dof,
-        wu_dof=wu_dof,
-        parameters=parameters,
-        kinova_dof=kinova_dof,
-        nb_frames=nb_frames,
-        list_frames=frames_list,
-        q_first_ik=q_first_ik,
-        q_output=q_output,
-        markers_xp_data=markers,
-        markers_names=markers_names,
-    )
-    # b1 = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
-    # b1.load_experimental_markers(markers[:, :, :])
-    # # b.load_movement(np.array(q0, q0).T)
-    # b1.load_movement(q_step_2)
+    # if nb_frames_ik_step> markers.shape[2]:
+    # raise error
+    # self.nb_frame_ik_step = markers.shape[2] if nb_frame_ik_step is None else nb_frames_ik_step
     #
-    # b1.exec()
+    # # check for randomize and nb frames.
+    #
+    # def solve(self, tolerance, use_analytical_jacobians:bool=True, objectives_functions: ObjectivesFunctions)
 
-    # Second step - CALIBRATION
-    pos_init, parameters = calibration.arm_support_calibration(
-        biorbd_model=biorbd_model_merge,
-        markers_names=markers_names,
-        markers_xp_data=markers,
-        q_first_ik=q_step_2,
-        dof=name_dof,
-        wu_dof=wu_dof,
-        parameters=parameters,
-        kinova_dof=kinova_dof,  # todo: rename this variable name is misleading
-        nb_frames=nb_frames,
-        list_frames=frames_list,  # todo: Redundant ?
-    )
+    # kcc = KinematicChainCalibration()
+    # kcc.solve()
+    # kkc.results()
 
-    return pos_init, parameters
+    def solve(
+            self,
+    ):
+        """
+        Parameters
+        ----------
 
+        Return
+        ------
+            The optimized Generalized coordinates
+        """
 
-if __name__ == "__main__":
+        q0 = self.q_ik_initial_guess[:, 0]
 
-    # c3d to treat
-    c3d_path = TasksKinova.ARMPIT.value
-    c3d_kinova = c3d(c3d_path)
+        # idx_kinematic_dof = .index("Table:Table5")
+        # idx_parametric_dof = [n_dof + 1, ..., n_dof + parameter]
 
-    # Markers labels in c3d
-    labels_markers = c3d_kinova["parameters"]["POINT"]["LABELS"]["value"]
+        q_output = np.zeros((self.biorbd_model.nbQ(), self.markers.shape[2]))
 
-    marker_move = False
-    offset = np.array([0, -50, 0])  # [offsetX,offsetY,offsetZ] mm
-    print("offset", offset)
-    # Markers trajectories
-    points_c3d = (
-        c3d_kinova["data"]["points"] if not marker_move
-        else move_marker(marker_to_move=labels_markers.index("Table:Table5"),
-                         c3d_point=c3d_kinova["data"]["points"],
-                         offset=offset)
-    )
+        bounds = [
+            (mini, maxi) for mini, maxi in
+            zip(utils.get_range_q(self.biorbd_model)[0], utils.get_range_q(self.biorbd_model)[1])
+        ]
+        # nb_frames = self.markers.shape[2]
+        p = self.q_ik_initial_guess[self.nb_wu_model_dofs: self.nb_wu_model_dofs + self.nb_parameters_dofs, 0]
 
-    # model for step 1.1
-    model_path_without_kinova = Models.WU_INVERSE_KINEMATICS.value
+        iteration = 0
+        epsilon_markers_n = 10
+        epsilon_markers_n_minus_1 = 0
+        delta_epsilon_markers = epsilon_markers_n - epsilon_markers_n_minus_1
 
-    # Step 1.1: IK of wu model with floating base
-    ik_with_floating_base = IK(model_path=model_path_without_kinova, points=points_c3d, labels_markers_ik=labels_markers)
-    # ik_with_floating_base.animate()
+        seuil = 5e-5
+        while abs(delta_epsilon_markers) > seuil:
+            q_first_ik_not_all_frames = self.q_ik_initial_guess[:, self.list_frames_param_step]
 
-    # rewrite the models with the location of the floating base
-    template_file_merge = Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_6_DOF_SUPPORT_TEMPLATE.value
-    new_biomod_file_merge = Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_6_DOF_SUPPORT_VARIABLES.value
+            markers_xp_data_not_all_frames = self.markers[:, :, self.list_frames_param_step]
 
-    template_file_wu = Models.WU_WITHOUT_FLOATING_BASE_TEMPLATE.value
-    new_biomod_file_wu = Models.WU_WITHOUT_FLOATING_BASE_VARIABLES.value
+            print("seuil", seuil, "delta", abs(delta_epsilon_markers))
 
-    thorax_values = {
-        "thoraxRT1": ik_with_floating_base.q[3, :].mean(),
-        "thoraxRT2": ik_with_floating_base.q[4, :].mean(),
-        "thoraxRT3": ik_with_floating_base.q[5, :].mean(),
-        "thoraxRT4": ik_with_floating_base.q[0, :].mean(),
-        "thoraxRT5": ik_with_floating_base.q[1, :].mean(),
-        "thoraxRT6": ik_with_floating_base.q[2, :].mean(),
-    }
+            epsilon_markers_n_minus_1 = epsilon_markers_n
+            # step 1 - param opt
+            param_opt = optimize.minimize(
+                fun=self.objective_function_param,
+                args=(
+                    q_first_ik_not_all_frames,
+                    q0,
+                ),
+                x0=p,
+                bounds=bounds[10:16],
+                method="trust-constr",
+                jac="3-point",
+                tol=1e-5,
+            )
+            print(param_opt.x)
 
-    add_header(biomod_file_name=template_file_wu, new_biomod_file_name=new_biomod_file_wu, variables=thorax_values)
-    add_header(biomod_file_name=template_file_merge, new_biomod_file_name=new_biomod_file_merge, variables=thorax_values)
+            self.q_ik_initial_guess[self.nb_wu_model_dofs: self.nb_wu_model_dofs + self.nb_parameters_dofs,
+            :] = np.array(
+                [param_opt.x] * self.q_ik_initial_guess.shape[1]
+            ).T
+            p = param_opt.x
+            q_output[self.nb_wu_model_dofs: self.nb_wu_model_dofs + self.nb_parameters_dofs, :] = np.array(
+                [param_opt.x] * q_output.shape[1]).T
 
-    # Step 1.2: IK of wu model without floating base
-    ik_without_floating_base = IK(model_path=new_biomod_file_wu, points=points_c3d, labels_markers_ik=labels_markers)
-    # ik_without_floating_base.animate()
+            # step 2 - ik step
+            q_out, epsilon_markers_n = self.step_2(
+                p=p,
+                bounds=utils.get_range_q(self.biorbd_model),
+                nb_frames=self.nb_frames_ik_step,
+                q_output=q_output,
+            )
 
-    # exo for step 2
-    biorbd_model_merge = biorbd.Model(new_biomod_file_merge)
+            delta_epsilon_markers = epsilon_markers_n - epsilon_markers_n_minus_1
+            print("delta_epsilon_markers:", delta_epsilon_markers)
+            print("epsilon_markers_n:", epsilon_markers_n)
+            print("epsilon_markers_n_minus_1:", epsilon_markers_n_minus_1)
+            iteration += 1
+            print("iteration:", iteration)
+            self.q_ik_initial_guess = q_output
 
-    markers_names = [value.to_string() for value in biorbd_model_merge.markerNames()]
-    markers = np.zeros((3, len(markers_names), len(points_c3d[0, 0, :])))
+        # return support parameters, q_output
+        return q_out, p
 
-    # add the extra marker Table:Table6 to the experimental data based on the location of the Table:Table5
+    def frame_selector(self, frames_needed: int, frames: int):
+        """
+        Give a list of frames for calibration
 
-    new_row = np.zeros((points_c3d.shape[0], 1, points_c3d.shape[2]))
-    points_c3d = np.append(points_c3d, new_row, axis=1)
+        Parameters
+        ----------
+        frames_needed: int
+            The number of random frames you need
+        frames: int
+            The total number of frames
 
-    labels_markers.append("Table:Table6")
+        Returns
+        -------
+        list_frames: list[int]
+            The list of frames use for calibration
+        """
+        list_frames = random.sample(range(frames), frames_needed) if not all else [i for i in range(frames)]
 
-    points_c3d[:3, labels_markers.index("Table:Table6"), :] = points_c3d[:3, labels_markers.index("Table:Table5"), :]
+        list_frames.sort()
 
-    # apply offset to the markers
-    offset = np.array([0, 0, 100])  # meters
-    points_c3d = move_marker(marker_to_move=labels_markers.index("Table:Table6"), c3d_point=points_c3d, offset=offset)
+        return list_frames
 
-    # in the class of calibration
-    for i, name in enumerate(markers_names):
-        if name in labels_markers:
-            markers[:, i, :] = points_c3d[:3, labels_markers.index(name), :] / 1000
+    def penalty_table_markers(self, vect_pos_markers: np.ndarray, table_markers: np.ndarray):
+        """
+        The penalty function which put the pivot joint vertical
 
+        Parameters
+        ----------
+        vect_pos_markers: np.ndarray
+            The generalized coordinates from the model
+        table_markers: np.ndarray
+            The markers position from experimental data
 
-    #### TODO: THE SUPPORT CALIBRATION STARTS HERE ####
-    #### TODO: THIS SHOULD BE A FUNCTION ####
+        Return
+        ------
+        The value of the penalty function
+        """
+        #
+        table5_xyz = vect_pos_markers[
+                     self.markers_model.index("Table:Table5") * 3: self.markers_model.index("Table:Table5") * 3 + 3
+                     ][:]
+        table_xp = table_markers[:, 0].tolist()
+        table6_xy = vect_pos_markers[
+                    self.markers_model.index("Table:Table6") * 3: self.markers_model.index("Table:Table6") * 3 + 3][
+                    :2
+                    ]
+        table_xp += table_markers[:2, 1].tolist()
+        table = table5_xyz.tolist() + table6_xy.tolist()
 
-    name_dof = [i.to_string() for i in biorbd_model_merge.nameDof()]
-    wu_dof = [i for i in name_dof if not "part" in i]
-    parameters = [i for i in name_dof if "part7" in i]
-    kinova_dof = [i for i in name_dof if "part" in i and not "7" in i]
+        return table, table_xp
 
-    nb_dof_wu_model = len(wu_dof)
-    nb_parameters = len(parameters)
-    nb_dof_kinova = len(kinova_dof)
+    def theta_pivot_penalty(self, q: np.ndarray):
+        """
+        Penalty function, prevent part 1 and 3 to cross
 
-    # prepare the inverse kinematics of the first step of the algorithm
-    # initialize q with zeros
-    q_first_ik = np.zeros((biorbd_model_merge.nbQ(), markers.shape[2]))
-    # initialize human dofs with previous results of inverse kinematics
-    q_first_ik[:nb_dof_wu_model, :] = ik_without_floating_base.q  # human
+        Parameters
+        ----------
+        q: np.ndarray
+            Generalized coordinates for all dof, unique for all frames
 
-    nb_frames = markers.shape[2]
-    nb_frames_needed = 10
-    all_frames = False
+        Return
+        ------
+        The value of the penalty function
+        """
+        theta_part1_3 = q[-2] + q[-1]
 
-    frames_list = frame_selector(all_frames, nb_frames_needed, nb_frames)
+        theta_part1_3_lim = 7 * np.pi / 10
 
-    pos_init, parameters = kinematic_chain_calibration(
-        name_dof=name_dof,
-        wu_dof=wu_dof,
-        parameters=parameters,
-        kinova_dof = kinova_dof,
-        q_first_ik=q_first_ik,
-        nb_frames=nb_frames,
-        frames_list=frames_list
-    )
+        if theta_part1_3 > theta_part1_3_lim:
+            diff_model_pivot = [theta_part1_3]
+            diff_xp_pivot = [theta_part1_3_lim]
+        else:  # theta_part1_3_min < theta_part1_3:
+            theta_cost = 0
+            diff_model_pivot = [theta_cost]
+            diff_xp_pivot = [theta_cost]
 
-    b = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
-    b.load_experimental_markers(markers)
-    # b.load_movement(np.array(q0, q0).T)
-    b.load_movement(pos_init)
+        return diff_model_pivot, diff_xp_pivot
 
-    b.exec()
-    print("done")
+    def penalty_markers_thorax(self, vect_pos_markers: np.ndarray, thorax_markers: np.ndarray):
+        """
+        The penalty function which minimize the difference between thorax markers position from experimental data
+        and from the model
 
-    Rototrans_matrix_world_support = biorbd_model_merge.globalJCS(
-        pos_init[:, 0], biorbd_model_merge.getBodyBiorbdId("part7")).to_array()
+        Parameters
+        ----------
+        markers_names: list[str]
+            The list of markers names
+        vect_pos_markers: np.ndarray
+            The generalized coordinates from the model
+        thorax_markers: np.ndarray
+            The thorax markers position form experimental data
 
-    Rototrans_matrix_ulna_world = biorbd_model_merge.globalJCS(
-        pos_init[:, 0], biorbd_model_merge.getBodyBiorbdId("ulna")).transpose().to_array()
+        Return
+        ------
+        The value of the penalty function
+        """
+        thorax_list_model = []
+        thorax_list_xp = []
+        for j, name in enumerate(self.markers_model):
+            if name != "Table:Table5" and name != "Table:Table6":
+                mark = vect_pos_markers[self.markers_model.index(name) * 3: self.markers_model.index(name) * 3 + 3][
+                       :].tolist()
+                thorax = thorax_markers[:, self.markers_model.index(name)].tolist()
+                thorax_list_model += mark
+                thorax_list_xp += thorax
 
-    # Finally
-    Rototrans_matrix_ulna_support = np.matmul(Rototrans_matrix_ulna_world, Rototrans_matrix_world_support)
+        return thorax_list_model, thorax_list_xp
 
-    print(Rototrans_matrix_ulna_support)
+    def penalty_rotation_matrix(self, x_with_p: np.ndarray):
+        """
+        The penalty function which force the model to stay horizontal
 
-    rototrans_values = {
-        "thoraxRT1": ik_with_floating_base.q[3, :].mean(),
-        "thoraxRT2": ik_with_floating_base.q[4, :].mean(),
-        "thoraxRT3": ik_with_floating_base.q[5, :].mean(),
-        "thoraxRT4": ik_with_floating_base.q[0, :].mean(),
-        "thoraxRT5": ik_with_floating_base.q[1, :].mean(),
-        "thoraxRT6": ik_with_floating_base.q[2, :].mean(),
+        Parameters
+        ----------
+        biorbd_model: biorbd.Model
+            The biorbd model
+        x_with_p: np.ndarray
+            Generalized coordinates for all dof, unique for all frames
 
-        "rotationXX": Rototrans_matrix_ulna_support[0, 0],
-        "rotationXY": Rototrans_matrix_ulna_support[0, 1],
-        "rotationXZ": Rototrans_matrix_ulna_support[0, 2],
-        "translationX": Rototrans_matrix_ulna_support[0, 3],
+        Return
+        ------
+        The value of the penalty function
+        """
+        rotation_matrix = self.biorbd_model.globalJCS(x_with_p, self.biorbd_model.nbSegment() - 1).to_array()
 
-        "rotationYX": Rototrans_matrix_ulna_support[1, 0],
-        "rotationYY": Rototrans_matrix_ulna_support[1, 1],
-        "rotationYZ": Rototrans_matrix_ulna_support[1, 2],
-        "translationY": Rototrans_matrix_ulna_support[1, 3],
+        rot_matrix_list_model = [
+            rotation_matrix[2, 0],
+            rotation_matrix[2, 1],
+            rotation_matrix[0, 2],
+            rotation_matrix[1, 2],
+            (1 - rotation_matrix[2, 2]),
+        ]
+        rot_matrix_list_xp = [0] * len(rot_matrix_list_model)
 
-        "rotationZX": Rototrans_matrix_ulna_support[2, 0],
-        "rotationZY": Rototrans_matrix_ulna_support[2, 1],
-        "rotationZZ": Rototrans_matrix_ulna_support[2, 2],
-        "translationZ": Rototrans_matrix_ulna_support[2, 3],
+        return rot_matrix_list_model, rot_matrix_list_xp
 
-    }
+    def penalty_q_thorax(self, x, q_init):
+        """
+        Minimize the q of thorax
 
-    template_file = "../models/KINOVA_merge_without_floating_base_with_rototrans_template.bioMod"
-    new_biomod_file_new = "../models/KINOVA_merge_without_floating_base_with_rototrans_template_with_variables.bioMod"
+        Parameters
+        ----------
+        x: np.ndarray
+            Generalized coordinates for all dof except those between ulna and piece 7, unique for all frames
+        q_init: np.ndarray
+            The initial values of generalized coordinates fo the actual frame
 
-    add_header(template_file, new_biomod_file_new, rototrans_values)
+        Return
+        ------
+        The value of the penalty function
+        """
+        #
+        q_continuity_diff_model = []
+        q_continuity_diff_xp = []
+        for i, value in enumerate(x):
+            q_continuity_diff_xp += [q_init[i]]
+            q_continuity_diff_model += [value]
+
+        return q_continuity_diff_model, q_continuity_diff_xp
+
+    def objective_function_param(
+            self,
+            p0: np.ndarray,
+            x: np.ndarray,
+            x0: np.ndarray,
+    ):
+        """
+        Objective function
+
+        Parameters
+        ----------
+        p0: np.ndarray
+            (6x1) Generalized coordinates between ulna and piece 7, unique for all frames
+        x: np.ndarray
+            Generalized coordinates for all frames all dof
+        x0: np.ndarray
+            Generalized coordinates for the first frame
+        markers: np.ndarray
+            (3 x n_markers x n_frames) marker values for all frames
+        list_frames: list[int]
+            The list of frames on which we will do the calibration
+        markers_names: list[str]
+            The list of markers names
+
+        Return
+        ------
+        The value of the objective function
+        """
+        nb_dof = x.shape[0]
+        n_adjust = p0.shape[0]
+        n_bras = nb_dof - n_adjust - 6
+
+        table5_xyz_all_frames = 0
+        table6_xy_all_frames = 0
+        mark_out_all_frames = 0
+        rotation_matrix_all_frames = 0
+        Q = np.zeros(nb_dof)
+        Q[n_bras: n_bras + n_adjust] = p0
+
+        for f, frame in enumerate(self.list_frames_param_step):
+            thorax_markers = self.markers[:, 0:14, f]
+            table_markers = self.markers[:, 14:, f]
+
+            Q[:n_bras] = x[:n_bras, f]
+            Q[n_bras + n_adjust:] = x[n_bras + n_adjust:, f]
+
+            markers_model = self.biorbd_model.markers(Q)
+
+            vect_pos_markers = np.zeros(3 * len(markers_model))
+
+            for m, value in enumerate(markers_model):
+                vect_pos_markers[m * 3: (m + 1) * 3] = value.to_array()
+
+            table_model, table_xp = self.penalty_table_markers( vect_pos_markers, table_markers)
+
+            table5_xyz = np.linalg.norm(np.array(table_model[:3]) - np.array(table_xp[:3])) ** 2
+            table5_xyz_all_frames += table5_xyz
+
+            table6_xy = np.linalg.norm(np.array(table_model[3:]) - np.array(table_xp[3:])) ** 2
+            table6_xy_all_frames += table6_xy
+
+            thorax_list_model, thorax_list_xp = self.penalty_markers_thorax(vect_pos_markers,
+                                                                            thorax_markers)
+
+            mark_out = 0
+            for j in range(len(thorax_markers[0, :])):
+                mark = np.linalg.norm(np.array(thorax_list_model[j:j + 3]) - np.array(thorax_list_xp[j:j + 3])) ** 2
+                mark_out += mark
+            mark_out_all_frames += mark_out
+
+            rot_matrix_list_model, rot_matrix_list_xp = self.penalty_rotation_matrix(Q)
+
+            rotation_matrix = 0
+            for i in rot_matrix_list_model:
+                rotation_matrix += i ** 2
+
+            rotation_matrix_all_frames += rotation_matrix
+
+            q_continuity_diff_model, q_continuity_diff_xp = self.penalty_q_thorax(Q, x0)
+            # Minimize the q of thorax
+            q_continuity = np.sum((np.array(q_continuity_diff_model) - np.array(q_continuity_diff_xp)) ** 2)
+
+            pivot_diff_model, pivot_diff_xp = self.theta_pivot_penalty(Q)
+            pivot = (pivot_diff_model[0] - pivot_diff_xp[0]) ** 2
+
+            x0 = Q
+
+        return 100000 * (table5_xyz_all_frames + table6_xy_all_frames) + \
+               10000 * mark_out_all_frames + \
+               100 * rotation_matrix_all_frames + \
+               50000 * pivot + \
+               500 * q_continuity
+
+    def ik_step(
+            self,
+            x: np.ndarray,
+            p: np.ndarray,
+            table_markers: np.ndarray,
+            thorax_markers: np.ndarray,
+            q_init: np.ndarray,
+    ):
+        """
+        Objective function
+
+        Parameters
+        ----------
+        x: np.ndarray
+            Generalized coordinates for all dof except those between ulna and piece 7, unique for all frames
+        p: np.ndarray
+            Generalized coordinates between ulna and piece 7
+        table_markers: np.ndarray
+            (3 x n_markers_on_table x n_frames) marker values for all frames
+        thorax_markers: np.ndarray
+            (3 x n_markers_on_wu_model x n_frames) marker values for all frames
+        markers_names: list(str)
+            The list of markers names
+        q_init: np.ndarray
+            The initial values of generalized coordinates fo the actual frame
+
+        Return
+        ------
+        The value of the objective function
+        """
+        x_with_p = np.zeros(self.biorbd_model.nbQ())
+        x_with_p[:10] = x[:10]
+        x_with_p[10:16] = p
+        x_with_p[16:] = x[10:]
+
+        markers_model = self.biorbd_model.markers(x_with_p)
+
+        vect_pos_markers = np.zeros(3 * len(markers_model))
+
+        for m, value in enumerate(markers_model):
+            vect_pos_markers[m * 3: (m + 1) * 3] = value.to_array()
+
+        # Put the pivot joint vertical
+        table_model, table_xp = self.penalty_table_markers(vect_pos_markers, table_markers)
+
+        # Minimize difference between thorax markers from model and from experimental data
+        thorax_list_model, thorax_list_xp = self.penalty_markers_thorax(vect_pos_markers,
+                                                                        thorax_markers)
+
+        # Force the model horizontality
+        # rot_matrix_list_model, rot_matrix_list_xp = penalty_rotation_matrix(self.biorbd_model, x_with_p)
+
+        # Minimize the q of thorax
+        q_continuity_diff_model, q_continuity_diff_xp = self.penalty_q_thorax(x, q_init)
+
+        # Force part 1 and 3 to not cross
+        pivot_diff_model, pivot_diff_xp = self.theta_pivot_penalty(x_with_p)
+
+        # We add our vector to the main lists
+        diff_model = table_model + thorax_list_model + q_continuity_diff_model + pivot_diff_model
+        diff_xp = table_xp + thorax_list_xp + q_continuity_diff_xp + pivot_diff_xp
+
+        # We converted our list into array in order to be used by least_square
+        diff_tab_model = np.array(diff_model)
+        diff_tab_xp = np.array(diff_xp)
+
+        # We created the difference vector
+        diff = diff_tab_xp - diff_tab_model
+
+        # We created a vector which contains the weight of each penalty
+        weight_table = [100000] * len(table_xp)
+        weight_thorax = [10000] * len(thorax_list_xp)
+        # weight_rot_matrix = [100] * len(rot_matrix_list_xp)
+        weight_theta_13 = [50000]
+        weight_continuity = [500] * x.shape[0]
+
+        weight_list = weight_table + weight_thorax + weight_continuity + weight_theta_13
+
+        return diff * weight_list
+
+    def step_2(
+            self,
+            p,
+            bounds,
+            nb_frames,
+            q_output,
+    ):
+
+        index_table_markers = [i for i, value in enumerate(self.markers_model) if "Table" in value]
+        index_wu_markers = [i for i, value in enumerate(self.markers_model) if "Table" not in value]
+
+        # build the bounds for step 2
+        bounds_without_p_1_min = bounds[0][:self.nb_wu_model_dofs]
+        bounds_without_p_2_min = bounds[0][self.nb_wu_model_dofs + self.nb_parameters_dofs:]
+        bounds_without_p_1_max = bounds[1][:self.nb_wu_model_dofs]
+        bounds_without_p_2_max = bounds[1][self.nb_wu_model_dofs + self.nb_parameters_dofs:]
+
+        bounds_without_p = (
+            np.concatenate((bounds_without_p_1_min, bounds_without_p_2_min)),
+            np.concatenate((bounds_without_p_1_max, bounds_without_p_2_max)),
+        )
+
+        for f in range(self.nb_frames_ik_step):
+            # todo : comment here
+            x0_1 = self.q_ik_initial_guess[:self.nb_wu_model_dofs, 0] if f == 0 else q_output[:self.nb_wu_model_dofs,
+                                                                                     f - 1]
+            x0_2 = (
+                self.q_ik_initial_guess[self.nb_wu_model_dofs + self.nb_parameters_dofs:, 0]
+                if f == 0
+                else q_output[self.nb_wu_model_dofs + self.nb_parameters_dofs:, f - 1]
+            )
+            x0 = np.concatenate((x0_1, x0_2))
+            IK_i = optimize.least_squares(
+                fun=self.ik_step,
+                args=(
+                    p,
+                    self.markers[:, index_table_markers, f],
+                    self.markers[:, index_wu_markers, f],
+                    x0,
+                ),
+                x0=x0,  # x0 q sans p
+                bounds=bounds_without_p,
+                method="trf",
+                jac="3-point",
+                xtol=1e-5,
+            )
+
+            q_output[:self.nb_wu_model_dofs, f] = IK_i.x[:self.nb_wu_model_dofs]
+            q_output[self.nb_wu_model_dofs + self.nb_parameters_dofs:, f] = IK_i.x[self.nb_wu_model_dofs:]
+
+            markers_model = self.biorbd_model.markers(q_output[:, f])
+            thorax_markers = self.markers[:, 0:14, f] # todo: removed hard code
+            markers_to_compare = self.markers[:, :, f]
+            espilon_markers = 0
+
+            for j in range(len(thorax_markers[0, :])):
+                mark = np.linalg.norm(markers_model[j].to_array()[:] - markers_to_compare[:, j]) ** 2
+                espilon_markers += mark
+
+        print("step 2 done")
+
+        return q_output, espilon_markers
