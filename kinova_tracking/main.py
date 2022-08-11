@@ -6,14 +6,12 @@ import bioviz
 import numpy as np
 from ezc3d import c3d
 import biorbd
-from models.utils import add_header, thorax_variables
-from utils import get_range_q
-import random
+from models.utils import add_header
+from utils import get_unit_division_factor
 from models.enums import Models
 from data.enums import TasksKinova
 
 from kinematic_chain_calibration import KinematicChainCalibration
-
 
 
 def move_marker(marker_to_move: int, c3d_point: np.ndarray, offset: np.ndarray, ) -> np.array:
@@ -43,13 +41,15 @@ def move_marker(marker_to_move: int, c3d_point: np.ndarray, offset: np.ndarray, 
     return new_points
 
 
-def IK(model_path: str, points: np.array, labels_markers_ik: list[str]) -> np.array:
+def inverse_kinematics_inferface(c3d: c3d, model_path: str, points: np.array, labels_markers_ik: list[str]) -> np.array:
     # todo: reformat inverse_kinematics_inferface
     """
     This function computes the inverse kinematics of the model.
 
     Parameters
     ----------
+    c3d : c3d
+        The c3d
     model_path : str
         Path to the model.
     points : np.array
@@ -70,39 +70,14 @@ def IK(model_path: str, points: np.array, labels_markers_ik: list[str]) -> np.ar
     # reformat the makers trajectories
     markers_ik = np.zeros((3, len(marker_names_ik), len(points[0, 0, :])))
     for i, name in enumerate(marker_names_ik):
-        markers_ik[:, i, :] = points[:3, labels_markers_ik.index(name), :] / 1000  #todo: use get_unit_division_factor
+        markers_ik[:, i, :] = points[:3, labels_markers_ik.index(name), :] / get_unit_division_factor(c3d)
 
-    # the actual inverse kinematics
+        # the actual inverse kinematics
     my_ik = biorbd.InverseKinematics(biorbd_model_ik, markers_ik)
     my_ik.solve("trf")
 
     return my_ik
 
-
-def frame_selector(all: bool, frames_needed: int, frames: int):
-    # todo: to be removed
-    """
-    Give a list of frames for calibration
-
-    Parameters
-    ----------
-    all: bool
-        True if you want all frames, False if not
-    frames_needed: int
-        The number of random frames you need
-    frames: int
-        The total number of frames
-
-    Returns
-    -------
-    list_frames: list[int]
-        The list of frames use for calibration
-    """
-    list_frames = random.sample(range(frames), frames_needed) if not all else [i for i in range(frames)]
-
-    list_frames.sort()
-
-    return list_frames
 
 if __name__ == "__main__":
 
@@ -128,7 +103,8 @@ if __name__ == "__main__":
     model_path_without_kinova = Models.WU_INVERSE_KINEMATICS.value
 
     # Step 1.1: IK of wu model with floating base
-    ik_with_floating_base = IK(model_path=model_path_without_kinova, points=points_c3d, labels_markers_ik=labels_markers)
+    ik_with_floating_base = inverse_kinematics_inferface(c3d=c3d_kinova, model_path=model_path_without_kinova,
+                                                         points=points_c3d, labels_markers_ik=labels_markers)
     # ik_with_floating_base.animate()
 
     # rewrite the models with the location of the floating base
@@ -148,10 +124,12 @@ if __name__ == "__main__":
     }
 
     add_header(biomod_file_name=template_file_wu, new_biomod_file_name=new_biomod_file_wu, variables=thorax_values)
-    add_header(biomod_file_name=template_file_merge, new_biomod_file_name=new_biomod_file_merge, variables=thorax_values)
+    add_header(biomod_file_name=template_file_merge, new_biomod_file_name=new_biomod_file_merge,
+               variables=thorax_values)
 
     # Step 1.2: IK of wu model without floating base
-    ik_without_floating_base = IK(model_path=new_biomod_file_wu, points=points_c3d, labels_markers_ik=labels_markers)
+    ik_without_floating_base = inverse_kinematics_inferface(c3d=c3d_kinova, model_path=new_biomod_file_wu,
+                                                            points=points_c3d, labels_markers_ik=labels_markers)
     # ik_without_floating_base.animate()
 
     # exo for step 2
@@ -176,11 +154,8 @@ if __name__ == "__main__":
     # in the class of calibration
     for i, name in enumerate(markers_names):
         if name in labels_markers:
-            markers[:, i, :] = points_c3d[:3, labels_markers.index(name), :] / 1000  #todo: use get_unit_division_factor
-
-
-    #### TODO: THE SUPPORT CALIBRATION STARTS HERE ####
-    #### TODO: THIS SHOULD BE A FUNCTION ####
+            markers[:, i, :] = points_c3d[:3, labels_markers.index(name), :] / get_unit_division_factor(
+                c3d_kinova)
 
     name_dof = [i.to_string() for i in biorbd_model_merge.nameDof()]
     wu_dof = [i for i in name_dof if not "part" in i]
@@ -201,8 +176,6 @@ if __name__ == "__main__":
     nb_frames_needed = 10
     all_frames = False
 
-    frames_list = frame_selector(all_frames, nb_frames_needed, nb_frames)
-
     kcc = KinematicChainCalibration(biorbd_model=biorbd_model_merge,
                                     markers_model=markers_names,
                                     markers=markers,
@@ -210,7 +183,6 @@ if __name__ == "__main__":
                                     tracked_markers=markers_names,
                                     parameter_dofs=parameters,
                                     kinematic_dofs=name_dof,
-                                    kinova_dofs=kinova_dof,
                                     weights=np.zeros(70),  #
                                     q_ik_initial_guess=q_first_ik,
                                     nb_frames_ik_step=nb_frames,
