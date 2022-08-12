@@ -480,10 +480,11 @@ segment part7
     parent    ulna
     RTinMatrix    1
     RT
-        -0.0321630712 -0.0038945174 -0.9994750476 -0.0398
-        -0.2155116207 -0.9764422143  0.010739928  -0.0752000001
-        -0.9759714555  0.2157439188  0.0305660713  0.0291000003
-         0.            0.            0.            1.
+        $rotationXX $rotationXY $rotationXZ $translationX
+        $rotationYX $rotationYY $rotationYZ $translationY
+        $rotationZX $rotationZY $rotationZZ $translationZ
+        0.            0.            0.            1.
+
     mass 0.35022
     inertia
         0.00264324  -0.00042419  -0.00019927
@@ -564,8 +565,8 @@ segment part2
     rtinmatrix 0
     rt 0   0   0  xyz -0.120 0 0 // ajouter rot
     rotations z
-    //ranges 	-pi/6 2*pi/3 // 0 2*pi/3
-    ranges 0 9*pi/20
+    ranges 	-pi/6 2*pi/3 // 0 2*pi/3
+    //ranges 0 9*pi/20
     mass 0.164
     inertia
         0.04434446 0.04527663 0
@@ -581,8 +582,8 @@ segment part1
     rtinmatrix 0
     rt 0   0   pi/6 xyz -0.08842 -0.02369 0 // ajouter rot
     rotations z
-    //ranges 	-pi/6 2*pi/3 // 0 2*pi/3
-    ranges 0 9*pi/20
+    ranges 	-pi/6 2*pi/3 // 0 2*pi/3
+    //ranges 0 9*pi/20
     mass 0.172
     inertia
         0.00001545 0 0
