@@ -25,19 +25,19 @@ from utils import get_c3d_frequencies, get_unit_division_factor, apply_offset, p
 
 try:
     import bioviz
-
     biorbd_viz_found = True
 except ModuleNotFoundError:
     biorbd_viz_found = False
 
+from models.enums import Models
 
 # Load a predefined model
-model_path_without_kinova = "../models/wu_converted_definitif_inverse_kinematics.bioMod"
-
+model_path_without_kinova = Models.WU_INVERSE_KINEMATICS.value
 model_without_kinova = biorbd.Model(model_path_without_kinova)
 
 file_path = Path("")
 file_list = list(file_path.glob("F0*.c3d"))  # We get the file names with a .c3d extension
+# todo: replace by data.enums Tasks
 
 for file in file_list:
     c3d = ezc3d.c3d(file.name)  # c3d files are loaded as ezc3d object
