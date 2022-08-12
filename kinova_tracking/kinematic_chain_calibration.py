@@ -81,10 +81,6 @@ class KinematicChainCalibration:
 
         # self.objectives_function
 
-        # number of wieghts has to be checked
-        # raise Error if not the right number
-        self.weights = weights
-
         # check if q_ik_initial_guess has the right size
         self.q_ik_initial_guess = q_ik_initial_guess
         self.nb_frames_ik_step = nb_frames_ik_step
@@ -93,6 +89,23 @@ class KinematicChainCalibration:
         self.use_analytical_jacobians = use_analytical_jacobians
 
         self.list_frames_param_step = self.frame_selector(self.nb_frames_param_step, self.nb_frames_ik_step)
+
+        # number of wieghts has to be checked
+        # raise Error if not the right number
+        self.weights = weights
+
+        weight_closed_loop = [self.weights[0]] * (len(self.closed_loop_markers) * 3 - 1)
+        # nb marker table * 3 dim - 1 because we don't use value on z for Table:Table6
+
+        weight_open_loop = [self.weights[1]] * (len([i for i in self.tracked_markers if i not in self.closed_loop_markers]) *3)
+        # This is for all markers except those for table
+
+        # weight_rot_matrix = [100] * len(rot_matrix_list_xp)
+        weight_theta_13 = [self.weights[2]]
+        weight_continuity = [self.weights[3]] * (self.q_ik_initial_guess.shape[0] - len(self.parameter_dofs))
+        # We need the nb of dofs but without parameters
+
+        self.weight_list = weight_closed_loop + weight_open_loop + weight_continuity + weight_theta_13
 
     # if nb_frames_ik_step> markers.shape[2]:
     # raise error
@@ -142,7 +155,6 @@ class KinematicChainCalibration:
         q_step_2, epsilon = self.step_2(
             p=p,
             bounds=get_range_q(self.biorbd_model),
-            nb_frames=self.nb_frames_ik_step,
             q_output=q_output,
         )
 
@@ -154,7 +166,7 @@ class KinematicChainCalibration:
             (mini, maxi) for mini, maxi in zip(get_range_q(self.biorbd_model)[0], get_range_q(self.biorbd_model)[1])
         ]
 
-        p = q_step_2[self.parameter_idx, 0]
+        p = q_step_2[self.parameter_index, 0]
 
         iteration = 0
         epsilon_markers_n = 10
@@ -181,16 +193,15 @@ class KinematicChainCalibration:
             )
             print(param_opt.x)
 
-            self.q_ik_initial_guess[self.parameter_idx, :] = np.array([param_opt.x] * self.nb_frames_ik_step).T
+            self.q_ik_initial_guess[self.parameter_index, :] = np.array([param_opt.x] * self.nb_frames_ik_step).T
             p = param_opt.x
-            q_output[self.parameter_idx, :] = np.array([param_opt.x] * q_output.shape[1]).T
+            q_output[self.parameter_index, :] = np.array([param_opt.x] * q_output.shape[1]).T
 
             # step 2 - ik step
             # todo : verify the metric of the step 2 please make a RMSE
             q_out, epsilon_markers_n = self.step_2(
                 p=p,
                 bounds=get_range_q(self.biorbd_model),
-                nb_frames=self.nb_frames_ik_step,
                 q_output=q_output,
             )
 
@@ -445,13 +456,12 @@ class KinematicChainCalibration:
             pivot = (pivot_diff_model[0] - pivot_diff_xp[0]) ** 2
 
             x0 = Q
-        # todo: move the weights in init
         return (
-            100000 * (table5_xyz_all_frames + table6_xy_all_frames)
-            + 10000 * mark_out_all_frames
+            self.weights[0] * (table5_xyz_all_frames + table6_xy_all_frames)
+            + self.weights[1] * mark_out_all_frames
             + 100 * rotation_matrix_all_frames
-            + 50000 * pivot
-            + 500 * q_continuity
+            + self.weights[2] * pivot
+            + self.weights[3] * q_continuity
         )
 
     def ik_step(
@@ -484,11 +494,15 @@ class KinematicChainCalibration:
         ------
         The value of the objective function
         """
-        x_with_p = np.zeros(self.biorbd_model.nbQ())
-        x_with_p[self.kinematic_index] = x
-        x_with_p[self.parameter_index] = p
+        if p is not None:
+            new_x = np.zeros(self.biorbd_model.nbQ()) # we add p to x because the optimization is on p so we can't
+            # give all x to mininimize
+            new_x[self.kinematic_index] = x
+            new_x[self.parameter_index] = p
+        else:
+            new_x = x
 
-        markers_model = self.biorbd_model.markers(x_with_p)
+        markers_model = self.biorbd_model.markers(new_x)
 
         vect_pos_markers = np.zeros(3 * len(markers_model))
 
@@ -508,7 +522,7 @@ class KinematicChainCalibration:
         q_continuity_diff_model, q_continuity_diff_xp = self.penalty_q_open_loop(x, q_init)
 
         # Force part 1 and 3 to not cross
-        pivot_diff_model, pivot_diff_xp = self.theta_pivot_penalty(x_with_p)
+        pivot_diff_model, pivot_diff_xp = self.theta_pivot_penalty(new_x)
 
         # We add our vector to the main lists
         diff_model = table_model + thorax_list_model + q_continuity_diff_model + pivot_diff_model
@@ -523,22 +537,21 @@ class KinematicChainCalibration:
 
         # todo: move the weight in init
         # We created a vector which contains the weight of each penalty
-        weight_table = [100000] * len(table_xp)
-        weight_thorax = [10000] * len(thorax_list_xp)
-        # weight_rot_matrix = [100] * len(rot_matrix_list_xp)
-        weight_theta_13 = [50000]
-        weight_continuity = [500] * x.shape[0]
+        # weight_table = [100000] * len(table_xp)
+        # weight_thorax = [10000] * len(thorax_list_xp)
+        # # weight_rot_matrix = [100] * len(rot_matrix_list_xp)
+        # weight_theta_13 = [50000]
+        # weight_continuity = [500] * x.shape[0]
+        #
+        # weight_list = weight_table + weight_thorax + weight_continuity + weight_theta_13
 
-        weight_list = weight_table + weight_thorax + weight_continuity + weight_theta_13
-
-        return diff * weight_list
+        return diff * self.weight_list
 
     def step_2(
         self,
-        p,
-        bounds,
-        nb_frames,
-        q_output,
+        p: np.ndarray = None,
+        bounds: np.ndarray = None,
+        q_output: np.ndarray = None,
     ):
         # todo: docstring
 

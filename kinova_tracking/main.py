@@ -184,6 +184,7 @@ if __name__ == "__main__":
     nb_frames_needed = 10
     all_frames = False
 
+    weight = np.array([10000, 10000, 50000, 500])
     kcc = KinematicChainCalibration(
         biorbd_model=biorbd_model_merge,
         markers_model=markers_names,
@@ -192,7 +193,7 @@ if __name__ == "__main__":
         tracked_markers=markers_names,
         parameter_dofs=parameters,
         kinematic_dofs=kinematic_dof,
-        weights=np.zeros(70),  #
+        weights=weight,
         q_ik_initial_guess=q_first_ik,
         nb_frames_ik_step=nb_frames,
         nb_frames_param_step=100,
