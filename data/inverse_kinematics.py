@@ -94,10 +94,10 @@ for file in file_list:
     # q_recons = apply_offset(model_without_kinova, q_recons, list_dof, 2 * np.pi)
     plot_dof(q_recons_old, q_recons, model_without_kinova)
 
-    # np.savetxt(os.path.splitext(file)[0] + "_q.txt", q_recons)
-    # np.savetxt(os.path.splitext(file)[0] + "_qdot.txt", qdot_recons)
-    # np.savetxt(os.path.splitext(file)[0] + "_qddot.txt", qddot_recons)
-    # np.savetxt(os.path.splitext(file)[0] + "_tau.txt", tau_recons)
+    np.savetxt(os.path.splitext(file)[0] + "_q.txt", q_recons)
+    np.savetxt(os.path.splitext(file)[0] + "_qdot.txt", qdot_recons)
+    np.savetxt(os.path.splitext(file)[0] + "_qddot.txt", qddot_recons)
+    np.savetxt(os.path.splitext(file)[0] + "_tau.txt", tau_recons)
 
     # if biorbd_viz_found:
     #     b = bioviz.Viz(loaded_model=model_without_kinova, show_muscles=False)
