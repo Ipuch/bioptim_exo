@@ -7,7 +7,8 @@ import IK_Kinova
 import numpy as np
 from ezc3d import c3d
 import biorbd
-from models.utils import add_header, thorax_variables
+from models.utils import add_header
+from utils import get_unit_division_factor
 
 
 if __name__ == "__main__":
@@ -29,7 +30,7 @@ if __name__ == "__main__":
     markers_without_kinova = np.zeros((3, len(marker_names_without_kinova), len(points[0, 0, :])))
 
     for i, name in enumerate(marker_names_without_kinova):
-        markers_without_kinova[:, i, :] = points[:3, labels_markers.index(name), :] / 1000
+        markers_without_kinova[:, i, :] = points[:3, labels_markers.index(name), :] / get_unit_division_factor(c3d)  #todo: use get_unit_division_factor
 
     my_ik = biorbd.InverseKinematics(biorbd_model_without_kinova, markers_without_kinova)
     my_ik.solve("lm")
@@ -71,9 +72,9 @@ if __name__ == "__main__":
     for i, name in enumerate(markers_names):
         if name in labels_markers:
             if name == "Table:Table6":  # we artificially added a marker so we have to add his position
-                markers[:, i, :] = points[:3, labels_markers.index("Table:Table5"), :] / 1000
+                markers[:, i, :] = points[:3, labels_markers.index("Table:Table5"), :] / get_unit_division_factor(c3d)  #todo: use get_unit_division_factor
             else:
-                markers[:, i, :] = points[:3, labels_markers.index(name), :] / 1000
+                markers[:, i, :] = points[:3, labels_markers.index(name), :] / get_unit_division_factor(c3d)  #todo: use get_unit_division_factor
 
     markers[2, markers_names.index("Table:Table6"), :] = markers[2, markers_names.index("Table:Table6"), :] + 0.1
 
