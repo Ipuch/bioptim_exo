@@ -10,15 +10,17 @@ import numpy as np
 from ezc3d import c3d
 import biorbd
 from models.utils import add_header, thorax_variables
-from utils import get_range_q
+from utils import get_range_q, get_unit_division_factor
 import random
 from pathlib import Path
+from kinematic_chain_calibration import KinematicChainCalibration
 
+# todo: make this script as a class
 
 new_biomod_file_new = "../models/KINOVA_merge_without_floating_base_with_rototrans_template_with_variables.bioMod"
-
 new_model = biorbd.Model(new_biomod_file_new)
 
+# Get all c3d of interest
 file_path = Path("../data/")
 file_list = list(file_path.glob("F3*01.c3d"))
 
@@ -29,7 +31,6 @@ kinova_dof = [i for i in name_dof if "part" in i and not "7" in i]
 
 nb_dof_wu_model = len(wu_dof)
 nb_parameters = len(parameters)
-nb_dof_kinova = len(kinova_dof)
 
 for file in file_list:
     start = time.time()
@@ -49,9 +50,9 @@ for file in file_list:
     for i, name in enumerate(markers_names):
         if name in labels_markers:
             if name == "Table:Table6":
-                markers[:, i, :] = points[:3, labels_markers.index("Table:Table5"), :] / 1000
+                markers[:, i, :] = points[:3, labels_markers.index("Table:Table5"), :] / get_unit_division_factor(c3d_)  #todo: use get_unit_division_factor
             else:
-                markers[:, i, :] = points[:3, labels_markers.index(name), :] / 1000
+                markers[:, i, :] = points[:3, labels_markers.index(name), :] / get_unit_division_factor(c3d_)  #todo: use get_unit_division_factor
 
     markers[2, markers_names.index("Table:Table6"), :] = markers[2, markers_names.index("Table:Table6"), :] + 0.1
 
@@ -64,7 +65,6 @@ for file in file_list:
 
     nb_dof_wu_model = len(wu_dof)
     nb_parameters = len(parameters)
-    nb_dof_kinova = len(kinova_dof)
 
     nb_frames = len(points[0, 0, :])
 
@@ -76,8 +76,11 @@ for file in file_list:
     q_first_ik = my_ik.q  # human
 
     # get the bounds of the model for all dofs
-    bounds = [(mini, maxi) for mini, maxi in zip(get_range_q(new_model)[0], get_range_q(new_model)[1])]
-    kinova_q0 = np.array([(i[0] + i[1]) / 2 for i in bounds[nb_dof_wu_model + nb_parameters :]])
+    bounds = [
+        (mini, maxi) for mini, maxi in zip(get_range_q(new_model)[0], get_range_q(new_model)[1])
+    ]
+    kinova_q0 = np.array([(i[0] + i[1]) / 2 for i in bounds[nb_dof_wu_model + nb_parameters:]])
+
     # initialized q trajectories for each frames for dofs without a priori knowledge of the q (kinova arm here)
     for j in range((q_first_ik[nb_dof_wu_model + nb_parameters :, :].shape[1])):
         q_first_ik[nb_dof_wu_model + nb_parameters :, j] = kinova_q0
@@ -86,19 +89,23 @@ for file in file_list:
     p = np.zeros(nb_parameters)
 
     # First IK step - INITIALIZATION
-    q_step_2, epsilon_cumul, epsilon = calibration.step_2_batch(
+    kcc = KinematicChainCalibration(
         biorbd_model=new_model,
-        bounds=get_range_q(new_model),
-        dof=name_dof,
-        wu_dof=wu_dof,
-        parameters=parameters,
-        kinova_dof=kinova_dof,
-        nb_frames=nb_frames,
-        q_first_ik=q_first_ik,
-        q_output=q_output,
-        markers_xp_data=markers,
-        markers_names=markers_names,
+        markers_model=markers_names,
+        markers=markers,
+        closed_loop_markers=["Table:Table5", "Table:Table6"],
+        tracked_markers=markers_names,
+        parameter_dofs=parameters,
+        kinematic_dofs=wu_dof + kinova_dof,
+        weights=np.zeros(70),  #
+        q_ik_initial_guess=q_first_ik,
+        nb_frames_ik_step=nb_frames,
+        nb_frames_param_step=100,
+        randomize_param_step_frames=True,
+        use_analytical_jacobians=False,
     )
+
+    q_step_2, epsilon = kcc.step_2(bounds=get_range_q(new_model),q_output=q_output)
 
     b = bioviz.Viz(loaded_model=new_model, show_muscles=False, show_floor=False)
     b.load_experimental_markers(markers)
@@ -108,5 +115,4 @@ for file in file_list:
     epsilon_tab = np.array(epsilon)
     end = time.time()
     print("Duration", end - start)
-    print(f"moyenne sur toutes les frames sur tous les markers: {np.mean(epsilon_tab)} m")
-    print(f"moyenne sur toutes les frames par marker: {np.mean(epsilon_tab, axis=0)} m")
+    print(f"moyenne sur toutes les frames sur tous les markers: {epsilon} m")
