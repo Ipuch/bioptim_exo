@@ -1,6 +1,4 @@
-import sys
 import biorbd_casadi as biorbd
-import ezc3d
 from bioptim import (
     OptimalControlProgram,
     DynamicsFcn,
@@ -16,19 +14,15 @@ from bioptim import (
     CostType,
     InterpolationType,
 )
-import numpy as np
+
 import os
+import numpy as np
 from datetime import datetime
-
-sys.path.append("../event")
-sys.path.append("../models")
-import utils
-
-sys.path.append("../data")
-import load_events
-
-sys.path.append("../tracking")
-import load_experimental_data
+from data.enums import Tasks
+import data.load_events as load_events
+import models.utils as utils
+from models.enums import Models
+import tracking.load_experimental_data as load_experimental_data
 
 
 def prepare_ocp(
@@ -89,26 +83,28 @@ def prepare_ocp(
     )
 
 
-def main():
+def main(task):
     """
     Get data, then create a tracking problem, and finally solve it and plot some relevant information
     """
 
     # Define the problem
     with_floating_base = False
-    c3d_path = "F0_boire_05.c3d"
     nb_iteration = 1000
     n_shooting_points = 50
     phase_time = 1
 
     # Files used
-    q_file_path = c3d_path.removesuffix(".c3d") + "_q.txt"
-    qdot_file_path = c3d_path.removesuffix(".c3d") + "_qdot.txt"
-    thorax_values = utils.thorax_variables(q_file_path)
-    new_biomod_file = "../models/wu_converted_definitif_without_floating_base_template_with_variables.bioMod"
-    model_path_without_floating_base = "../models/wu_converted_definitif_without_floating_base_template.bioMod"
-    utils.add_header(model_path_without_floating_base, new_biomod_file, thorax_values)
+    c3d_path = task.value
+    data_path = c3d_path.removesuffix(c3d_path.split("/")[-1])
+    file_path = data_path + Models.WU_INVERSE_KINEMATICS.name + "_" + c3d_path.split("/")[-1].removesuffix(".c3d")
+    q_file_path = file_path + "_q.txt"
+    qdot_file_path = file_path + "_qdot.txt"
 
+    thorax_values = utils.thorax_variables(q_file_path)  # load c3d floating base pose
+    model_template_path = Models.WU_WITHOUT_FLOATING_BASE_TEMPLATE.value
+    new_biomod_file = model_template_path.removesuffix(".bioMod") + "with_variables.bioMod"
+    utils.add_header(model_template_path, new_biomod_file, thorax_values)
     # Define event
     biorbd_model = biorbd.Model(new_biomod_file)
     marker_ref = [m.to_string() for m in biorbd_model.markerNames()]
@@ -127,8 +123,9 @@ def main():
         phase_time=[phase_time],
         start=start_frame,
         end=end_frame,
+        with_floating_base=False
     )
-    x_init_ref = np.concatenate([q_ref[0][6:], qdot_ref[0][6:]])
+    x_init_ref = np.concatenate([q_ref[0], qdot_ref[0]])
 
     my_ocp = prepare_ocp(
         biorbd_model_path=new_biomod_file,
@@ -161,4 +158,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(task=Tasks.TEETH)

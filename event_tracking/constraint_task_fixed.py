@@ -16,16 +16,13 @@ from bioptim import (
 )
 import os
 import numpy as np
+from data.enums import Tasks
 from datetime import datetime
 import models.utils as utils
+from models.enums import Models
 import data.load_events as load_events
 import tracking.load_experimental_data as load_experimental_data
 
-
-# import sys
-# sys.path.append("../models")
-# sys.path.append("../data")
-# sys.path.append("../tracking")
 
 
 def prepare_ocp(
@@ -81,10 +78,6 @@ def prepare_ocp(
     n_tau = biorbd_model.nbGeneralizedTorque()
     tau_min, tau_max = -20, 20
     u_bounds = Bounds([tau_min] * n_tau, [tau_max] * n_tau)
-    # u_bounds.min[:2, :], u_bounds.max[:2, :] = -20, 20
-    # u_bounds.min[2:5, :], u_bounds.max[2:5, :] = -50, 50
-    # u_bounds.min[5:8, :], u_bounds.max[5:8, :] = -50, 50
-    # u_bounds.min[8:, :], u_bounds.max[8:, :] = -20, 20
 
     return OptimalControlProgram(
         biorbd_model,
@@ -102,24 +95,26 @@ def prepare_ocp(
     )
 
 
-def main(c3d_path: str):
+def main(task):
     """
     Get data, then create a tracking problem, and finally solve it and plot some relevant information
     """
 
     # Define the problem
     # c3d_path = "F0_dents_05.c3d"
-    # todo: manger, aisselle, dessiner
     n_shooting_points = 800
     nb_iteration = 10000
 
-    q_file_path = c3d_path.removesuffix(".c3d") + "_q.txt"
-    qdot_file_path = c3d_path.removesuffix(".c3d") + "_qdot.txt"
+    c3d_path = task.value
+    data_path = c3d_path.removesuffix(c3d_path.split("/")[-1])
+    file_path = data_path + Models.WU_INVERSE_KINEMATICS.name + "_" + c3d_path.split("/")[-1].removesuffix(".c3d")
+    q_file_path = file_path + "_q.txt"
+    qdot_file_path = file_path + "_qdot.txt"
 
     thorax_values = utils.thorax_variables(q_file_path)  # load c3d floating base pose
-    new_biomod_file = "../models/wu_converted_definitif_without_floating_base_template_fixed_with_variables.bioMod"
-    model_path_without_floating_base = "../models/wu_converted_definitif_without_floating_base_template_fixed.bioMod"
-    utils.add_header(model_path_without_floating_base, new_biomod_file, thorax_values)
+    model_template_path = Models.WU_WITHOUT_FLOATING_BASE_FIXED_TEMPLATE.value
+    new_biomod_file = model_template_path.removesuffix(".bioMod") + "with_variables.bioMod"
+    utils.add_header(model_template_path, new_biomod_file, thorax_values)
 
     biorbd_model = biorbd.Model(new_biomod_file)
     marker_ref = [m.to_string() for m in biorbd_model.markerNames()]
@@ -127,8 +122,6 @@ def main(c3d_path: str):
     # get key events
     event = load_events.LoadEvent(c3d_path=c3d_path, marker_list=marker_ref)
     data = load_experimental_data.LoadData(biorbd_model, c3d_path, q_file_path, qdot_file_path)
-    # target_start = event.get_markers(0)[:, :, np.newaxis]
-    # target_end = event.get_markers(1)[:, :, np.newaxis]
     start_frame = event.get_frame(0)
     end_frame = event.get_frame(1)
     phase_time = event.get_time(1) - event.get_time(0)
@@ -139,8 +132,7 @@ def main(c3d_path: str):
         start=start_frame,
         end=end_frame,
     )
-    # target = data.dispatch_data(target_frame, nb_shooting=[n_shooting_points], phase_time=[phase_time],
-    # start=start_frame, end=end_frame)
+
 
     # load initial guesses
     q_ref, qdot_ref, tau_ref = data.get_variables_ref(
@@ -191,4 +183,4 @@ def main(c3d_path: str):
 
 
 if __name__ == "__main__":
-    main("F0_tete_05.c3d")
+    main(Tasks.TEETH)

@@ -248,14 +248,14 @@ class LoadData:
         end = end if end is not None else self.nb_frames
 
         q_ref = self.dispatch_data(
-            data=self.q[:, start : end + 1],
+            data=self.q,
             nb_shooting=number_shooting_points,
             phase_time=phase_time,
             start=start,
             end=end,
         )
         qdot_ref = self.dispatch_data(
-            data=self.qdot[:, start : end + 1],
+            data=self.qdot,
             nb_shooting=number_shooting_points,
             phase_time=phase_time,
             start=start,
