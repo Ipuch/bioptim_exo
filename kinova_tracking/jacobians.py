@@ -21,7 +21,7 @@ def marker_jacobian_model(q, biorbd_model, wu_markers):
     for m, value in enumerate(jacobian_matrix):
         jacobian[m * 3 : (m + 1) * 3, :] = value.to_array()
 
-    l = [i for i in range(22) if i < 10 or i > 15]
+    l = [i for i in range(22) if i < 10 or i > 15] # removed hard code, add parameters index
     jacobian_without_p = jacobian[:, l]
 
     return jacobian_without_p
@@ -120,7 +120,7 @@ def calibration_jacobian(q, biorbd_model, p, table_markers, wu_markers, markers_
     # Minimize difference between thorax markers from model and from experimental data
     model = marker_jacobian_model(q_with_p, biorbd_model, wu_markers)
 
-    # Force the model horizontality
+    # Force z-axis of final segment to be vertical
     # rot_matrix_list_model, rot_matrix_list_xp = penalty_rotation_matrix(biorbd_model, x_with_p)
 
     # Minimize the q of thorax
