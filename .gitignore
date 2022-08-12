@@ -28,3 +28,5 @@ event_tracking/__pycache__/
 kinova_tracking/solution/
 
 kinova_tracking/video/
+
+event_tracking/save/
