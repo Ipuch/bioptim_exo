@@ -14,24 +14,18 @@ from bioptim import (
     InterpolationType,
     Node,
 )
-import numpy as np
-import os
-from datetime import datetime
-from plotly.subplots import make_subplots
-import plotly.graph_objects as go
-from quat import eul2quat, quat2eul
-import sys
-sys.path.append("../models")
-import utils
-sys.path.append("../data")
-import load_events
-from enums import Tasks
-sys.path.append("../tracking")
-import load_experimental_data
 
-# import models.utils as utils
-# import data.load_events as load_events
-# import tracking.load_experimental_data as load_experimental_data
+import os
+import numpy as np
+from datetime import datetime
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from quat import eul2quat, quat2eul
+from data.enums import Tasks
+import data.load_events as load_events
+import models.utils as utils
+from models.enums import Models
+import tracking.load_experimental_data as load_experimental_data
 
 
 def prepare_ocp(
@@ -160,8 +154,10 @@ def main(
     n_shooting_points = 50
     nb_iteration = 10000
 
-    q_file_path = c3d_path.removesuffix(".c3d") + "_q.txt"
-    qdot_file_path = c3d_path.removesuffix(".c3d") + "_qdot.txt"
+    data_path = c3d_path.removesuffix(c3d_path.split("/")[-1])
+    file_path = data_path + Models.WU_INVERSE_KINEMATICS_XYZ.name + "_" + c3d_path.split("/")[-1].removesuffix(".c3d")
+    q_file_path = file_path + "_q.txt"
+    qdot_file_path = file_path + "_qdot.txt"
 
     thorax_values = utils.thorax_variables(q_file_path)  # load c3d floating base pose
     new_biomod_file = "../models/wu_converted_definitif_without_floating_base_template_quat_with_variables.bioMod"
