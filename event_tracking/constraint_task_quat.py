@@ -160,9 +160,9 @@ def main(
     qdot_file_path = file_path + "_qdot.txt"
 
     thorax_values = utils.thorax_variables(q_file_path)  # load c3d floating base pose
-    new_biomod_file = "../models/wu_converted_definitif_without_floating_base_template_quat_with_variables.bioMod"
-    model_path_without_floating_base = "../models/wu_converted_definitif_without_floating_base_template_quat.bioMod"
-    utils.add_header(model_path_without_floating_base, new_biomod_file, thorax_values)
+    model_template_path = Models.WU_WITHOUT_FLOATING_BASE_QUAT_TEMPLATE.value
+    new_biomod_file = model_template_path.removesuffix(".bioMod") + "_with_variables.bioMod"
+    utils.add_header(model_template_path, new_biomod_file, thorax_values)
 
     biorbd_model = biorbd.Model(new_biomod_file)
     marker_ref = [m.to_string() for m in biorbd_model.markerNames()]
