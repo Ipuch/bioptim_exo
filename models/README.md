@@ -43,27 +43,33 @@ The DOF associated to the sternoclavicular and scapular joints are eliminated.
 This model is used as a template in utils.
 
 ## WU_WITHOUT_FLOATING_BASE_FIXED_VARIABLES
-`WU_WITHOUT_FLOATING_BASE_FIXED_TEMPLATE` with a header introducing the RT values of the thorax
+`WU_WITHOUT_FLOATING_BASE_FIXED_TEMPLATE` with a header introducing the RT values of the thorax.
 
 ## WU_WITHOUT_FLOATING_BASE_OFFSET_TEMPLATE
 A rotation offset is introduced to the glenohumeral joint, allowing the shoulder to be located behind the frontal plane.
 
 ## WU_WITHOUT_FLOATING_BASE_OFFSET_VARIABLES
-`WU_WITHOUT_FLOATING_BASE_OFFSET_TEMPLATE` with a header introducing the RT values of the thorax
+`WU_WITHOUT_FLOATING_BASE_OFFSET_TEMPLATE` with a header introducing the RT values of the thorax.
 
 ## WU_WITHOUT_FLOATING_BASE_QUAT_TEMPLATE
 The XYZ rotations of the glenohumeral joint is replaced by a quaternion.
 This model is used as a template in utils.
 
 ## WU_WITHOUT_FLOATING_BASE_QUAT_VARIABLES
-`WU_WITHOUT_FLOATING_BASE_QUAT_TEMPLATE` with a header introducing the RT values of the thorax
+`WU_WITHOUT_FLOATING_BASE_QUAT_TEMPLATE` with a header introducing the RT values of the thorax.
+
+## WU_WITHOUT_FLOATING_BASE_QUAT_DEGROOTE_TEMPLATE
+This model is based on `WU_WITHOUT_FLOATING_BASE_QUAT_TEMPLATE` but uses degroote type muscles.
+
+## WU_WITHOUT_FLOATING_BASE_QUAT_DEGROOTE_VARIABLES
+`WU_WITHOUT_FLOATING_BASE_QUAT_DEGROOTE_TEMPLATE` with a header introducing the RT values of the thorax.
 
 ## WU_WITHOUT_MODIF
 This model is the wu model with almost no changement except for the range of q to allow convinient inverse kinematics with it. It comes from the converter Opensim to Biomod. It still has the 2 segment of the thorax that has been removed from the other model: thorax_rotation_transform and thorax_reset_axis.
 This model has thorax markers (MAN, XYP, C7, T10).
 
 ## WU_WITHOUT_MODIF_QUAT
-The XYZ rotations of the glenohumeral joint of the wu_converted_definitif_without_modif model are replaced by a quaternion
+The XYZ rotations of the glenohumeral joint of the wu_converted_definitif_without_modif model are replaced by a quaternion.
 
 ## WU_AND_KINOVA
 This is the model with KINOVA arm and wu model merged. The ulna is the parent of the KINOVA arm.

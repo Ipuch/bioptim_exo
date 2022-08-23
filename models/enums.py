@@ -31,6 +31,9 @@ class Models(Enum):
     WU_WITHOUT_FLOATING_BASE_QUAT_TEMPLATE = Path(__file__).parent.__str__() + "/wu_converted_definitif_without_floating_base_template_quat.bioMod"
     WU_WITHOUT_FLOATING_BASE_QUAT_VARIABLES = Path(__file__).parent.__str__() + "/wu_converted_definitif_without_floating_base_template_quat_with_variables.bioMod"
 
+    WU_WITHOUT_FLOATING_BASE_QUAT_DEGROOTE_TEMPLATE = Path(__file__).parent.__str__() + "/wu_converted_definitif_without_floating_base_template_quat_degroote.bioMod"
+    WU_WITHOUT_FLOATING_BASE_QUAT_DEGROOTE_VARIABLES = Path(__file__).parent.__str__() + "/wu_converted_definitif_without_floating_base_template_quat_degroote_with_variables.bioMod"
+
     WU_WITHOUT_MODIF = Path(__file__).parent.__str__() + "/wu_converted_definitif_without_modif.bioMod"
     WU_WITHOUT_MODIF_QUAT = Path(__file__).parent.__str__() + "/wu_converted_definitif_without_modif_quat.bioMod"
 
