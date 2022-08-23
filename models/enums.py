@@ -12,14 +12,27 @@ class Models(Enum):
     KINOVA_RIGHT = Path(__file__).parent.__str__() + "/KINOVA_arm_reverse_right.bioMod"
 
     WU = Path(__file__).parent.__str__() + "/wu_converted_definitif.bioMod"
+
     WU_INVERSE_KINEMATICS = Path(__file__).parent.__str__() + "/wu_converted_definitif_inverse_kinematics.bioMod"
     WU_INVERSE_KINEMATICS_XYZ = Path(__file__).parent.__str__() + "/wu_converted_definitif_inverse_kinematics_XYZ.bioMod"
+    WU_INVERSE_KINEMATICS_XYZ_OFFSET = Path(__file__).parent.__str__() + "/wu_converted_definitif_inverse_kinematics_XYZ_offset.bioMod"
+
     WU_WITHOUT_FLOATING_BASE = Path(__file__).parent.__str__() + "/wu_converted_definitif_without_floating_base.bioMod"
+
     WU_WITHOUT_FLOATING_BASE_TEMPLATE = Path(__file__).parent.__str__() + "/wu_converted_definitif_without_floating_base_template.bioMod"
-    WU_WITHOUT_FLOATING_BASE_FIXED_TEMPLATE = Path(__file__).parent.__str__() + "/wu_converted_definitif_without_floating_base_template_fixed.bioMod"
-    WU_WITHOUT_FLOATING_BASE_QUAT_TEMPLATE = Path(__file__).parent.__str__() + "/wu_converted_definitif_without_floating_base_template_quat.bioMod"
     WU_WITHOUT_FLOATING_BASE_VARIABLES = Path(__file__).parent.__str__() + "/wu_converted_definitif_without_floating_base_template_with_variables.bioMod"
-    WU_WITHOUT_FLOATING_BASE_QUAT_TEMPLATE_DEGROOTE = Path(__file__).parent.__str__() + "/wu_converted_definitif_without_floating_base_template_quat_degroote.bioMod"
+
+    WU_WITHOUT_FLOATING_BASE_FIXED_TEMPLATE = Path(__file__).parent.__str__() + "/wu_converted_definitif_without_floating_base_template_fixed.bioMod"
+    WU_WITHOUT_FLOATING_BASE_FIXED_VARIABLES = Path(__file__).parent.__str__() + "/wu_converted_definitif_without_floating_base_template_fixed_with_variables.bioMod"
+
+    WU_WITHOUT_FLOATING_BASE_OFFSET_TEMPLATE = Path(__file__).parent.__str__() + "/wu_converted_definitif_without_floating_base_template_xyz_offset.bioMod"
+    WU_WITHOUT_FLOATING_BASE_OFFSET_VARIABLES = Path(__file__).parent.__str__() + "/wu_converted_definitif_without_floating_base_template_xyz_offset_with_variables.bioMod"
+
+    WU_WITHOUT_FLOATING_BASE_QUAT_TEMPLATE = Path(__file__).parent.__str__() + "/wu_converted_definitif_without_floating_base_template_quat.bioMod"
+    WU_WITHOUT_FLOATING_BASE_QUAT_VARIABLES = Path(__file__).parent.__str__() + "/wu_converted_definitif_without_floating_base_template_quat_with_variables.bioMod"
+
+    WU_WITHOUT_FLOATING_BASE_QUAT_DEGROOTE_TEMPLATE = Path(__file__).parent.__str__() + "/wu_converted_definitif_without_floating_base_template_quat_degroote.bioMod"
+    WU_WITHOUT_FLOATING_BASE_QUAT_DEGROOTE_VARIABLES = Path(__file__).parent.__str__() + "/wu_converted_definitif_without_floating_base_template_quat_degroote_with_variables.bioMod"
 
     WU_WITHOUT_MODIF = Path(__file__).parent.__str__() + "/wu_converted_definitif_without_modif.bioMod"
     WU_WITHOUT_MODIF_QUAT = Path(__file__).parent.__str__() + "/wu_converted_definitif_without_modif_quat.bioMod"
