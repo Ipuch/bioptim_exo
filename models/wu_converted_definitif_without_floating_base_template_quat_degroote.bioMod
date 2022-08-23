@@ -566,7 +566,7 @@ musclegroup thorax_to_scapula
 endmusclegroup
 
     muscle    LVS
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    thorax_to_scapula
         OriginPosition    -0.041536716666663018 0.096506547611840299 0.029740878795655231
@@ -579,7 +579,7 @@ endmusclegroup
 
 
     muscle    TRP2
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    thorax_to_scapula
         OriginPosition    -0.086357423376308515 0.032146912290033754 0.0047085701051258859
@@ -592,7 +592,7 @@ endmusclegroup
 
 
     muscle    TRP3
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    thorax_to_scapula
         OriginPosition    -0.10273613003818795 -0.015742358624466459 0.0033060636219043784
@@ -605,7 +605,7 @@ endmusclegroup
 
 
     muscle    TRP4
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    thorax_to_scapula
         OriginPosition    -0.12928293308955918 -0.10787647734377875 0.00090187139109998351
@@ -618,7 +618,7 @@ endmusclegroup
 
 
     muscle    RMN
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    thorax_to_scapula
         OriginPosition    -0.07022550921825324 0.057187592949957788 0.0039577460936916446
@@ -631,7 +631,7 @@ endmusclegroup
 
 
     muscle    RMJ1
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    thorax_to_scapula
         OriginPosition    -0.088126214456110491 0.0096468328330147138 0.0018915123980710687
@@ -644,7 +644,7 @@ endmusclegroup
 
 
     muscle    RMJ2
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    thorax_to_scapula
         OriginPosition    -0.096978084158540173 -0.025547648190618666 0.0018915123980710687
@@ -657,7 +657,7 @@ endmusclegroup
 
 
     muscle    SRA1
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    thorax_to_scapula
         OriginPosition    -0.0010523025030605845 -0.057396674902749807 0.15807105973334637
@@ -670,7 +670,7 @@ endmusclegroup
 
 
     muscle    SRA2
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    thorax_to_scapula
         OriginPosition    -0.00069771049851455119 -0.10424564558292804 0.18182545178768364
@@ -683,7 +683,7 @@ endmusclegroup
 
 
     muscle    SRA3
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    thorax_to_scapula
         OriginPosition    -0.012677822326077483 -0.16536175149045362 0.19639391515856258
@@ -702,7 +702,7 @@ musclegroup thorax_to_clavicle
 endmusclegroup
 
     muscle    TRP1
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    thorax_to_clavicle
         OriginPosition    -0.065722270572367195 0.098971384709271193 0.0025392503162516224
@@ -715,7 +715,7 @@ endmusclegroup
 
 
     muscle    SBCL
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    thorax_to_clavicle
         OriginPosition    -0.0010342790703851887 -0.013488136338719032 0.051617188403666012
@@ -734,7 +734,7 @@ musclegroup scapula_to_thorax
 endmusclegroup
 
     muscle    PMN
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    scapula_to_thorax
         OriginPosition    0.013222108503028402 -0.043037572473636855 -0.027293980224389395
@@ -753,7 +753,7 @@ musclegroup humerus_to_clavicle
 endmusclegroup
 
     muscle    DELT1
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    humerus_to_clavicle
         OriginPosition    0.0048723138024625101 -0.11109013545454606 0.0066864939012261631
@@ -772,7 +772,7 @@ endmusclegroup
         endviapoint
 
     muscle    PECM1
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    humerus_to_clavicle
         OriginPosition    0.017099175242404806 -0.043277691928990766 0.0043109967436043639
@@ -797,7 +797,7 @@ musclegroup humerus_to_scapula
 endmusclegroup
 
     muscle    DELT2
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    humerus_to_scapula
         OriginPosition    0.0048723138024625101 -0.11109013545454606 0.0066864939012261631
@@ -822,7 +822,7 @@ endmusclegroup
         endviapoint
 
     muscle    SUPSP
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    humerus_to_scapula
         OriginPosition    0.015234189572684765 0.018001477345977453 0.018057730719740213
@@ -847,7 +847,7 @@ endmusclegroup
         endviapoint
 
     muscle    INFSP
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    humerus_to_scapula
         OriginPosition    -0.0054477651712765912 0.0085932653269622204 0.022759217548380263
@@ -866,7 +866,7 @@ endmusclegroup
         endviapoint
 
     muscle    SUBSC
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    humerus_to_scapula
         OriginPosition    0.021373434703779681 -0.0088827329898470801 -0.0015077538670886519
@@ -891,7 +891,7 @@ endmusclegroup
         endviapoint
 
     muscle    TMIN
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    humerus_to_scapula
         OriginPosition    0.0070067397260647436 -0.0039052058247211478 0.018690843701505953
@@ -916,7 +916,7 @@ endmusclegroup
         endviapoint
 
     muscle    TMAJ
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    humerus_to_scapula
         OriginPosition    0.0039531155763534607 -0.048091430369263513 -0.0058310886833732112
@@ -941,7 +941,7 @@ musclegroup scapula_to_humerus
 endmusclegroup
 
     muscle    DELT3
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    scapula_to_humerus
         OriginPosition    -0.065077565288342909 -0.0016358970272623908 -0.039583063944877483
@@ -966,7 +966,7 @@ endmusclegroup
         endviapoint
 
     muscle    CORB
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    scapula_to_humerus
         OriginPosition    0.013773029690654585 -0.043037572473636855 -0.027293980224389395
@@ -985,7 +985,7 @@ musclegroup humerus_to_thorax
 endmusclegroup
 
     muscle    PECM2
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    humerus_to_thorax
         OriginPosition    0.017099175242404806 -0.037934199665739264 0.0043109967436043639
@@ -1004,7 +1004,7 @@ endmusclegroup
         endviapoint
 
     muscle    PECM3
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    humerus_to_thorax
         OriginPosition    0.017099175242404806 -0.032060953579509006 0.0043109967436043639
@@ -1023,7 +1023,7 @@ endmusclegroup
         endviapoint
 
     muscle    LAT
-        Type    hillthelen
+        Type    hilldegroote
         //statetype    buchanan
         musclegroup    humerus_to_thorax
         OriginPosition    0.010598838278128407 -0.023867990631956014 -0.0076063226544155395
