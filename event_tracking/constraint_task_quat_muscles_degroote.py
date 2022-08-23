@@ -142,8 +142,8 @@ def main(
     qdot_file_path = file_path + "_qdot.txt"
 
     thorax_values = utils.thorax_variables(q_file_path)  # load c3d floating base pose
-    model_template_path = Models.WU_WITHOUT_FLOATING_BASE_QUAT_TEMPLATE_DEGROOTE.value
-    new_biomod_file = model_template_path.removesuffix(".bioMod") + "_with_variables.bioMod"
+    model_template_path = Models.WU_WITHOUT_FLOATING_BASE_QUAT_DEGROOTE_TEMPLATE.value
+    new_biomod_file = Models.WU_WITHOUT_FLOATING_BASE_QUAT_DEGROOTE_VARIABLES
     utils.add_header(model_template_path, new_biomod_file, thorax_values)
 
     biorbd_model = biorbd.Model(new_biomod_file)
