@@ -39,7 +39,7 @@ def prepare_ocp(
     use_sx: bool = False,
     n_threads: int = 4,
     phase_time: float = 1,
-    ) -> object:
+) -> object:
     biorbd_model = biorbd.Model(biorbd_model_path), biorbd.Model(biorbd_model_path)
     n_q = biorbd_model[0].nbQ()
     n_qdot = biorbd_model[0].nbQdot()
@@ -59,8 +59,12 @@ def prepare_ocp(
         if task == Tasks.TEETH:
             print("dents!")
             objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=5, phase=i)
-            objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", derivative=True, weight=1000, phase=i)
-            objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[0, 1, 2], weight=1000, phase=i)
+            objective_functions.add(
+                ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", derivative=True, weight=1000, phase=i
+            )
+            objective_functions.add(
+                ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[0, 1, 2], weight=1000, phase=i
+            )
             objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[3, 4], weight=100, phase=i)
             objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="qdot", weight=300, phase=i)
             objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", weight=50, phase=i)
@@ -68,8 +72,12 @@ def prepare_ocp(
         elif task == Tasks.DRINK:
             print("boire!")
             objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=3, phase=i)
-            objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", derivative=True, weight=1000, phase=i)
-            objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[0, 1, 2], weight=1000, phase=i)
+            objective_functions.add(
+                ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", derivative=True, weight=1000, phase=i
+            )
+            objective_functions.add(
+                ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[0, 1, 2], weight=1000, phase=i
+            )
             objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[3, 4], weight=100, phase=i)
             objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", weight=50, phase=i)
             objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="qdot", weight=1000, phase=i)
@@ -86,8 +94,12 @@ def prepare_ocp(
         elif task == Tasks.HEAD:
             print("tete!")
             objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=5, phase=i)
-            objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", derivative=True, weight=1000, phase=i)
-            objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[0, 1, 2], weight=1000, phase=i)
+            objective_functions.add(
+                ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", derivative=True, weight=1000, phase=i
+            )
+            objective_functions.add(
+                ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[0, 1, 2], weight=1000, phase=i
+            )
             objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[3, 4], weight=100, phase=i)
             objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", weight=50)
             objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="qdot", weight=1000, phase=i)
@@ -102,12 +114,18 @@ def prepare_ocp(
 
         elif task == Tasks.EAT:
             print("manger!")
-            objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[0, 1, 2], weight=1000, phase=i)
+            objective_functions.add(
+                ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[0, 1, 2], weight=1000, phase=i
+            )
             objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[3, 4], weight=100, phase=i)
             objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="qdot", weight=300, phase=i)
             objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=1.5, phase=i)
-            objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", derivative=True, weight=1000, phase=i)
-            objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", derivative=True, weight=1000, phase=i)
+            objective_functions.add(
+                ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", derivative=True, weight=1000, phase=i
+            )
+            objective_functions.add(
+                ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", derivative=True, weight=1000, phase=i
+            )
             if track_markers:
                 print("tracking markers manger")
                 objective_functions.add(
@@ -121,10 +139,16 @@ def prepare_ocp(
         elif task == Tasks.ARMPIT:
             print("aisselle!")
             objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=5, phase=i)
-            objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", derivative=True, weight=1000, phase=i)
-            objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[0, 1, 2, 3, 4], weight=1000, phase=i)
+            objective_functions.add(
+                ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", derivative=True, weight=1000, phase=i
+            )
+            objective_functions.add(
+                ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[0, 1, 2, 3, 4], weight=1000, phase=i
+            )
             objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="qdot", weight=300, phase=i)
-            objective_functions.add(ObjectiveFcn.Mayer.MINIMIZE_STATE, key="qdot", node=Node.START, derivative=True, weight=100, phase=i)
+            objective_functions.add(
+                ObjectiveFcn.Mayer.MINIMIZE_STATE, key="qdot", node=Node.START, derivative=True, weight=100, phase=i
+            )
             if track_markers:
                 print("tracking markers.")
                 objective_functions.add(
@@ -184,7 +208,7 @@ def prepare_ocp(
 def main(
     task: any,
     track_markers: bool,
-    ):
+):
     """
     Get data, then create a tracking problem, and finally solve it and plot some relevant information
     """

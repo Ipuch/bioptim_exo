@@ -29,17 +29,17 @@ import tracking.load_experimental_data as load_experimental_data
 
 
 def prepare_ocp(
-        biorbd_model_path: str,
-        task: any,
-        track_markers: bool,
-        n_shooting: int,
-        x_init_ref: np.array,
-        u_init_ref: np.array,
-        target: any,
-        ode_solver: OdeSolver = OdeSolver.RK4(),
-        use_sx: bool = False,
-        n_threads: int = 16,
-        phase_time: float = 1,
+    biorbd_model_path: str,
+    task: any,
+    track_markers: bool,
+    n_shooting: int,
+    x_init_ref: np.array,
+    u_init_ref: np.array,
+    target: any,
+    ode_solver: OdeSolver = OdeSolver.RK4(),
+    use_sx: bool = False,
+    n_threads: int = 16,
+    phase_time: float = 1,
 ) -> object:
     biorbd_model = biorbd.Model(biorbd_model_path)
     nb_q = biorbd_model.nbQ()
@@ -98,8 +98,11 @@ def prepare_ocp(
     if track_markers:
         print("tracking markers")
         objective_functions.add(
-            ObjectiveFcn.Mayer.TRACK_MARKERS, weight=100, marker_index=[10, 12, 13, 14, 15], target=target,
-            node=Node.ALL
+            ObjectiveFcn.Mayer.TRACK_MARKERS,
+            weight=100,
+            marker_index=[10, 12, 13, 14, 15],
+            target=target,
+            node=Node.ALL,
         )
 
     # Dynamics
@@ -117,7 +120,7 @@ def prepare_ocp(
     x_bounds.max[nb_q:, 0] = [1e-3] * biorbd_model.nbQdot()
     x_bounds.min[nb_q:, -1] = [-1e-1] * biorbd_model.nbQdot()
     x_bounds.max[nb_q:, -1] = [1e-1] * biorbd_model.nbQdot()
-    x_bounds.min[8:10, 1], x_bounds.min[10, 1] = x_bounds.min[9:11, 1],  -1
+    x_bounds.min[8:10, 1], x_bounds.min[10, 1] = x_bounds.min[9:11, 1], -1
     x_bounds.max[8:10, 1], x_bounds.max[10, 1] = x_bounds.max[9:11, 1], 1
 
     n_tau = biorbd_model.nbGeneralizedTorque()
@@ -141,8 +144,8 @@ def prepare_ocp(
 
 
 def main(
-        task: any,
-        track_markers: bool,
+    task: any,
+    track_markers: bool,
 ):
     """
     Get data, then create a tracking problem, and finally solve it and plot some relevant information

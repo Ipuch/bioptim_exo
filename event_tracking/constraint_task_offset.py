@@ -104,13 +104,15 @@ def main(task: str):
 
     c3d_path = task.value
     data_path = c3d_path.removesuffix(c3d_path.split("/")[-1])
-    file_path = data_path + Models.WU_INVERSE_KINEMATICS_XYZ_OFFSET.name + "_" + c3d_path.split("/")[-1].removesuffix(".c3d")
+    file_path = (
+        data_path + Models.WU_INVERSE_KINEMATICS_XYZ_OFFSET.name + "_" + c3d_path.split("/")[-1].removesuffix(".c3d")
+    )
     q_file_path = file_path + "_q.txt"
     qdot_file_path = file_path + "_qdot.txt"
 
     thorax_values = utils.thorax_variables(q_file_path)  # load c3d floating base pose
-    model_template_path = "../models/wu_converted_definitif_without_floating_base_template_xyz_offset.bioMod" # Models.WU_WITHOUT_FLOATING_BASE_TEMPLATE.value
-    new_biomod_file = model_template_path.removesuffix(".bioMod") + "_with_variables.bioMod"
+    model_template_path = Models.WU_WITHOUT_FLOATING_BASE_OFFSET_TEMPLATE
+    new_biomod_file = Models.WU_WITHOUT_FLOATING_BASE_OFFSET_VARIABLES
     utils.add_header(model_template_path, new_biomod_file, thorax_values)
 
     biorbd_model = biorbd.Model(new_biomod_file)

@@ -61,7 +61,6 @@ def prepare_ocp(
     else:
         raise NotImplementedError("This task is not implemented yet.")
 
-
     # Dynamics
     dynamics = Dynamics(DynamicsFcn.MUSCLE_DRIVEN, with_torque=True)
 

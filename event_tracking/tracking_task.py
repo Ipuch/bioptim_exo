@@ -123,7 +123,7 @@ def main(task):
         phase_time=[phase_time],
         start=start_frame,
         end=end_frame,
-        with_floating_base=False
+        with_floating_base=False,
     )
     x_init_ref = np.concatenate([q_ref[0], qdot_ref[0]])
 

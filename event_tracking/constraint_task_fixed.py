@@ -24,7 +24,6 @@ import data.load_events as load_events
 import tracking.load_experimental_data as load_experimental_data
 
 
-
 def prepare_ocp(
     biorbd_model_path: str,
     c3d_path: str,
@@ -132,7 +131,6 @@ def main(task):
         start=start_frame,
         end=end_frame,
     )
-
 
     # load initial guesses
     q_ref, qdot_ref, tau_ref = data.get_variables_ref(
