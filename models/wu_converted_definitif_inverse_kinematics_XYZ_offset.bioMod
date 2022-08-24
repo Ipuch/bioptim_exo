@@ -268,7 +268,7 @@ gravity	0 0 -9.81
         RT	-pi 0.0 -1.0	xyz	-0.010522594683660102 -0.03545620218327243 0.009262662972077848 // 1.45 -0.3 1.5
         rotations xyz
         //ranges		0.0	3.0
-        ranges		0  2*pi  -pi/2  3.0  -1   pi+1
+        ranges		0  2*pi  -pi/2  3.0  -2*pi   0
     endsegment
 
     // Segment to cancel transformation bases effect.
