@@ -32,8 +32,8 @@ except ModuleNotFoundError:
 from models.enums import Models
 
 # Load a predefined model
-model = Models.WU_INVERSE_KINEMATICS
-model_path_without_kinova = model.value
+model = Models.WU_INVERSE_KINEMATICS_XYZ_OFFSET
+model_path_without_kinova = "/home/lim/Documents/Stage_Thasaarah/bioptim_exo/models/wu_converted_definitif_inverse_kinematics_XYZ_offset.bioMod"
 model_without_kinova = biorbd.Model(model_path_without_kinova)
 
 file_path = Path("")
@@ -86,7 +86,7 @@ for file in file_list:
 
         qdot_recons[:, i] = Qdot.to_array()
         qddot_recons[:, i] = Qddot.to_array()
-        tau_recons[:, i] = tau.to_array()
+        tau_recons[:, i] = model_without_kinova.InverseDynamics(q_recons[:, i], qdot_recons[:, i], qddot_recons[:, i]).to_array()
 
     q_recons_old = q_recons.copy()
 
