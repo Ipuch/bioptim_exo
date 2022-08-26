@@ -47,9 +47,9 @@ def plot(task, solution_tau: str, solution_muscles: str, solution_offset: str):
         "scapular upward(-)/downward(+) rotation",
         "scapular protraction(+)/retraction(-)",
         "scapular elevation(-)/depression(+)",
-        "shoulder",
+        "shoulder flexion(+)/extension(-)",  # ??
         "shoulder abduction(+)/adduction(-)",
-        "shoulder",
+        "shoulder internal(+)/external(-) rotation",  # ??
         "elbow flexion(+)/extension(-)",
         "wrist pronation(+)/supination(-)",
     ]
@@ -133,20 +133,18 @@ def plot(task, solution_tau: str, solution_muscles: str, solution_offset: str):
     for n in range(3):
         ratio = 1 if n == 2 else 180 / np.pi
         fig = make_subplots(rows=5, cols=3, subplot_titles=names)
-        j = 0
         x_ik = np.linspace(0, phase_time, end_frame - start_frame + 1)
         x_tau = np.linspace(0, phase_time, n_shooting_tau)
         x_offset = np.linspace(0, phase_time, n_shooting_offset)
         x_muscles = np.linspace(0, phase_time, n_shooting_muscles)
         for i in range(q_ik.shape[0]):
             showlegend = True if i == 0 else False
-            ii = i - j * 4
             fig.add_trace(
                 go.Scatter(
                     x=x_ik,
                     y=y_ik[n][i] * ratio,
                     legendgroup="1",
-                    name="inverse kinematics",
+                    name="inverse kinematics" if n == 2 else "inverse kinematics xyz",
                     showlegend=showlegend,
                     line=dict(color=colors[0]),
                 ),
@@ -170,7 +168,7 @@ def plot(task, solution_tau: str, solution_muscles: str, solution_offset: str):
                     x=x_tau,
                     y=y_tau[n][i] * ratio,
                     legendgroup="3",
-                    name="torque driven",
+                    name="torque driven with quaternion",
                     showlegend=showlegend,
                     line=dict(color=colors[2]),
                 ),
@@ -201,12 +199,9 @@ def plot(task, solution_tau: str, solution_muscles: str, solution_offset: str):
                 row=rows[i],
                 col=columns[i],
             )
-            if ii == 3:
-                j += 1
 
         fig.update_layout(
             height=1000,
-            # width=1800,
             title={"text": f"{task.name} : {title[n]}", "y": 1, "x": 0.5, "xanchor": "center", "yanchor": "top"},
             template="simple_white",
         )
@@ -217,28 +212,28 @@ def plot(task, solution_tau: str, solution_muscles: str, solution_offset: str):
 
 # plot(
 #     Tasks.TEETH,
-#     "solutions/torque_driven/without_tracking_markers/dents/F0_dents_05_2022_08_25_16_58_37_810470.bo",
+#     "solutions/torque_driven_quat/dents/F0_dents_05_2022_08_25_16_58_37_810470.bo",
 #     "solutions/muscle_driven/dents/F0_dents_05_2022_08_17_19_38_12_717853.bo",
 #     "solutions/torque_driven_offset/dents/F0_dents_05_2022_08_26_13_53_24_362296.bo"
 #      )
 
 # plot(
 #     Tasks.EAT,
-#     "solutions/torque_driven/without_tracking_markers/manger/F0_manger_05_2022_08_25_18_01_43_130921.bo",
+#     "solutions/torque_driven_quat/manger/F0_manger_05_2022_08_25_18_01_43_130921.bo",
 #     "solutions/muscle_driven/manger/F0_manger_05_2022_08_23_19_26_42_078272.bo",
 #     "solutions/torque_driven_offset/manger/F0_manger_05_2022_08_26_14_48_55_312670.bo"
 # )
 
 # plot(
 #     Tasks.HEAD,
-#     "solutions/torque_driven/without_tracking_markers/tete/F0_tete_05_2022_08_25_17_18_04_468630.bo",
+#     "solutions/torque_driven_quat/tete/F0_tete_05_2022_08_25_17_18_04_468630.bo",
 #     "solutions/muscle_driven/tete/F0_tete_05_2022_08_24_10_55_31_451971.bo",
 #     "solutions/torque_driven_offset/tete/F0_tete_05_2022_08_26_13_58_21_171507.bo"
 # )
 
 plot(
     Tasks.ARMPIT,
-    "solutions/torque_driven/without_tracking_markers/aisselle/F0_aisselle_05_2022_08_25_16_14_00_581409.bo",
+    "solutions/torque_driven_quat/aisselle/F0_aisselle_05_2022_08_25_16_14_00_581409.bo",
     "solutions/muscle_driven/aisselle/F0_aisselle_05_2022_08_26_10_01_36_700173.bo",
     "solutions/torque_driven_offset/aisselle/F0_aisselle_05_2022_08_26_14_05_20_110908.bo",
 )
