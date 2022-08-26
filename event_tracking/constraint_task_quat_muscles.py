@@ -29,6 +29,9 @@ import models.utils as utils
 from models.enums import Models
 import tracking.load_experimental_data as load_experimental_data
 
+"""
+Did not converge.
+"""
 
 def prepare_ocp(
     biorbd_model_path: str,
@@ -227,8 +230,8 @@ def prepare_ocp(
 
 
 def main(
-    task: any,
-    track_markers: bool,
+    task: Tasks = None,
+    track_markers: bool = False,
 ):
     """
     Get data, then create a tracking problem, and finally solve it and plot some relevant information

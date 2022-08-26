@@ -144,8 +144,8 @@ def prepare_ocp(
 
 
 def main(
-    task: any,
-    track_markers: bool,
+    task: Tasks = None,
+    track_markers: bool = False,
 ):
     """
     Get data, then create a tracking problem, and finally solve it and plot some relevant information
@@ -153,7 +153,6 @@ def main(
 
     # Define the problem
     c3d_path = task.value
-    # todo: manger, aisselle, dessiner
     n_shooting_points = 50
     nb_iteration = 10000
 
@@ -196,8 +195,10 @@ def main(
         start=int(start_frame),
         end=int(end_frame),
     )
+
     x_init_ref = np.concatenate([q_ref[0][6:, :], qdot_ref[0][6:, :]])  # without floating base
     u_init_ref = tau_ref[0][6:, :]
+
     nb_q = biorbd_model.nbQ()
     nb_qdot = biorbd_model.nbQdot()
     x_init_quat = np.vstack((np.zeros((nb_q, n_shooting_points + 1)), np.ones((nb_qdot, n_shooting_points + 1))))
@@ -261,8 +262,8 @@ def main(
 
 
 if __name__ == "__main__":
-    main(task=Tasks.TEETH, track_markers=True)
-    main(task=Tasks.DRINK, track_markers=True)
-    main(task=Tasks.HEAD, track_markers=True)
-    main(task=Tasks.EAT, track_markers=True)
-    main(task=Tasks.ARMPIT, track_markers=True)
+    main(task=Tasks.TEETH, track_markers=False)
+    main(task=Tasks.DRINK, track_markers=False)
+    main(task=Tasks.HEAD, track_markers=False)
+    main(task=Tasks.EAT, track_markers=False)
+    main(task=Tasks.ARMPIT, track_markers=False)

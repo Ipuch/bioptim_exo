@@ -206,8 +206,8 @@ def prepare_ocp(
 
 
 def main(
-    task: any,
-    track_markers: bool,
+    task: Tasks = None,
+    track_markers: bool = False,
 ):
     """
     Get data, then create a tracking problem, and finally solve it and plot some relevant information

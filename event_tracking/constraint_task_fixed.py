@@ -94,7 +94,7 @@ def prepare_ocp(
     )
 
 
-def main(task):
+def main(task: Tasks = None):
     """
     Get data, then create a tracking problem, and finally solve it and plot some relevant information
     """
