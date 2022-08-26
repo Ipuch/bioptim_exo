@@ -33,6 +33,7 @@ import tracking.load_experimental_data as load_experimental_data
 Did not converge.
 """
 
+
 def prepare_ocp(
     biorbd_model_path: str,
     task: any,

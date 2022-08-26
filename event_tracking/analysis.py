@@ -40,18 +40,19 @@ def plot(task, solution_tau: str, solution_muscles: str, solution_offset: str):
     m = biorbd.Model(Models.WU_WITHOUT_FLOATING_BASE_VARIABLES.value)
     marker_ref = [m.to_string() for m in m.markerNames()]
     # names = [i.to_string() for i in m.nameDof()]
-    names = ["sterno-clavicular protraction(+)/retraction(-)",
-             "sterno-clavicular elevation(+)/depression(-)",
-             None,
-             "scapular upward(-)/downward(+) rotation",
-             "scapular protraction(+)/retraction(-)",
-             "scapular elevation(-)/depression(+)",
-             "shoulder",
-             "shoulder abduction(+)/adduction(-)",
-             "shoulder",
-             "elbow flexion(+)/extension(-)",
-             "wrist pronation(+)/supination(-)",
-             ]
+    names = [
+        "sterno-clavicular protraction(+)/retraction(-)",
+        "sterno-clavicular elevation(+)/depression(-)",
+        None,
+        "scapular upward(-)/downward(+) rotation",
+        "scapular protraction(+)/retraction(-)",
+        "scapular elevation(-)/depression(+)",
+        "shoulder",
+        "shoulder abduction(+)/adduction(-)",
+        "shoulder",
+        "elbow flexion(+)/extension(-)",
+        "wrist pronation(+)/supination(-)",
+    ]
 
     event = load_events.LoadEvent(c3d_path=c3d_path, marker_list=marker_ref)
 
@@ -130,7 +131,7 @@ def plot(task, solution_tau: str, solution_muscles: str, solution_offset: str):
     columns = [1, 2, 1, 2, 3, 1, 2, 3, 1, 2]
 
     for n in range(3):
-        ratio = 1 if n == 2 else 180/np.pi
+        ratio = 1 if n == 2 else 180 / np.pi
         fig = make_subplots(rows=5, cols=3, subplot_titles=names)
         j = 0
         x_ik = np.linspace(0, phase_time, end_frame - start_frame + 1)
@@ -143,7 +144,7 @@ def plot(task, solution_tau: str, solution_muscles: str, solution_offset: str):
             fig.add_trace(
                 go.Scatter(
                     x=x_ik,
-                    y=y_ik[n][i]*ratio,
+                    y=y_ik[n][i] * ratio,
                     legendgroup="1",
                     name="inverse kinematics",
                     showlegend=showlegend,
@@ -155,7 +156,7 @@ def plot(task, solution_tau: str, solution_muscles: str, solution_offset: str):
             fig.add_trace(
                 go.Scatter(
                     x=x_ik,
-                    y=y_ik_offset[n][i]*ratio,
+                    y=y_ik_offset[n][i] * ratio,
                     legendgroup="2",
                     name="inverse kinematics with offset",
                     showlegend=showlegend,
@@ -167,7 +168,7 @@ def plot(task, solution_tau: str, solution_muscles: str, solution_offset: str):
             fig.add_trace(
                 go.Scatter(
                     x=x_tau,
-                    y=y_tau[n][i]*ratio,
+                    y=y_tau[n][i] * ratio,
                     legendgroup="3",
                     name="torque driven",
                     showlegend=showlegend,
@@ -179,7 +180,7 @@ def plot(task, solution_tau: str, solution_muscles: str, solution_offset: str):
             fig.add_trace(
                 go.Scatter(
                     x=x_muscles,
-                    y=y_muscles[n][i]*ratio,
+                    y=y_muscles[n][i] * ratio,
                     legendgroup="4",
                     name="muscle driven",
                     showlegend=showlegend,
@@ -191,7 +192,7 @@ def plot(task, solution_tau: str, solution_muscles: str, solution_offset: str):
             fig.add_trace(
                 go.Scatter(
                     x=x_offset,
-                    y=y_offset[n][i]*ratio,
+                    y=y_offset[n][i] * ratio,
                     legendgroup="5",
                     name="torque driven with offset",
                     showlegend=showlegend,
@@ -207,7 +208,6 @@ def plot(task, solution_tau: str, solution_muscles: str, solution_offset: str):
             height=1000,
             # width=1800,
             title={"text": f"{task.name} : {title[n]}", "y": 1, "x": 0.5, "xanchor": "center", "yanchor": "top"},
-
             template="simple_white",
         )
         fig.update_xaxes(title_text="time (s)")
@@ -240,5 +240,5 @@ plot(
     Tasks.ARMPIT,
     "solutions/torque_driven/without_tracking_markers/aisselle/F0_aisselle_05_2022_08_25_16_14_00_581409.bo",
     "solutions/muscle_driven/aisselle/F0_aisselle_05_2022_08_26_10_01_36_700173.bo",
-    "solutions/torque_driven_offset/aisselle/F0_aisselle_05_2022_08_26_14_05_20_110908.bo"
+    "solutions/torque_driven_offset/aisselle/F0_aisselle_05_2022_08_26_14_05_20_110908.bo",
 )
