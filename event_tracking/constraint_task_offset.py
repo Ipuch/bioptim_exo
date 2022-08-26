@@ -40,6 +40,7 @@ def prepare_ocp(
 
     # Add objective functions
     objective_functions = ObjectiveList()
+    objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=3)
     objective_functions.add(
         ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", index=range(5), weight=100, derivative=True
     )
@@ -178,7 +179,7 @@ def main(task: str):
 
     # --- Plot --- #
     # sol.graphs(show_bounds=True)
-    # todo: animate first and last frame with markers
+
     sol.animate(n_frames=100)
 
 
@@ -187,4 +188,4 @@ if __name__ == "__main__":
     main(Tasks.DRINK)
     main(Tasks.HEAD)
     main(Tasks.ARMPIT)
-    # main(Tasks.EAT)  # Invalid number in NLP function or derivative detected.
+    main(Tasks.EAT)
