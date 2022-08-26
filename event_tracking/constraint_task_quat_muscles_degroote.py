@@ -58,6 +58,36 @@ def prepare_ocp(
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=15)
         objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", derivative=True, weight=1500)
 
+    elif task == Tasks.EAT or task == Tasks.HEAD:
+        print(task.name)
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=range(5), weight=200)
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="qdot", weight=50)
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="qdot", derivative=True, weight=0.5)  # added
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="muscles", weight=1000)
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=15)
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", derivative=True, weight=1500)
+
+    elif task == Tasks.ARMPIT:
+        print(task.name)
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=range(5), weight=200)
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="qdot", weight=800)  # was 5
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="qdot", derivative=True, weight=0.5)  # added
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="muscles", weight=1000)
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=10)
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", derivative=True, weight=1500)
+
+    elif task == Tasks.DRINK:
+        # converges but solution isn't adequate yet
+        print(task.name)
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=range(5), weight=200)
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="qdot", weight=150)
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="qdot", derivative=True, weight=.5)
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="muscles", weight=1000)
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", weight=10)
+        objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="tau", derivative=True, weight=1500)
+        # tried minimizing the derivative of qdot without minimizing qdot
+        # tried minimizing tau index = 8
+
     else:
         raise NotImplementedError("This task is not implemented yet.")
 
@@ -71,6 +101,7 @@ def prepare_ocp(
     x_bounds.min[:nb_q, -1] = x_init_ref[:nb_q, -1] - 0.1 * np.ones(x_init_ref[:nb_q, -1].shape)
     x_bounds.max[:nb_q, -1] = x_init_ref[:nb_q, -1] + 0.1 * np.ones(x_init_ref[:nb_q, -1].shape)
 
+    # norm of the quaternion should be 1 at the start and at the end
     x_bounds.min[5:8, 0] = x_init_ref[5:8, 0]
     x_bounds.max[5:8, 0] = x_init_ref[5:8, 0]
     x_bounds.min[5:8, -1] = x_init_ref[5:8, -1]
@@ -88,7 +119,7 @@ def prepare_ocp(
     x_bounds.min[8:10, 1], x_bounds.min[10, 1] = x_bounds.min[9:11, 1], -1
     x_bounds.max[8:10, 1], x_bounds.max[10, 1] = x_bounds.max[9:11, 1], 1
 
-    muscle_min, muscle_max, muscle_init = 0, 5, 0.05
+    muscle_min, muscle_max, muscle_init = 0, 1, 0.05
 
     # initial guesses
     x_init = InitialGuess(x_init_ref, interpolation=InterpolationType.EACH_FRAME)
