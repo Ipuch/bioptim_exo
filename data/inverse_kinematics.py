@@ -32,8 +32,8 @@ except ModuleNotFoundError:
 from models.enums import Models
 
 # Load a predefined model
-model = Models.WU_INVERSE_KINEMATICS_XYZ_OFFSET
-model_path_without_kinova = "/home/lim/Documents/Stage_Thasaarah/bioptim_exo/models/wu_converted_definitif_inverse_kinematics_XYZ_offset.bioMod"
+model = Models.WU_INVERSE_KINEMATICS
+model_path_without_kinova = model.value
 model_without_kinova = biorbd.Model(model_path_without_kinova)
 
 file_path = Path("")
