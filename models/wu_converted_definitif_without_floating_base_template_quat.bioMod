@@ -567,7 +567,7 @@ endmusclegroup
 
     muscle    LVS
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    thorax_to_scapula
         OriginPosition    -0.041536716666663018 0.096506547611840299 0.029740878795655231
         InsertionPosition    -0.074536441342934384 0.00070113179856154861 -0.098445125844405401
@@ -580,7 +580,7 @@ endmusclegroup
 
     muscle    TRP2
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    thorax_to_scapula
         OriginPosition    -0.086357423376308515 0.032146912290033754 0.0047085701051258859
         InsertionPosition    -0.042971852634842302 -0.0026922728581339535 -0.010291847746753166
@@ -593,7 +593,7 @@ endmusclegroup
 
     muscle    TRP3
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    thorax_to_scapula
         OriginPosition    -0.10273613003818795 -0.015742358624466459 0.0033060636219043784
         InsertionPosition    -0.06428589154172408 -0.0067883401870617414 -0.045711962196546461
@@ -606,7 +606,7 @@ endmusclegroup
 
     muscle    TRP4
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    thorax_to_scapula
         OriginPosition    -0.12928293308955918 -0.10787647734377875 0.00090187139109998351
         InsertionPosition    -0.087256991196747902 -0.01349828045411941 -0.081202781640359947
@@ -619,7 +619,7 @@ endmusclegroup
 
     muscle    RMN
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    thorax_to_scapula
         OriginPosition    -0.07022550921825324 0.057187592949957788 0.0039577460936916446
         InsertionPosition    -0.087108352660326363 -0.013716544663441731 -0.10318503632417257
@@ -632,7 +632,7 @@ endmusclegroup
 
     muscle    RMJ1
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    thorax_to_scapula
         OriginPosition    -0.088126214456110491 0.0096468328330147138 0.0018915123980710687
         InsertionPosition    -0.099542974417761887 -0.044074562104549977 -0.10721841145612515
@@ -645,7 +645,7 @@ endmusclegroup
 
     muscle    RMJ2
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    thorax_to_scapula
         OriginPosition    -0.096978084158540173 -0.025547648190618666 0.0018915123980710687
         InsertionPosition    -0.11018423752523668 -0.10324011812188148 -0.099830923143505723
@@ -658,7 +658,7 @@ endmusclegroup
 
     muscle    SRA1
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    thorax_to_scapula
         OriginPosition    -0.0010523025030605845 -0.057396674902749807 0.15807105973334637
         InsertionPosition    -0.096796632297445367 -0.049270042836822958 -0.10145250667448415
@@ -671,7 +671,7 @@ endmusclegroup
 
     muscle    SRA2
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    thorax_to_scapula
         OriginPosition    -0.00069771049851455119 -0.10424564558292804 0.18182545178768364
         InsertionPosition    -0.10258163532023287 -0.064957952341654634 -0.10139353438689526
@@ -684,7 +684,7 @@ endmusclegroup
 
     muscle    SRA3
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    thorax_to_scapula
         OriginPosition    -0.012677822326077483 -0.16536175149045362 0.19639391515856258
         InsertionPosition    -0.10675034576276267 -0.080734606634892098 -0.10110958230756233
@@ -703,7 +703,7 @@ endmusclegroup
 
     muscle    TRP1
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    thorax_to_clavicle
         OriginPosition    -0.065722270572367195 0.098971384709271193 0.0025392503162516224
         InsertionPosition    -0.039102568757620998 0.031751907427820809 0.12556775938664511
@@ -716,7 +716,7 @@ endmusclegroup
 
     muscle    SBCL
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    thorax_to_clavicle
         OriginPosition    -0.0010342790703851887 -0.013488136338719032 0.051617188403666012
         InsertionPosition    -0.020124829955891866 0.01161079634302516 0.096752972724880704
@@ -735,7 +735,7 @@ endmusclegroup
 
     muscle    PMN
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    scapula_to_thorax
         OriginPosition    0.013222108503028402 -0.043037572473636855 -0.027293980224389395
         InsertionPosition    0.036166137247400421 -0.076722857615396253 0.11796471199344295
@@ -754,7 +754,7 @@ endmusclegroup
 
     muscle    DELT1
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    humerus_to_clavicle
         OriginPosition    0.0048723138024625101 -0.11109013545454606 0.0066864939012261631
         InsertionPosition    -0.030886221657065636 0.024644312873334514 0.12653657601317228
@@ -773,7 +773,7 @@ endmusclegroup
 
     muscle    PECM1
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    humerus_to_clavicle
         OriginPosition    0.017099175242404806 -0.043277691928990766 0.0043109967436043639
         InsertionPosition    0.0014126754719636508 0.0077742262720191021 0.065586240251929689
@@ -798,7 +798,7 @@ endmusclegroup
 
     muscle    DELT2
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    humerus_to_scapula
         OriginPosition    0.0048723138024625101 -0.11109013545454606 0.0066864939012261631
         InsertionPosition    -0.030333059485272502 -0.0033393485479786753 0.001467967411510391
@@ -823,7 +823,7 @@ endmusclegroup
 
     muscle    SUPSP
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    humerus_to_scapula
         OriginPosition    0.015234189572684765 0.018001477345977453 0.018057730719740213
         InsertionPosition    -0.073867292468443604 -0.012085872211853994 -0.066379742086143764
@@ -848,7 +848,7 @@ endmusclegroup
 
     muscle    INFSP
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    humerus_to_scapula
         OriginPosition    -0.0054477651712765912 0.0085932653269622204 0.022759217548380263
         InsertionPosition    -0.096945601386579483 -0.056889267837165407 -0.071377257515012171
@@ -867,7 +867,7 @@ endmusclegroup
 
     muscle    SUBSC
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    humerus_to_scapula
         OriginPosition    0.021373434703779681 -0.0088827329898470801 -0.0015077538670886519
         InsertionPosition    -0.0793326510181704 -0.040670349563165432 -0.066897010353895586
@@ -892,7 +892,7 @@ endmusclegroup
 
     muscle    TMIN
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    humerus_to_scapula
         OriginPosition    0.0070067397260647436 -0.0039052058247211478 0.018690843701505953
         InsertionPosition    -0.09035151550764417 -0.070371280151459562 -0.042125150338325514
@@ -917,7 +917,7 @@ endmusclegroup
 
     muscle    TMAJ
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    humerus_to_scapula
         OriginPosition    0.0039531155763534607 -0.048091430369263513 -0.0058310886833732112
         InsertionPosition    -0.11537281327030006 -0.11237217584302608 -0.073232157234409498
@@ -942,7 +942,7 @@ endmusclegroup
 
     muscle    DELT3
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    scapula_to_humerus
         OriginPosition    -0.065077565288342909 -0.0016358970272623908 -0.039583063944877483
         InsertionPosition    0.0048723138024625101 -0.11109013545454606 0.0066864939012261631
@@ -967,7 +967,7 @@ endmusclegroup
 
     muscle    CORB
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    scapula_to_humerus
         OriginPosition    0.013773029690654585 -0.043037572473636855 -0.027293980224389395
         InsertionPosition    0 -0.13679340193923845 -0.010052727086476145
@@ -986,7 +986,7 @@ endmusclegroup
 
     muscle    PECM2
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    humerus_to_thorax
         OriginPosition    0.017099175242404806 -0.037934199665739264 0.0043109967436043639
         InsertionPosition    0.0277176740812578 -0.048625554135353841 0.023042525456951915
@@ -1005,7 +1005,7 @@ endmusclegroup
 
     muscle    PECM3
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    humerus_to_thorax
         OriginPosition    0.017099175242404806 -0.032060953579509006 0.0043109967436043639
         InsertionPosition    0.069840160670050846 -0.15099579795990495 0.029102890125352138
@@ -1024,7 +1024,7 @@ endmusclegroup
 
     muscle    LAT
         Type    hillthelen
-        statetype    buchanan
+        //statetype    buchanan
         musclegroup    humerus_to_thorax
         OriginPosition    0.010598838278128407 -0.023867990631956014 -0.0076063226544155395
         InsertionPosition    -0.10556343133312726 -0.16452481053572895 0.00067564530513587121

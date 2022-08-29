@@ -29,17 +29,17 @@ import tracking.load_experimental_data as load_experimental_data
 
 
 def prepare_ocp(
-        biorbd_model_path: str,
-        task: any,
-        track_markers: bool,
-        n_shooting: int,
-        x_init_ref: np.array,
-        u_init_ref: np.array,
-        target: any,
-        ode_solver: OdeSolver = OdeSolver.RK4(),
-        use_sx: bool = False,
-        n_threads: int = 16,
-        phase_time: float = 1,
+    biorbd_model_path: str,
+    task: any,
+    track_markers: bool,
+    n_shooting: int,
+    x_init_ref: np.array,
+    u_init_ref: np.array,
+    target: any,
+    ode_solver: OdeSolver = OdeSolver.RK4(),
+    use_sx: bool = False,
+    n_threads: int = 16,
+    phase_time: float = 1,
 ) -> object:
     biorbd_model = biorbd.Model(biorbd_model_path)
     nb_q = biorbd_model.nbQ()
@@ -98,8 +98,11 @@ def prepare_ocp(
     if track_markers:
         print("tracking markers")
         objective_functions.add(
-            ObjectiveFcn.Mayer.TRACK_MARKERS, weight=100, marker_index=[10, 12, 13, 14, 15], target=target,
-            node=Node.ALL
+            ObjectiveFcn.Mayer.TRACK_MARKERS,
+            weight=100,
+            marker_index=[10, 12, 13, 14, 15],
+            target=target,
+            node=Node.ALL,
         )
 
     # Dynamics
@@ -117,7 +120,7 @@ def prepare_ocp(
     x_bounds.max[nb_q:, 0] = [1e-3] * biorbd_model.nbQdot()
     x_bounds.min[nb_q:, -1] = [-1e-1] * biorbd_model.nbQdot()
     x_bounds.max[nb_q:, -1] = [1e-1] * biorbd_model.nbQdot()
-    x_bounds.min[8:10, 1], x_bounds.min[10, 1] = x_bounds.min[9:11, 1],  -1
+    x_bounds.min[8:10, 1], x_bounds.min[10, 1] = x_bounds.min[9:11, 1], -1
     x_bounds.max[8:10, 1], x_bounds.max[10, 1] = x_bounds.max[9:11, 1], 1
 
     n_tau = biorbd_model.nbGeneralizedTorque()
@@ -141,8 +144,8 @@ def prepare_ocp(
 
 
 def main(
-        task: any,
-        track_markers: bool,
+    task: Tasks = None,
+    track_markers: bool = False,
 ):
     """
     Get data, then create a tracking problem, and finally solve it and plot some relevant information
@@ -150,7 +153,6 @@ def main(
 
     # Define the problem
     c3d_path = task.value
-    # todo: manger, aisselle, dessiner
     n_shooting_points = 50
     nb_iteration = 10000
 
@@ -160,9 +162,9 @@ def main(
     qdot_file_path = file_path + "_qdot.txt"
 
     thorax_values = utils.thorax_variables(q_file_path)  # load c3d floating base pose
-    new_biomod_file = "../models/wu_converted_definitif_without_floating_base_template_quat_with_variables.bioMod"
-    model_path_without_floating_base = "../models/wu_converted_definitif_without_floating_base_template_quat.bioMod"
-    utils.add_header(model_path_without_floating_base, new_biomod_file, thorax_values)
+    model_template_path = Models.WU_WITHOUT_FLOATING_BASE_QUAT_TEMPLATE.value
+    new_biomod_file = Models.WU_WITHOUT_FLOATING_BASE_QUAT_VARIABLES.value
+    utils.add_header(model_template_path, new_biomod_file, thorax_values)
 
     biorbd_model = biorbd.Model(new_biomod_file)
     marker_ref = [m.to_string() for m in biorbd_model.markerNames()]
@@ -193,8 +195,10 @@ def main(
         start=int(start_frame),
         end=int(end_frame),
     )
+
     x_init_ref = np.concatenate([q_ref[0][6:, :], qdot_ref[0][6:, :]])  # without floating base
     u_init_ref = tau_ref[0][6:, :]
+
     nb_q = biorbd_model.nbQ()
     nb_qdot = biorbd_model.nbQdot()
     x_init_quat = np.vstack((np.zeros((nb_q, n_shooting_points + 1)), np.ones((nb_qdot, n_shooting_points + 1))))
@@ -258,8 +262,8 @@ def main(
 
 
 if __name__ == "__main__":
-    main(task=Tasks.TEETH, track_markers=True)
-    main(task=Tasks.DRINK, track_markers=True)
-    main(task=Tasks.HEAD, track_markers=True)
-    main(task=Tasks.EAT, track_markers=True)
-    main(task=Tasks.ARMPIT, track_markers=True)
+    main(task=Tasks.TEETH, track_markers=False)
+    main(task=Tasks.DRINK, track_markers=False)
+    main(task=Tasks.HEAD, track_markers=False)
+    main(task=Tasks.EAT, track_markers=False)
+    main(task=Tasks.ARMPIT, track_markers=False)

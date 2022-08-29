@@ -86,7 +86,7 @@ for file in file_list:
 
         qdot_recons[:, i] = Qdot.to_array()
         qddot_recons[:, i] = Qddot.to_array()
-        tau_recons[:, i] = tau.to_array()
+        tau_recons[:, i] = model_without_kinova.InverseDynamics(q_recons[:, i], qdot_recons[:, i], qddot_recons[:, i]).to_array()
 
     q_recons_old = q_recons.copy()
 
