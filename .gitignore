@@ -30,3 +30,7 @@ kinova_tracking/solution/
 kinova_tracking/video/
 
 event_tracking/save/
+
+sandbox/
+
+lib/__pycache__/
