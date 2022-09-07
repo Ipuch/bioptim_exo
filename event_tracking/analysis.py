@@ -1,5 +1,6 @@
 from bioptim import OptimalControlProgram
 import numpy as np
+import pickle
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import plotly.express as px
@@ -7,8 +8,9 @@ import biorbd
 from quat import quat2eul
 from data.enums import Tasks
 from models.enums import Models
-import data.load_events as load_events
 
+import data.load_events as load_events
+from lib import custom_load
 
 def get_muscular_torque(x, act, model):
     """
@@ -28,14 +30,15 @@ def get_muscular_torque(x, act, model):
 def plot(task, solution_tau: str, solution_muscles: str, solution_offset: str):
     c3d_path = task.value
 
-    ocp_tau, sol_tau = OptimalControlProgram.load(solution_tau)
-    n_shooting_tau = ocp_tau.original_values["n_shooting"] + 1
+    data_tau = custom_load(solution_tau)
+    #ocp_tau, sol_tau = OptimalControlProgram.load(solution_tau)
+    n_shooting_tau = data_tau["n_shooting"] + 1
 
-    ocp_muscles, sol_muscles = OptimalControlProgram.load(solution_muscles)
-    n_shooting_muscles = ocp_muscles.original_values["n_shooting"] + 1
+    data_muscles = custom_load(solution_muscles)
+    n_shooting_muscles = data_muscles["n_shooting"] + 1
 
-    ocp_offset, sol_offset = OptimalControlProgram.load(solution_offset)
-    n_shooting_offset = ocp_offset.original_values["n_shooting"] + 1
+    data_offset = custom_load(solution_offset)
+    n_shooting_offset = data_offset["n_shooting"] + 1
 
     m = biorbd.Model(Models.WU_WITHOUT_FLOATING_BASE_VARIABLES.value)
     marker_ref = [m.to_string() for m in m.markerNames()]
@@ -78,45 +81,45 @@ def plot(task, solution_tau: str, solution_muscles: str, solution_offset: str):
     q_euler = np.zeros((3, n_shooting_tau))
     Quaternion = np.zeros(4)
     for i in range(n_shooting_tau):
-        Q = sol_tau.states["q"][:, i]
+        Q = data_tau['states']['q'][:, i]
         Quaternion[0] = Q[10]
         Quaternion[1:] = Q[5:8]
         euler = quat2eul(Quaternion)
         q_euler[:, i] = np.array(euler)
     q_tau = np.zeros((m.nbQ(), n_shooting_tau))
-    q_tau[:5] = sol_tau.states["q"][:5]
+    q_tau[:5] = data_tau['states']['q'][:5]
     q_tau[5:8] = q_euler
-    q_tau[8:] = sol_tau.states["q"][8:10]
+    q_tau[8:] = data_tau['states']['q'][8:10]
 
-    q_offset = sol_offset.states["q"]
+    q_offset = data_offset['states']['q']
 
     q_euler = np.zeros((3, n_shooting_muscles))
     Quaternion = np.zeros(4)
     for i in range(n_shooting_muscles):
-        Q = sol_muscles.states["q"][:, i]
+        Q = data_muscles['states']['q'][:, i]
         Quaternion[0] = Q[10]
         Quaternion[1:] = Q[5:8]
         euler = quat2eul(Quaternion)
         q_euler[:, i] = np.array(euler)
     q_muscles = np.zeros((m.nbQ(), n_shooting_muscles))
-    q_muscles[:5] = sol_muscles.states["q"][:5]
+    q_muscles[:5] = data_muscles['states']['q'][:5]
     q_muscles[5:8] = q_euler
-    q_muscles[8:] = sol_muscles.states["q"][8:10]
+    q_muscles[8:] = data_muscles['states']['q'][8:10]
 
     qdot_ik = np.loadtxt(ik_path + "_qdot.txt")[6:][:, start_frame : end_frame + 1]
     qdot_ik_offset = np.loadtxt(ik_offset_path + "_qdot.txt")[6:][:, start_frame : end_frame + 1]
 
-    qdot_tau = sol_tau.states["qdot"]
-    qdot_offset = sol_offset.states["qdot"]
-    qdot_muscles = sol_muscles.states["qdot"]
+    qdot_tau = data_tau['states']['qdot']
+    qdot_offset = data_offset['states']['qdot']
+    qdot_muscles = data_muscles['states']['qdot']
 
     tau_ik = np.loadtxt(ik_path.replace("_XYZ", "") + "_tau.txt")[6:][:, start_frame : end_frame + 1]
     tau_ik_offset = np.loadtxt(ik_offset_path + "_tau.txt")[6:][:, start_frame : end_frame + 1]
 
-    tau_tau = sol_tau.controls["tau"]
-    tau_offset = sol_offset.controls["tau"]
-    tau_muscles = sol_muscles.controls["tau"] + get_muscular_torque(
-        np.concatenate([q_muscles, qdot_muscles]), sol_muscles.controls["muscles"], m
+    tau_tau = data_tau['controls']['tau']
+    tau_offset = data_offset['controls']['tau']
+    tau_muscles = data_muscles['controls']['tau'] + get_muscular_torque(
+        np.concatenate([q_muscles, qdot_muscles]), data_muscles['controls']['muscles'], m
     )
 
     y_ik = [q_ik, qdot_ik, tau_ik]
@@ -212,28 +215,36 @@ def plot(task, solution_tau: str, solution_muscles: str, solution_offset: str):
 
 # plot(
 #     Tasks.TEETH,
-#     "solutions/torque_driven_quat/dents/F0_dents_05_2022_08_25_16_58_37_810470.bo",
-#     "solutions/muscle_driven/dents/F0_dents_05_2022_08_17_19_38_12_717853.bo",
-#     "solutions/torque_driven_offset/dents/F0_dents_05_2022_08_26_13_53_24_362296.bo"
+#     "solutions/torque_driven_quat/dents/F0_dents_05_2022_08_25_16_58_37_810470.pckl",
+#     "solutions/muscle_driven/dents/F0_dents_05_2022_08_17_19_38_12_717853.pckl",
+#     "solutions/torque_driven_offset/dents/F0_dents_05_2022_08_26_13_53_24_362296.pckl"
 #      )
 
 # plot(
 #     Tasks.EAT,
-#     "solutions/torque_driven_quat/manger/F0_manger_05_2022_08_25_18_01_43_130921.bo",
-#     "solutions/muscle_driven/manger/F0_manger_05_2022_08_23_19_26_42_078272.bo",
-#     "solutions/torque_driven_offset/manger/F0_manger_05_2022_08_26_14_48_55_312670.bo"
+#     "solutions/torque_driven_quat/manger/F0_manger_05_2022_08_25_18_01_43_130921.pckl",
+#     "solutions/muscle_driven/manger/F0_manger_05_2022_08_23_19_26_42_078272.pckl",
+#     "solutions/torque_driven_offset/manger/F0_manger_05_2022_08_26_14_48_55_312670.pckl"
 # )
 
 # plot(
 #     Tasks.HEAD,
-#     "solutions/torque_driven_quat/tete/F0_tete_05_2022_08_25_17_18_04_468630.bo",
-#     "solutions/muscle_driven/tete/F0_tete_05_2022_08_24_10_55_31_451971.bo",
-#     "solutions/torque_driven_offset/tete/F0_tete_05_2022_08_26_13_58_21_171507.bo"
+#     "solutions/torque_driven_quat/tete/F0_tete_05_2022_08_25_17_18_04_468630.pckl",
+#     "solutions/muscle_driven/tete/F0_tete_05_2022_08_24_10_55_31_451971.pckl",
+#     "solutions/torque_driven_offset/tete/F0_tete_05_2022_08_26_13_58_21_171507.pckl"
 # )
+
+# import pickletools
+#
+# file = "solutions/torque_driven_quat/aisselle/F0_aisselle_05_2022_08_25_16_14_00_581409.bo"
+# with open(file, "rb") as f:
+#     pickletools.dis(f)
+
+
 
 plot(
     Tasks.ARMPIT,
-    "solutions/torque_driven_quat/aisselle/F0_aisselle_05_2022_08_25_16_14_00_581409.bo",
-    "solutions/muscle_driven/aisselle/F0_aisselle_05_2022_08_26_10_01_36_700173.bo",
-    "solutions/torque_driven_offset/aisselle/F0_aisselle_05_2022_08_26_14_05_20_110908.bo",
+    "solutions/torque_driven_quat/aisselle/F0_aisselle_05_2022_08_25_16_14_00_581409.pckl",
+    "solutions/muscle_driven/aisselle/F0_aisselle_05_2022_08_26_10_01_36_700173.pckl",
+    "solutions/torque_driven_offset/aisselle/F0_aisselle_05_2022_08_26_14_05_20_110908.pckl",
 )
