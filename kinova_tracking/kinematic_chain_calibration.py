@@ -22,6 +22,38 @@ class KinematicChainCalibration:
     ---------
     biord_model : biorbd.Model
         The biorbd Model
+    markers_model : list[str]
+        Name of each markers
+    markers : np.ndarray
+        matrix of zeros [Nb markers x nb frame]
+    closed_loop_markers : list[str]
+        markers with heavier weight
+    tracked_markers : list[str]
+        Name of each markers
+    parameter_dofs : list[str]
+        name dof for which parameters are constant on each frame
+    kinematic_dofs : list
+        name dof which parameters aren't constant on each frame
+    weights :np.ndarray
+        weight associated with cost functions
+    q_ik_initial_guess : array
+        initialize q
+    nb_frames_ik_step : int
+        number frame for Inverse Kinematics steps
+    nb_frames_param_step : int
+        number of frame for parameters Identification steps
+    randomize_param_step_frames : bool
+        
+    use_analytical_jacobians : bool
+
+
+
+
+
+
+
+
+    # todo: fill the docstring
 
     Examples
     ---------
@@ -90,7 +122,7 @@ class KinematicChainCalibration:
 
         self.list_frames_param_step = self.frame_selector(self.nb_frames_param_step, self.nb_frames_ik_step)
 
-        # number of wieghts has to be checked
+        # number of weights has to be checked
         # raise Error if not the right number
         self.weights = weights
 
