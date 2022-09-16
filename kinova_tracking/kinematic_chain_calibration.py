@@ -25,7 +25,7 @@ class KinematicChainCalibration:
     markers_model : list[str]
         Name of each markers
     markers : np.ndarray
-        matrix of zeros [Nb markers x nb frame]
+        matrix of zeros [3 x Nb markers , x nb frame]
     closed_loop_markers : list[str]
         markers with heavier weight
     tracked_markers : list[str]
@@ -43,17 +43,9 @@ class KinematicChainCalibration:
     nb_frames_param_step : int
         number of frame for parameters Identification steps
     randomize_param_step_frames : bool
-        
+        randomly choose the frames among the trial sent
     use_analytical_jacobians : bool
-
-
-
-
-
-
-
-
-    # todo: fill the docstring
+        Use analytical jqcobians instead of numerical ones
 
     Examples
     ---------
