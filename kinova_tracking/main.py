@@ -4,6 +4,7 @@ Main script to calibrate the arm support
 
 import bioviz
 import numpy as np
+import matplotlib.pyplot as plt
 from ezc3d import c3d
 import biorbd
 from models.utils import add_header
@@ -248,3 +249,21 @@ if __name__ == "__main__":
     new_biomod_file_new = "../models/KINOVA_merge_without_floating_base_with_rototrans_template_with_variables.bioMod"
 
     add_header(template_file, new_biomod_file_new, rototrans_values)
+
+
+    #get RMS
+    RMS=resolution.values()
+    #[RMS_x,RMS_y,RMS_z,RMS_tot]
+
+    #plot RMS curve for each frame
+    plt.grid(True)
+    plt.plot(RMS[0],[p for p in range(nb_frames)],"b",label="RMS_x")
+    plt.plot(RMS[1],[p for p in range(nb_frames)],"y",label="RMS_y")
+    plt.plot(RMS[2],[p for p in range(nb_frames)],"g",label="RMS_z")
+    plt.plot(RMS[3],[p for p in range(nb_frames)],"r",label="RMS_tot")
+    plt.xlabel('Frame')
+    plt.ylabel('Valeurs')
+    plt.legend()
+    plt.show()
+
+    # todo: Root mean square error btween xp markers and model markers.
