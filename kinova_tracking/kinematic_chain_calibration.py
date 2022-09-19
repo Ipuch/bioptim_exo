@@ -619,7 +619,81 @@ class KinematicChainCalibration:
             for j in range(index_table_markers[0]):
                 mark = np.linalg.norm(markers_model[j].to_array()[:] - markers_to_compare[:, j]) ** 2
                 espilon_markers += mark
-
+            RMS = np.sqrt(espilon_markers / index_table_markers[0])
+        print("RMS =", RMS)
         print("step 2 done")
 
         return q_output, espilon_markers
+
+    def solution(self):
+
+        residuals_xyz = np.zeros((self.markers.shape[0], self.markers.shape[1]))
+        residuals = np.zeros((self.nb_markers, self.markers.shape[1]))
+
+        RMSE_x = []
+        RMSE_y = []
+        RMSE_z = []
+        RMSE_tot = []
+
+        for f in range(self.nb_frames):
+
+            marker_mod, marker_xp = self.penalty_open_loop_markers(self.q, self.markers)
+            for i in range(len(self.markers_model)):
+                s = 0
+                for k in range(3):
+                    s += (marker_mod[i][k] - marker_xp[i][k]) ** 2
+                    residuals_xyz[3 * i + k][f] = np.sqrt((marker_mod[i][k] - marker_xp[i][k]) ** 2)
+                residuals[i][f] = np.sqrt(s)
+
+            # Determine the RMSE
+            Sx = 0
+            Sy = 0
+            Sz = 0
+            St = 0
+            for i in range(0, residuals_xyz.shape[0], 3):
+                Sx += residuals_xyz[i][f] ** 2
+            for j in range(1, residuals_xyz.shape[0], 3):
+                Sy += residuals_xyz[j][f] ** 2
+            for k in range(2, residuals_xyz.shape[0], 3):
+                Sz += residuals_xyz[k][f] ** 2
+            for l in range(0, residuals.shape[0]):
+                St += residuals[l][f] ** 2
+
+            RMSE_x.append(np.sqrt((Sx) / (residuals_xyz.shape[0] / 3)))
+            RMSE_y.append(np.sqrt((Sy) / (residuals_xyz.shape[0] / 3)))
+            RMSE_z.append(np.sqrt((Sz) / (residuals_xyz.shape[0] / 3)))
+            RMSE_tot.append(np.sqrt((St) / residuals.shape[0]))
+
+        self.output = dict(
+            residuals=residuals,
+            residuals_xyz=residuals_xyz,
+
+            max_marker=[self.markers_model[i] for i in np.argmax(residuals, axis=0)],
+
+            RMSE_x=RMSE_x,
+            RMSE_y=RMSE_y,
+            RMSE_z=RMSE_z,
+            RMSE_tot=RMSE_tot,
+            # message=[sol.message for sol in self.list_sol],
+            # status=[sol.status for sol in self.list_sol],
+            # success=[sol.success for sol in self.list_sol],
+        )
+
+        return self.output
+
+        # return RMS/ valeur par frame et totale  diff mod et exp moy sur tt frame
+
+    """""
+    def RMS(self):
+
+        for f in range(self.nb_frames_ik_step):
+            nb_marker = len(markers_real[0])
+
+            vect_pos_markers = np.zeros(3 * nb_marker)
+
+            for m, value in enumerate(markers_model):
+                vect_pos_markers[m * 3: (m + 1) * 3] = value.to_array()
+
+            return vect_pos_markers - np.reshape(markers_real.T, (3 * nb_marker,))
+            
+    """""
