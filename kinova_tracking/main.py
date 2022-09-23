@@ -1,16 +1,19 @@
 """
 Main script to calibrate the arm support
 """
-
-import bioviz
+from typing import Tuple
 import numpy as np
 import matplotlib.pyplot as plt
+
 from ezc3d import c3d
 import biorbd
+import bioviz
+
 from models.utils import add_header
 from utils import get_unit_division_factor
 from models.enums import Models
 from data.enums import TasksKinova
+
 
 from kinematic_chain_calibration import KinematicChainCalibration
 
@@ -84,42 +87,33 @@ def inverse_kinematics_inferface(c3d: c3d, model_path: str, points: np.array, la
     return my_ik
 
 
-if __name__ == "__main__":
+def two_step_inverse_kinematics(
+    c3d_file,
+    points_c3d,
+    labels_markers,
+    model_path_6_dofs,
+    model_path_fixed_template,
+    model_path_fixed_with_variables,
+):
+    #  todo: Robin
+    """
+    specific to our topic
 
-    # c3d to treat
-    c3d_path = TasksKinova.ARMPIT.value
-    c3d_kinova = c3d(c3d_path)
+    Parameters
+    ----------
+    c3d_file :
 
-    # Markers labels in c3d
-    labels_markers = c3d_kinova["parameters"]["POINT"]["LABELS"]["value"]
-
-    marker_move = False
-    offset = np.array([0, -50, 0])  # [offsetX,offsetY,offsetZ] mm
-    print("offset", offset)
-    # Markers trajectories
-    points_c3d = (
-        c3d_kinova["data"]["points"]
-        if not marker_move
-        else move_marker(
-            marker_to_move=labels_markers.index("Table:Table5"), c3d_point=c3d_kinova["data"]["points"], offset=offset
-        )
-    )
-
-    # model for step 1.1
-    model_path_without_kinova = Models.WU_INVERSE_KINEMATICS.value
+    Returns
+    -------
+    np.ndarray
+        The generalized coordinates from the second inverse kinematics without floating base
+    """
 
     # Step 1.1: IK of wu model with floating base
     ik_with_floating_base = inverse_kinematics_inferface(
-        c3d=c3d_kinova, model_path=model_path_without_kinova, points=points_c3d, labels_markers_ik=labels_markers
+        c3d=c3d_file, model_path=model_path_6_dofs, points=points_c3d, labels_markers_ik=labels_markers
     )
     # ik_with_floating_base.animate()
-
-    # rewrite the models with the location of the floating base
-    template_file_merge = Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_6_DOF_SUPPORT_TEMPLATE.value
-    new_biomod_file_merge = Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_6_DOF_SUPPORT_VARIABLES.value
-
-    template_file_wu = Models.WU_WITHOUT_FLOATING_BASE_TEMPLATE.value
-    new_biomod_file_wu = Models.WU_WITHOUT_FLOATING_BASE_VARIABLES.value
 
     thorax_values = {
         "thoraxRT1": ik_with_floating_base.q[3, :].mean(),
@@ -130,16 +124,160 @@ if __name__ == "__main__":
         "thoraxRT6": ik_with_floating_base.q[2, :].mean(),
     }
 
-    add_header(biomod_file_name=template_file_wu, new_biomod_file_name=new_biomod_file_wu, variables=thorax_values)
     add_header(
-        biomod_file_name=template_file_merge, new_biomod_file_name=new_biomod_file_merge, variables=thorax_values
+        biomod_file_name=model_path_fixed_template,
+        new_biomod_file_name=model_path_fixed_with_variables,
+        variables=thorax_values,
     )
 
     # Step 1.2: IK of wu model without floating base
     ik_without_floating_base = inverse_kinematics_inferface(
-        c3d=c3d_kinova, model_path=new_biomod_file_wu, points=points_c3d, labels_markers_ik=labels_markers
+        c3d=c3d_file, model_path=model_path_fixed_with_variables, points=points_c3d, labels_markers_ik=labels_markers
     )
-    # ik_without_floating_base.animate()
+
+    return thorax_values, ik_without_floating_base.q
+
+
+def export_to_biomod(
+    pos_init: np.ndarray,
+    q_ik_with_floating_base: np.ndarray,
+    biorbd_model_merge: biorbd.Model,
+):
+    """
+    This function exports the calibrated model to
+    Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_ROTOTRANS_SUPPORT_VARIABLES
+    with the template Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_ROTOTRANS_SUPPORT_VARIABLES
+
+
+    Parameters
+    ----------
+    pos_init: np.ndarray
+        calibrated paramter dofs
+    q_ik_with_floating_base
+        generalized coordinates of the inverse kinematics with the model including 6 dofs on the floating base
+    biorbd_model_merge : biorbd.Model
+        The model used during the kinematic chain claibration
+        Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_6_DOF_SUPPORT_VARIABLES
+    """
+    Rototrans_matrix_world_support = biorbd_model_merge.globalJCS(
+        pos_init[:, 0], biorbd_model_merge.getBodyBiorbdId("part7")
+    ).to_array()
+
+    Rototrans_matrix_ulna_world = (
+        biorbd_model_merge.globalJCS(pos_init[:, 0], biorbd_model_merge.getBodyBiorbdId("ulna")).transpose().to_array()
+    )
+
+    # Finally
+    Rototrans_matrix_ulna_support = np.matmul(Rototrans_matrix_ulna_world, Rototrans_matrix_world_support)
+
+    # todo: send the dictionnary of thorax value and merge it with a second dictionnary
+    # thorax_value
+
+    rototrans_values = {
+        "thoraxRT1": q_ik_with_floating_base[3, :].mean(),
+        "thoraxRT2": q_ik_with_floating_base[4, :].mean(),
+        "thoraxRT3": q_ik_with_floating_base[5, :].mean(),
+        "thoraxRT4": q_ik_with_floating_base[0, :].mean(),
+        "thoraxRT5": q_ik_with_floating_base[1, :].mean(),
+        "thoraxRT6": q_ik_with_floating_base[2, :].mean(),
+        "rotationXX": Rototrans_matrix_ulna_support[0, 0],
+        "rotationXY": Rototrans_matrix_ulna_support[0, 1],
+        "rotationXZ": Rototrans_matrix_ulna_support[0, 2],
+        "translationX": Rototrans_matrix_ulna_support[0, 3],
+        "rotationYX": Rototrans_matrix_ulna_support[1, 0],
+        "rotationYY": Rototrans_matrix_ulna_support[1, 1],
+        "rotationYZ": Rototrans_matrix_ulna_support[1, 2],
+        "translationY": Rototrans_matrix_ulna_support[1, 3],
+        "rotationZX": Rototrans_matrix_ulna_support[2, 0],
+        "rotationZY": Rototrans_matrix_ulna_support[2, 1],
+        "rotationZZ": Rototrans_matrix_ulna_support[2, 2],
+        "translationZ": Rototrans_matrix_ulna_support[2, 3],
+    }
+
+    new_biomod_file_new = Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_ROTOTRANS_SUPPORT_VARIABLES.value
+    template_file = Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_ROTOTRANS_SUPPORT_TEMPLATE.value
+
+    add_header(biomod_file_name=template_file, new_biomod_file_name=new_biomod_file_new, variables=rototrans_values)
+
+
+def load_c3d_file(task: TasksKinova) -> Tuple:
+    """
+    todo : for robin to complete
+    Parameters
+    ----------
+    task
+
+    Returns
+    -------
+
+    """
+
+    c3d_path = task.value
+    c3d_kinova = c3d(c3d_path)
+
+    # Markers labels in c3d
+    labels_markers = c3d_kinova["parameters"]["POINT"]["LABELS"]["value"]
+    cropped_points_c3d = c3d_kinova["data"]["points"][:, :, :]
+
+    marker_move = False
+    offset = np.array([0, -50, 0])  # [offsetX,offsetY,offsetZ] mm
+    print("offset", offset)
+    # Markers trajectories
+    points_c3d = (
+        cropped_points_c3d
+        if not marker_move
+        else move_marker(
+            marker_to_move=labels_markers.index("Table:Table5"), c3d_point=cropped_points_c3d, offset=offset
+        )
+    )
+
+    return c3d_kinova, labels_markers, points_c3d
+
+
+def main(
+    task: TasksKinova,
+    show_animation: bool,
+    export_model: bool,
+    nb_frame_param_step: int = 100,
+) -> Tuple[np.ndarray, np.ndarray, dict]:
+    """
+    this function is the main script executed in function of the Task and parameters
+
+    Parameters
+    ----------
+    task: TasksKinova
+        the task
+    show_animation: bool
+        if true we animate the result
+    nb_frame_param_step:
+        Number of franes used for the parameter optimisation step
+    export_model: bool
+        the biorbd.Model is export to the pre-defined .bioMod
+    Returns
+    -------
+    tuple
+        - pos_init :  np.ndarray
+        - parameters: np.ndarray
+        - output dict
+    """
+
+    c3d_kinova, labels_markers, points_c3d = load_c3d_file(task)
+
+    thorax_values, q_upper_limb = two_step_inverse_kinematics(
+        c3d_file=c3d_kinova,
+        labels_markers=labels_markers,
+        points_c3d=points_c3d,
+        model_path_6_dofs=Models.WU_INVERSE_KINEMATICS.value,
+        model_path_fixed_template=Models.WU_WITHOUT_FLOATING_BASE_TEMPLATE.value,
+        model_path_fixed_with_variables=Models.WU_WITHOUT_FLOATING_BASE_VARIABLES.value,
+    )
+
+    # rewrite the models with the location of the floating base
+    template_file_merge = Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_6_DOF_SUPPORT_TEMPLATE.value
+    new_biomod_file_merge = Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_6_DOF_SUPPORT_VARIABLES.value
+    add_header(
+        biomod_file_name=template_file_merge, new_biomod_file_name=new_biomod_file_merge, variables=thorax_values
+    )
 
     # exo for step 2
     biorbd_model_merge = biorbd.Model(new_biomod_file_merge)
@@ -172,14 +310,14 @@ if __name__ == "__main__":
     kinova_dof = [i for i in name_dof if "part" in i and not "7" in i]
 
     nb_dof_wu_model = len(wu_dof)
-    nb_parameters = len(parameters)
-    nb_dof_kinova = len(kinova_dof)
+    # nb_parameters = len(parameters)
+    # nb_dof_kinova = len(kinova_dof)
 
     # prepare the inverse kinematics of the first step of the algorithm
     # initialize q with zeros
     q_first_ik = np.zeros((biorbd_model_merge.nbQ(), markers.shape[2]))
     # initialize human dofs with previous results of inverse kinematics
-    q_first_ik[:nb_dof_wu_model, :] = ik_without_floating_base.q  # human
+    q_first_ik[:nb_dof_wu_model, :] = q_upper_limb  # human
 
     nb_frames = markers.shape[2]
     nb_frames_needed = 10
@@ -196,74 +334,38 @@ if __name__ == "__main__":
         kinematic_dofs=kinematic_dof,
         weights=weight,
         q_ik_initial_guess=q_first_ik,
+        # nb_frames_ik_step=nb_frames,
+        # nb_frames_param_step=100,
         nb_frames_ik_step=nb_frames,
-        nb_frames_param_step=100,
+        nb_frames_param_step=nb_frame_param_step,
+        # nb_frames_param_step=50,
         randomize_param_step_frames=True,
         use_analytical_jacobians=False,
     )
     pos_init, parameters = kcc.solve()
 
-    b = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
-    b.load_experimental_markers(markers)
-    # b.load_movement(np.array(q0, q0).T)
-    b.load_movement(pos_init)
+    if show_animation:
+        b = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
+        b.load_experimental_markers(markers)
+        # b.load_movement(np.array(q0, q0).T)
+        b.load_movement(pos_init)
+        b.exec()
 
-    b.exec()
-    print("done")
+        print("done")
 
-    Rototrans_matrix_world_support = biorbd_model_merge.globalJCS(
-        pos_init[:, 0], biorbd_model_merge.getBodyBiorbdId("part7")
-    ).to_array()
+    if export_model:
+        export_to_biomod(
+            pos_init=pos_init,
+            # q_ik_with_floating_base=ik_with_floating_base.q,
+            # todo : send thorax values instead
+            biorbd_model_merge=biorbd_model_merge,
+        )
 
-    Rototrans_matrix_ulna_world = (
-        biorbd_model_merge.globalJCS(pos_init[:, 0], biorbd_model_merge.getBodyBiorbdId("ulna")).transpose().to_array()
-    )
-
-    # Finally
-    Rototrans_matrix_ulna_support = np.matmul(Rototrans_matrix_ulna_world, Rototrans_matrix_world_support)
-
-    print(Rototrans_matrix_ulna_support)
-
-    rototrans_values = {
-        "thoraxRT1": ik_with_floating_base.q[3, :].mean(),
-        "thoraxRT2": ik_with_floating_base.q[4, :].mean(),
-        "thoraxRT3": ik_with_floating_base.q[5, :].mean(),
-        "thoraxRT4": ik_with_floating_base.q[0, :].mean(),
-        "thoraxRT5": ik_with_floating_base.q[1, :].mean(),
-        "thoraxRT6": ik_with_floating_base.q[2, :].mean(),
-        "rotationXX": Rototrans_matrix_ulna_support[0, 0],
-        "rotationXY": Rototrans_matrix_ulna_support[0, 1],
-        "rotationXZ": Rototrans_matrix_ulna_support[0, 2],
-        "translationX": Rototrans_matrix_ulna_support[0, 3],
-        "rotationYX": Rototrans_matrix_ulna_support[1, 0],
-        "rotationYY": Rototrans_matrix_ulna_support[1, 1],
-        "rotationYZ": Rototrans_matrix_ulna_support[1, 2],
-        "translationY": Rototrans_matrix_ulna_support[1, 3],
-        "rotationZX": Rototrans_matrix_ulna_support[2, 0],
-        "rotationZY": Rototrans_matrix_ulna_support[2, 1],
-        "rotationZZ": Rototrans_matrix_ulna_support[2, 2],
-        "translationZ": Rototrans_matrix_ulna_support[2, 3],
-    }
-
-    template_file = "../models/KINOVA_merge_without_floating_base_with_rototrans_template.bioMod"
-    new_biomod_file_new = "../models/KINOVA_merge_without_floating_base_with_rototrans_template_with_variables.bioMod"
-
-    add_header(template_file, new_biomod_file_new, rototrans_values)
+    return pos_init, parameters, output
 
 
-    #get RMS
-    RMS=resolution.values()
-    #[RMS_x,RMS_y,RMS_z,RMS_tot]
-
-    #plot RMS curve for each frame
-    plt.grid(True)
-    plt.plot(RMS[0],[p for p in range(nb_frames)],"b",label="RMS_x")
-    plt.plot(RMS[1],[p for p in range(nb_frames)],"y",label="RMS_y")
-    plt.plot(RMS[2],[p for p in range(nb_frames)],"g",label="RMS_z")
-    plt.plot(RMS[3],[p for p in range(nb_frames)],"r",label="RMS_tot")
-    plt.xlabel('Frame')
-    plt.ylabel('Valeurs')
-    plt.legend()
-    plt.show()
-
-    # todo: Root mean square error btween xp markers and model markers.
+if __name__ == "__main__":
+    main(TasksKinova.DRINK, show_animation=True, export_model=False, nb_frame_param_step=100)
+    # #minimun 4 diffents id_frame_param_step
+    # #(start,stop+1,step)
+    # sensibility_study.sensibility_param_id(2, 553, 50)

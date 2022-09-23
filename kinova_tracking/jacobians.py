@@ -101,6 +101,11 @@ def jacobian_q_continuity(q):
     # return np.eye(q.shape[0])
     return np.eye(16)
 
+# def rotation_matrix_jacobian(q, biorbd_model, segment_id):
+#     # todo: to complete
+#     biorbd_model.JacobianSegmentRotMat(q, segment_id)
+
+
 
 def calibration_jacobian(q, biorbd_model, p, table_markers, wu_markers, markers_names, x0):
 
@@ -121,7 +126,7 @@ def calibration_jacobian(q, biorbd_model, p, table_markers, wu_markers, markers_
     model = marker_jacobian_model(q_with_p, biorbd_model, wu_markers)
 
     # Force z-axis of final segment to be vertical
-    # rot_matrix_list_model, rot_matrix_list_xp = penalty_rotation_matrix(biorbd_model, x_with_p)
+    # rot_matrix_list_model, rot_matrix_list_xp = c(biorbd_model, x_with_p)
 
     # Minimize the q of thorax
     continuity = jacobian_q_continuity(q_with_p)

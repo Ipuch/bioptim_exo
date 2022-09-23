@@ -58,7 +58,7 @@ class KinematicChainCalibration:
         self,
         biorbd_model: biorbd.Model,
         markers_model: list[str],
-        markers: np.array,  # [3 x nb_markers, x nb_frames]
+        markers: np.array,  # [3 x nb_markers x nb_frames]
         closed_loop_markers: list[str],
         tracked_markers: list[str],
         parameter_dofs: list[str],
@@ -71,8 +71,13 @@ class KinematicChainCalibration:
         randomize_param_step_frames: bool = True,
         use_analytical_jacobians: bool = False,
     ):
+
+        self.nb_markers = None
         self.biorbd_model = biorbd_model
         self.model_dofs = [dof.to_string() for dof in biorbd_model.nameDof()]
+
+        self.nb_markers = self.biorbd_model.nbMarkers()
+        self.nb_frames = markers.shape[2]
 
         # check if markers_model are in model
         # otherwise raise
@@ -121,7 +126,9 @@ class KinematicChainCalibration:
         weight_closed_loop = [self.weights[0]] * (len(self.closed_loop_markers) * 3 - 1)
         # nb marker table * 3 dim - 1 because we don't use value on z for Table:Table6
 
-        weight_open_loop = [self.weights[1]] * (len([i for i in self.tracked_markers if i not in self.closed_loop_markers]) *3)
+        weight_open_loop = [self.weights[1]] * (
+            len([i for i in self.tracked_markers if i not in self.closed_loop_markers]) * 3
+        )
         # This is for all markers except those for table
 
         # weight_rot_matrix = [100] * len(rot_matrix_list_xp)
@@ -130,6 +137,9 @@ class KinematicChainCalibration:
         # We need the nb of dofs but without parameters
 
         self.weight_list = weight_closed_loop + weight_open_loop + weight_continuity + weight_theta_13
+
+        self.q = np.zeros((self.biorbd_model.nbQ(), self.nb_frames_ik_step))
+        self.parameters = np.zeros(self.nb_parameters_dofs)
 
     # if nb_frames_ik_step> markers.shape[2]:
     # raise error
@@ -317,15 +327,15 @@ class KinematicChainCalibration:
 
         return diff_model_pivot, diff_xp_pivot
 
-    def penalty_open_loop_markers(self, vect_pos_markers: np.ndarray, open_loop_markers: np.ndarray):
+    def penalty_open_loop_markers(self, model_markers_values: np.ndarray, open_loop_markers: np.ndarray):
         """
         The penalty function which minimize the difference between the open loop markers position from experimental data
         and from the model
 
         Parameters
         ----------
-        vect_pos_markers: np.ndarray
-            The generalized coordinates from the model
+        model_markers_values: np.ndarray
+            The markers location from the model [nb_markers x 3, 1]
         open_loop_markers: np.ndarray
             The open loop markers position form experimental data
 
@@ -333,19 +343,20 @@ class KinematicChainCalibration:
         ------
         The value of the penalty function
         """
-        thorax_list_model = []
-        thorax_list_xp = []
+        list_model = []
+        list_xp = []
         for j, name in enumerate(self.markers_model):
             if name != "Table:Table5" and name != "Table:Table6":
                 # todo: next trainee, remove the hardcoded makers name and specify it as a new attribute of the class
-                mark = vect_pos_markers[self.markers_model.index(name) * 3 : self.markers_model.index(name) * 3 + 3][
-                    :
+                mark = model_markers_values[
+                    self.markers_model.index(name) * 3 : self.markers_model.index(name) * 3 + 3
                 ].tolist()
                 open_loop = open_loop_markers[:, self.markers_model.index(name)].tolist()
-                thorax_list_model += mark
-                thorax_list_xp += open_loop
+                list_model += mark
+                list_xp += open_loop
 
         return thorax_list_model, thorax_list_xp
+        return list_model, list_xp
 
     def penalty_rotation_matrix(self, x_with_p: np.ndarray):
         """
@@ -519,7 +530,7 @@ class KinematicChainCalibration:
         The value of the objective function
         """
         if p is not None:
-            new_x = np.zeros(self.biorbd_model.nbQ()) # we add p to x because the optimization is on p so we can't
+            new_x = np.zeros(self.biorbd_model.nbQ())  # we add p to x because the optimization is on p so we can't
             # give all x to mininimize
             new_x[self.kinematic_index] = x
             new_x[self.parameter_index] = p
@@ -587,6 +598,10 @@ class KinematicChainCalibration:
         bounds_without_p_max = bounds[1][self.kinematic_index]
 
         bounds_without_p = (bounds_without_p_min, bounds_without_p_max)
+
+        # # todo : use analytical jacobian self.use_analytical_jacobian
+        # jac =
+        # if self.use_analytical_jacobians else "3-point"
 
         for f in range(self.nb_frames_ik_step):
             # todo : comment here
