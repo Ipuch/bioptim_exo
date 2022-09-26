@@ -191,12 +191,12 @@ def export_to_biomod(
     # thorax_value
 
     rototrans_values = {
-        "thoraxRT1": q_ik_with_floating_base[3, :].mean(),
+        #"thoraxRT1": q_ik_with_floating_base[3, :].mean(),
         "thoraxRT2": q_ik_with_floating_base[4, :].mean(),
-        "thoraxRT3": q_ik_with_floating_base[5, :].mean(),
-        "thoraxRT4": q_ik_with_floating_base[0, :].mean(),
-        "thoraxRT5": q_ik_with_floating_base[1, :].mean(),
-        "thoraxRT6": q_ik_with_floating_base[2, :].mean(),
+        #"thoraxRT3": q_ik_with_floating_base[5, :].mean(),
+        #"thoraxRT4": q_ik_with_floating_base[0, :].mean(),
+        #"thoraxRT5": q_ik_with_floating_base[1, :].mean(),
+        #"thoraxRT6": q_ik_with_floating_base[2, :].mean(),
         "rotationXX": Rototrans_matrix_ulna_support[0, 0],
         "rotationXY": Rototrans_matrix_ulna_support[0, 1],
         "rotationXZ": Rototrans_matrix_ulna_support[0, 2],
@@ -211,11 +211,20 @@ def export_to_biomod(
         "translationZ": Rototrans_matrix_ulna_support[2, 3],
     }
 
+    c3d_kinova, labels_markers, points_c3d=load_c3d_file(task.value)
+    thorax_values = two_step_inverse_kinematics(c3d_kinova, points_c3d, labels_markers, Models.WU_INVERSE_KINEMATICS.value, Models.WU_WITHOUT_FLOATING_BASE_TEMPLATE.value, Models.WU_WITHOUT_FLOATING_BASE_VARIABLES.value)[0]
+
+    #merge the 2 dictionnaries
+    thorax_and_rototrans_values = thorax_values | rototrans_values
+
+
     new_biomod_file_new = Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_ROTOTRANS_SUPPORT_VARIABLES.value
     template_file = Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_ROTOTRANS_SUPPORT_TEMPLATE.value
 
-    add_header(biomod_file_name=template_file, new_biomod_file_name=new_biomod_file_new, variables=rototrans_values)
+    add_header(biomod_file_name=template_file, new_biomod_file_name=new_biomod_file_new, variables=thorax_and_rototrans_values)
 
+    #a faire ?
+    return thorax_and_rototrans_values
 
 def load_c3d_file(task: TasksKinova) -> Tuple:
     """
