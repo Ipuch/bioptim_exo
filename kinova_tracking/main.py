@@ -99,14 +99,31 @@ def two_step_inverse_kinematics(
     """
     specific to our topic
 
+    Firstly calculate generalised coordinates with the upper limb model and 6 dof
+    Secondly fixe the thorax generalised coordinates, calculate the generalised coordinates
+    of the entire upper limb WITHOUT the Kinova arm.
+
     Parameters
     ----------
-    c3d_file :
+    c3d_file : c3d
+        the c3d
+    points_c3d : np.ndarray
+        marker trajectories over time
+    labels_markers : list[str]
+        list of markers labels
+    model_path_6_dofs : str
+        Path to the model with 6 dof
+    model_path_fixed_template : str
+        Path to the  fixed model with template
+    model_path_fixed_with_variables : str
+        Path to the fixed model with variables
 
     Returns
     -------
-    np.ndarray
-        The generalized coordinates from the second inverse kinematics without floating base
+    ik_without_floating_base.q : np.ndarray
+        The generalised coordinates from the second inverse kinematics without floating base
+    thorax_values : dict
+        value of each thorax rotation used to fixe the base
     """
 
     # Step 1.1: IK of wu model with floating base
@@ -203,12 +220,20 @@ def export_to_biomod(
 def load_c3d_file(task: TasksKinova) -> Tuple:
     """
     todo : for robin to complete
+    load all the data about markers required to run the script
     Parameters
     ----------
-    task
+    task : TasksKinova
+        task to realise
 
     Returns
     -------
+    c3d_kinova : c3d
+        c3d of the Kinova arm
+    labels_markers : Any
+        markers labels in c3d
+    points_c3d : Any
+        Markers trajectories
 
     """
 

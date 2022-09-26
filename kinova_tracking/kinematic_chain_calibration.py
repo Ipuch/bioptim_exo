@@ -589,6 +589,31 @@ class KinematicChainCalibration:
         q_output: np.ndarray = None,
     ):
         # todo: docstring
+        """
+
+        Determine the generalized coordinates with an IK which are used as q_initial_guess for the initialisation
+
+        Parameters
+        ----------
+        p :np.ndarray
+            parameters values
+        bounds : np.ndarray
+            Lower and upper bounds on independent variables
+         q_output : np.ndarray
+            array of zeros
+
+
+        Return
+        ------
+        espilon_markers :int
+            sum of squared norm of difference
+
+        q_output : np.ndarray
+            generalized coordinates at the end of step 2
+
+
+
+        """
 
         index_table_markers = [i for i, value in enumerate(self.markers_model) if "Table" in value]
         index_wu_markers = [i for i, value in enumerate(self.markers_model) if "Table" not in value]
