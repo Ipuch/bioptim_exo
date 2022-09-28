@@ -2,17 +2,22 @@ import numpy as np
 
 
 def marker_jacobian_model(q, biorbd_model, wu_markers):
+def marker_jacobian_model(x_with_p, biorbd_model, id_wu_markers):
     """
     Generate the Jacobian matrix for each frame.
 
     Parameters:
     -----------
-    jacobian_matrix: np.ndarray
-        The Jacobian matrix of the model
+    x_with_p : np.ndarray
+        vector with generalised coordinates and parameters values
+    biorbd_model : biorbd.Models
+        the model used
+    id_wu_markers : tuple(int)
+        index of the first and the last model's marker
 
     Return:
     ------
-        The Jacobian matrix with right dimension
+        The Jacobian matrix of the model without table's markers with right dimension
     """
     jacobian_matrix = biorbd_model.technicalMarkersJacobian(q)[wu_markers[0] : wu_markers[1] + 1]
     nb_markers = len(jacobian_matrix)
@@ -27,18 +32,25 @@ def marker_jacobian_model(q, biorbd_model, wu_markers):
     return jacobian_without_p
 
 
-def marker_jacobian_table(q, biorbd_model, table_markers):
+def marker_jacobian_table(x_with_p, biorbd_model, id_table_markers):
     """
     Generate the Jacobian matrix for each frame.
 
     Parameters:
     -----------
-    jacobian_matrix: np.ndarray
-        The Jacobian matrix of the model
+    x_with_p : np.ndarray
+        vector with generalised coordinates and parameters values
+
+    biorbd_model : biorbd.Models
+        the model used
+
+    id_table_markers : tuple(int)
+            index of the markers associated with the table
+
 
     Return:
     ------
-        The Jacobian matrix with right dimension
+        The Jacobian matrix of the table with right dimension for the model
     """
     jacobian_matrix = biorbd_model.technicalMarkersJacobian(q)[table_markers[0] : table_markers[1] + 1]
     nb_markers = len(jacobian_matrix)
@@ -55,18 +67,18 @@ def marker_jacobian_table(q, biorbd_model, table_markers):
     return jacobian_without_p
 
 
-def marker_jacobian_theta(q):
+def marker_jacobian_theta(x_with_p):
     """
     Generate the Jacobian matrix for each frame.
 
     Parameters:
     -----------
-    jacobian_matrix: np.ndarray
-        The Jacobian matrix of the model
+    x_with_p : np.ndarray
+        vector with generalised coordinates and parameters values
 
     Return:
     ------
-        The Jacobian matrix with right dimension
+        The Jacobian matrix associated with right dimension
     """
 
     theta_part1_3 = q[20] + q[21]
@@ -82,35 +94,66 @@ def marker_jacobian_theta(q):
         return np.zeros((1, 16))
 
 
-def jacobian_q_continuity(q):
+def jacobian_q_continuity(x_with_p):
     """
     Minimize the q of thorax
 
     Parameters
     ----------
-    q: np.ndarray
-        Generalized coordinates for all dof except those between ulna and piece 7, unique for all frames
+    x_with_p : np.ndarray
+        vector with generalised coordinates and parameters values
     q_init: np.ndarray
         The initial values of generalized coordinates fo the actual frame
 
     Return
     ------
-    The value of the penalty function
+    identity matrix with the shape of generalised coordinates
     """
 
     # return np.eye(q.shape[0])
     return np.eye(16)
 
-# def rotation_matrix_jacobian(q, biorbd_model, segment_id):
-#     # todo: to complete
-#     biorbd_model.JacobianSegmentRotMat(q, segment_id)
+def rotation_matrix_jacobian(x_with_p, biorbd_model, id_segment):
+    """
+        This function return the analytical Jacobian matrix of rotation
+
+        Parameters
+        ----------
+        x_with_p : np.ndarray
+            vector with generalised coordinates and parameters values
+        biorbd_model: biorbd.Models
+            the model used
+        id_segment
+            the segment where the Jacobian matrix of rotation will be calculated
+
+        Return
+        ------
+        the Jacobian of the rotation matrix
+def calibration_jacobian(x, biorbd_model, p, tracked_markers_idx, closed_loop_markers_idx, weights ):
+
+    """
+         This function return the entire Jacobian of the system
+
+         Parameters
+         ----------
+         x: np.ndarray
+             Generalized coordinates WITHOUT parameters values
+         biorbd_model: biorbd.Models
+             the model used
+         p : np.ndarray
+            parameters values
+        tracked_markers_idx : list[int]
+            index of tracked marker, without those associated to the table
+        closed_loop_markers_idx : list[int]
+            index of markers associated to the table
+        weights : list[int]
+            list of the weight associated for each Jacobians
 
 
-
-def calibration_jacobian(q, biorbd_model, p, table_markers, wu_markers, markers_names, x0):
-
-    index_table_markers = [i for i, value in enumerate(markers_names) if "Table" in value]
-    table_markers = (index_table_markers[0], index_table_markers[-1])
+         Return
+         ------
+         the Jacobian of the entire system
+         """
 
     index_wu_markers = [i for i, value in enumerate(markers_names) if "Table" not in value]
     wu_markers = (index_wu_markers[0], index_wu_markers[-1])
