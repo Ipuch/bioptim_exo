@@ -49,6 +49,7 @@ gravity	0 0 -9.81
             0.0    0.0    1.7008287803341005
         com    -0.033440718675358687 0.32700989683991893 0
         meshfile geometry/thorax.vtp
+        meshscale 1.1146906225119562 1.0219059276247466 1.3192486978972149
     endsegment
 
     // Markers
@@ -155,6 +156,7 @@ gravity	0 0 -9.81
         // The moment of inertia for clavicle and scapula are from Quental (2012) A multibody biomechanical model of the upper limb including the shoulder girdle
         com    -0.016256208808519496 0.010856739819502741 0.084325257320595551
         meshfile geometry/clavicle.vtp
+        meshscale 1.2779536031224792 1.2779536031224792 1.2779536031224792
     endsegment
 
     // Markers
@@ -231,6 +233,7 @@ gravity	0 0 -9.81
         // The moment of inertia for clavicle and scapula are from Quental (2012) A multibody biomechanical model of the upper limb including the shoulder girdle
         com    -0.0793326510181704 -0.040670349563165432 -0.066897010353895586
         meshfile geometry/scapula.vtp
+        meshscale 1.1018423752523667 1.0428294759786008 1.0291847746753167
     endsegment
 
     // Markers
@@ -296,6 +299,7 @@ gravity	0 0 -9.81
             0.0    0.0    0.013189000303006999
         com    0 -0.17580303285787971 0
         meshfile geometry/humerus.vtp
+        meshscale 1.0686984526503003 1.0686984526503003 0.86219934872087278
     endsegment
 
     // Markers
@@ -397,6 +401,7 @@ gravity	0 0 -9.81
             0.0    0.0    0.003228603322042394
         com    0 -0.12081729890042356 0
         meshfile geometry/ulna.vtp
+        meshscale 1.0024252138595608 1.0024252138595608 1.0024252138595608
     endsegment
 
     // Markers
@@ -488,6 +493,7 @@ gravity	0 0 -9.81
             0.0    0.0    0.003228603322042394
         com    0 -0.12081729890042356 0
         meshfile geometry/radius.vtp
+        meshscale 1.0024252138595608 1.0024252138595608 1.0024252138595608
     endsegment
 
     // Markers
@@ -517,6 +523,7 @@ gravity	0 0 -9.81
             0.0    0.0    0.0012195100744696698
         com    0 -0.079657585356472591 0
         meshfile geometry/pisiform.vtp
+        meshscale 1.1680288597947093 1.1698007982446963 1.1680288597947093
     endsegment
 
     // Markers
