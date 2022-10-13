@@ -1,63 +1,80 @@
 import numpy as np
 
 
-def marker_jacobian_model(q, biorbd_model, wu_markers):
-def marker_jacobian_model(x_with_p, biorbd_model, id_wu_markers):
+def marker_jacobian_model(x, biorbd_model, idx_model_markers, q_parameters_idx):
     """
     Generate the Jacobian matrix for each frame.
 
     Parameters:
     -----------
-    x_with_p : np.ndarray
-        vector with generalised coordinates and parameters values
+    x : np.ndarray
+        vector with generalised coordinates and without parameters values
     biorbd_model : biorbd.Models
         the model used
-    id_wu_markers : tuple(int)
-        index of the first and the last model's marker
+    idx_model_markers : list(int)
+        index of the model's marker in the markers list
+    q_parameters_idx : list[int]
+        list of parameters' index in the generalised coordinates q vector
 
     Return:
     ------
-        The Jacobian matrix of the model without table's markers with right dimension
+        The Jacobian matrix of the model without table's markers with right dimension (i.e without parameters)
     """
-    jacobian_matrix = biorbd_model.technicalMarkersJacobian(q)[wu_markers[0] : wu_markers[1] + 1]
+
+    # x_with_p = parameters_idx
+    # x + size parameters
+    # we fill x in x_with_p jumping off parameters idx
+    x_with_p_shape = x.shape[0] + len(q_parameters_idx)
+    x_with_p = np.zeros(x_with_p_shape)
+    kinematic_idx = np.setdiff1d([i for i in range(x_with_p_shape)], q_parameters_idx)
+    x_with_p[kinematic_idx] = x
+
+    jacobian_matrix = biorbd_model.technicalMarkersJacobian(x_with_p)[idx_model_markers[0]: idx_model_markers[-1] + 1]
     nb_markers = len(jacobian_matrix)
-    jacobian = np.zeros((3 * nb_markers, len(q)))
+    jacobian = np.zeros((3 * nb_markers, len(x_with_p)))
 
     for m, value in enumerate(jacobian_matrix):
-        jacobian[m * 3 : (m + 1) * 3, :] = value.to_array()
+        jacobian[m * 3: (m + 1) * 3, :] = value.to_array()
 
-    l = [i for i in range(22) if i < 10 or i > 15] # removed hard code, add parameters index
+    l = [i for i in range(22) if i not in q_parameters_idx]
     jacobian_without_p = jacobian[:, l]
 
     return jacobian_without_p
 
 
-def marker_jacobian_table(x_with_p, biorbd_model, id_table_markers):
+def marker_jacobian_table(x, biorbd_model, idx_markers_table, q_parameters_idx):
     """
     Generate the Jacobian matrix for each frame.
 
     Parameters:
     -----------
-    x_with_p : np.ndarray
-        vector with generalised coordinates and parameters values
-
+    x : np.ndarray
+        vector with generalised coordinates and without parameters values
     biorbd_model : biorbd.Models
         the model used
-
-    id_table_markers : tuple(int)
-            index of the markers associated with the table
-
+    idx_markers_table : list(int)
+        index of the table's marker in the markers list
+    q_parameters_idx : list[int]
+        list of parameters' index in the generalised coordinates q vector
 
     Return:
     ------
-        The Jacobian matrix of the table with right dimension for the model
+        The Jacobian matrix of the table with right dimension for the model (i.e without parameters)
     """
-    jacobian_matrix = biorbd_model.technicalMarkersJacobian(q)[table_markers[0] : table_markers[1] + 1]
+    # x_with_p = parameters_idx
+    # x + size parameters
+    # we fill x in x_with_p jumping off parameters idx
+    x_with_p_shape = x.shape[0] + len(q_parameters_idx)
+    x_with_p = np.zeros(x_with_p_shape)
+    kinematic_idx = np.setdiff1d([i for i in range(x_with_p_shape)], q_parameters_idx)
+    x_with_p[kinematic_idx] = x
+
+    jacobian_matrix = biorbd_model.technicalMarkersJacobian(x_with_p)[idx_markers_table[0]: idx_markers_table[1] + 1]
     nb_markers = len(jacobian_matrix)
-    jacobian = np.zeros((3 * nb_markers, len(q)))
+    jacobian = np.zeros((3 * nb_markers, len(x_with_p)))
 
     for m, value in enumerate(jacobian_matrix):
-        jacobian[m * 3 : (m + 1) * 3, :] = value.to_array()
+        jacobian[m * 3: (m + 1) * 3, :] = value.to_array()
 
     l = [i for i in range(22) if i < 10 or i > 15]
     jacobian_without_p = jacobian[:, l]
@@ -67,53 +84,73 @@ def marker_jacobian_table(x_with_p, biorbd_model, id_table_markers):
     return jacobian_without_p
 
 
-def marker_jacobian_theta(x_with_p):
+def marker_jacobian_theta(x, q_parameters_idx):
     """
     Generate the Jacobian matrix for each frame.
 
     Parameters:
     -----------
-    x_with_p : np.ndarray
-        vector with generalised coordinates and parameters values
+    x : np.ndarray
+        vector with generalised coordinates and without parameters values
+    q_parameters_idx : list[int]
+        list of parameters' index in the generalised coordinates q vector
 
     Return:
     ------
-        The Jacobian matrix associated with right dimension
+        The Jacobian matrix associated with right dimension (i.e without parameters)
     """
+    # x_with_p = parameters_idx
+    # x + size parameters
+    # we fill x in x_with_p jumping off parameters idx
+    x_with_p_shape = x.shape[0] + len(q_parameters_idx)
+    x_with_p = np.zeros(x_with_p_shape)
+    kinematic_idx = np.setdiff1d([i for i in range(x_with_p_shape)], q_parameters_idx)
+    x_with_p[kinematic_idx] = x
 
-    theta_part1_3 = q[20] + q[21]
+    theta_part1_3 = x_with_p[20] + x_with_p[21]
 
     theta_part1_3_lim = 7 * np.pi / 10
 
     if theta_part1_3 > theta_part1_3_lim:
-        J = np.zeros((1, 16))
+        J = np.zeros((1, 22))
         J[0, 20] = 1
         J[0, 21] = 1
-        return J  # ajouter les poids
+        l = [i for i in range(22) if i not in q_parameters_idx]
+        j_without_p = J[:, l]
+        return j_without_p
     else:  # theta_part1_3_min < theta_part1_3:
         return np.zeros((1, 16))
 
 
-def jacobian_q_continuity(x_with_p):
+def jacobian_q_continuity(x, q_parameters_idx):
     """
     Minimize the q of thorax
 
     Parameters
     ----------
-    x_with_p : np.ndarray
-        vector with generalised coordinates and parameters values
-    q_init: np.ndarray
-        The initial values of generalized coordinates fo the actual frame
+     x : np.ndarray
+        vector with generalised coordinates and without parameters values
+    q_parameters_idx : list[int]
+        list of parameters' index in the generalised coordinates q vector
 
     Return
     ------
-    identity matrix with the shape of generalised coordinates
+    identity matrix with the shape of generalised coordinates associated to the model
     """
+    # x_with_p = parameters_idx
+    # x + size parameters
+    # we fill x in x_with_p jumping off parameters idx
+    x_with_p_shape = x.shape[0] + len(q_parameters_idx)
+    x_with_p = np.zeros(x_with_p_shape)
+    kinematic_idx = np.setdiff1d([i for i in range(x_with_p_shape)], q_parameters_idx)
+    x_with_p[kinematic_idx] = x
 
-    # return np.eye(q.shape[0])
-    return np.eye(16)
+    Jacob_q_continuity_analytic = np.eye(16)
 
-def rotation_matrix_jacobian(x_with_p, biorbd_model, id_segment):
+    return Jacob_q_continuity_analytic
+
+
+def rotation_matrix_jacobian(x, biorbd_model, segment_idx, q_parameters_idx):
     """
         This function return the analytical Jacobian matrix of rotation
 
@@ -128,56 +165,25 @@ def rotation_matrix_jacobian(x_with_p, biorbd_model, id_segment):
 
         Return
         ------
-        the Jacobian of the rotation matrix
-def calibration_jacobian(x, biorbd_model, p, tracked_markers_idx, closed_loop_markers_idx, weights ):
+        the Jacobian of the rotation matrix with the right dimension (i.e without parameters)
+        """
 
-    """
-         This function return the entire Jacobian of the system
+    # x_with_p = parameters_idx
+    # x + size parameters
+    # we fill x in x_with_p jumping off parameters idx
+    x_with_p_shape = x.shape[0] + len(q_parameters_idx)
+    x_with_p = np.zeros(x_with_p_shape)
+    kinematic_idx = np.setdiff1d([i for i in range(x_with_p_shape)], q_parameters_idx)
+    x_with_p[kinematic_idx] = x
 
-         Parameters
-         ----------
-         x: np.ndarray
-             Generalized coordinates WITHOUT parameters values
-         biorbd_model: biorbd.Models
-             the model used
-         p : np.ndarray
-            parameters values
-        tracked_markers_idx : list[int]
-            index of tracked marker, without those associated to the table
-        closed_loop_markers_idx : list[int]
-            index of markers associated to the table
-        weights : list[int]
-            list of the weight associated for each Jacobians
+    jacob_rot_matrix_analytic_total = biorbd_model.JacobianSegmentRotMat(x_with_p, segment_idx, True).to_array()
+    # remove column for parameters values
+    column_to_keep = np.unravel_index([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 16, 17, 18, 19, 20, 21], (5, 22))[1]
 
+    # keep lines we want, correpond to values we want to minimize to reach 0
+    row_to_keep = np.ravel_multi_index(([2, 2, 0, 1, 2], [0, 1, 2, 2, 2]), (3, 3))
+    row_to_keep.sort()
 
-         Return
-         ------
-         the Jacobian of the entire system
-         """
-
-    index_wu_markers = [i for i, value in enumerate(markers_names) if "Table" not in value]
-    wu_markers = (index_wu_markers[0], index_wu_markers[-1])
-
-    q_with_p = np.zeros(biorbd_model.nbQ())
-    q_with_p[:10] = q[:10]
-    q_with_p[10:16] = p
-    q_with_p[16:] = q[10:]
-
-    table = marker_jacobian_table(q_with_p, biorbd_model, table_markers)
-
-    # Minimize difference between thorax markers from model and from experimental data
-    model = marker_jacobian_model(q_with_p, biorbd_model, wu_markers)
-
-    # Force z-axis of final segment to be vertical
-    # rot_matrix_list_model, rot_matrix_list_xp = c(biorbd_model, x_with_p)
-
-    # Minimize the q of thorax
-    continuity = jacobian_q_continuity(q_with_p)
-
-    # Force part 1 and 3 to not cross
-    pivot = marker_jacobian_theta(q_with_p)
-    jacobian = np.concatenate(
-        (table * 100000, model * 10000, continuity * 500, pivot * 50000)
-    )  # ligne par ligne axis=0
-
-    return jacobian
+    A = jacob_rot_matrix_analytic_total[row_to_keep[:], :]
+    A = A[:, column_to_keep[:]]
+    return A

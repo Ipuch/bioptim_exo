@@ -6,7 +6,6 @@ class Models(Enum):
     """
     Selection of Model
     """
-
     KINOVA_DEPRECATED = Path(__file__).parent.__str__() + "/KINOVA_arm_deprecated.bioMod"
     KINOVA_LEFT = Path(__file__).parent.__str__() + "/KINOVA_arm_reverse_left.bioMod"
     KINOVA_RIGHT = Path(__file__).parent.__str__() + "/KINOVA_arm_reverse_right.bioMod"

@@ -3,7 +3,6 @@ Main script to calibrate the arm support
 """
 from typing import Tuple
 import numpy as np
-import matplotlib.pyplot as plt
 
 from ezc3d import c3d
 import biorbd
@@ -14,9 +13,7 @@ from utils import get_unit_division_factor
 from models.enums import Models
 from data.enums import TasksKinova
 
-
 from kinematic_chain_calibration import KinematicChainCalibration
-
 
 def move_marker(
     marker_to_move: int,
@@ -60,7 +57,7 @@ def inverse_kinematics_inferface(c3d: c3d, model_path: str, points: np.array, la
         The c3d
     model_path : str
         Path to the model.
-    points : np.array
+    points : np.ndarray
         marker trajectories over time
     labels_markers_ik : list[str]
         List of markers labels
@@ -95,7 +92,6 @@ def two_step_inverse_kinematics(
     model_path_fixed_template,
     model_path_fixed_with_variables,
 ):
-    #  todo: Robin
     """
     specific to our topic
 
@@ -157,14 +153,13 @@ def two_step_inverse_kinematics(
 
 def export_to_biomod(
     pos_init: np.ndarray,
-    q_ik_with_floating_base: np.ndarray,
     biorbd_model_merge: biorbd.Model,
+    task : TasksKinova
 ):
     """
     This function exports the calibrated model to
     Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_ROTOTRANS_SUPPORT_VARIABLES
     with the template Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_ROTOTRANS_SUPPORT_VARIABLES
-
 
     Parameters
     ----------
@@ -173,8 +168,11 @@ def export_to_biomod(
     q_ik_with_floating_base
         generalized coordinates of the inverse kinematics with the model including 6 dofs on the floating base
     biorbd_model_merge : biorbd.Model
-        The model used during the kinematic chain claibration
+        The model used during the kinematic chain calibration
         Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_6_DOF_SUPPORT_VARIABLES
+
+    task : TasksKinova
+        task used
     """
     Rototrans_matrix_world_support = biorbd_model_merge.globalJCS(
         pos_init[:, 0], biorbd_model_merge.getBodyBiorbdId("part7")
@@ -187,16 +185,7 @@ def export_to_biomod(
     # Finally
     Rototrans_matrix_ulna_support = np.matmul(Rototrans_matrix_ulna_world, Rototrans_matrix_world_support)
 
-    # todo: send the dictionnary of thorax value and merge it with a second dictionnary
-    # thorax_value
-
     rototrans_values = {
-        #"thoraxRT1": q_ik_with_floating_base[3, :].mean(),
-        "thoraxRT2": q_ik_with_floating_base[4, :].mean(),
-        #"thoraxRT3": q_ik_with_floating_base[5, :].mean(),
-        #"thoraxRT4": q_ik_with_floating_base[0, :].mean(),
-        #"thoraxRT5": q_ik_with_floating_base[1, :].mean(),
-        #"thoraxRT6": q_ik_with_floating_base[2, :].mean(),
         "rotationXX": Rototrans_matrix_ulna_support[0, 0],
         "rotationXY": Rototrans_matrix_ulna_support[0, 1],
         "rotationXZ": Rototrans_matrix_ulna_support[0, 2],
@@ -217,7 +206,6 @@ def export_to_biomod(
     #merge the 2 dictionnaries
     thorax_and_rototrans_values = thorax_values | rototrans_values
 
-
     new_biomod_file_new = Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_ROTOTRANS_SUPPORT_VARIABLES.value
     template_file = Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_ROTOTRANS_SUPPORT_TEMPLATE.value
 
@@ -226,10 +214,11 @@ def export_to_biomod(
     #a faire ?
     return thorax_and_rototrans_values
 
+
 def load_c3d_file(task: TasksKinova) -> Tuple:
     """
-    todo : for robin to complete
     load all the data about markers required to run the script
+
     Parameters
     ----------
     task : TasksKinova
@@ -243,7 +232,6 @@ def load_c3d_file(task: TasksKinova) -> Tuple:
         markers labels in c3d
     points_c3d : Any
         Markers trajectories
-
     """
 
     c3d_path = task.value
@@ -251,28 +239,27 @@ def load_c3d_file(task: TasksKinova) -> Tuple:
 
     # Markers labels in c3d
     labels_markers = c3d_kinova["parameters"]["POINT"]["LABELS"]["value"]
-    cropped_points_c3d = c3d_kinova["data"]["points"][:, :, :]
+    points_c3d = c3d_kinova["data"]["points"][:, :, :]
 
     marker_move = False
     offset = np.array([0, -50, 0])  # [offsetX,offsetY,offsetZ] mm
     print("offset", offset)
     # Markers trajectories
     points_c3d = (
-        cropped_points_c3d
+        points_c3d
         if not marker_move
         else move_marker(
-            marker_to_move=labels_markers.index("Table:Table5"), c3d_point=cropped_points_c3d, offset=offset
+            marker_to_move=labels_markers.index("Table:Table5"), c3d_point=points_c3d, offset=offset
         )
     )
 
     return c3d_kinova, labels_markers, points_c3d
 
 
-def main(
+def prepare_kcc(
     task: TasksKinova,
-    show_animation: bool,
-    export_model: bool,
-    nb_frame_param_step: int = 100,
+    nb_frame_param_step: int ,
+    use_analytical_jacobians : bool,
 ) -> Tuple[np.ndarray, np.ndarray, dict]:
     """
     this function is the main script executed in function of the Task and parameters
@@ -281,12 +268,11 @@ def main(
     ----------
     task: TasksKinova
         the task
-    show_animation: bool
-        if true we animate the result
     nb_frame_param_step:
         Number of franes used for the parameter optimisation step
-    export_model: bool
-        the biorbd.Model is export to the pre-defined .bioMod
+    use_analytical_jacobians : bool
+        indicate if we use an analytical jacobian matrix during the IK or not
+
     Returns
     -------
     tuple
@@ -317,6 +303,10 @@ def main(
     biorbd_model_merge = biorbd.Model(new_biomod_file_merge)
 
     markers_names = [value.to_string() for value in biorbd_model_merge.markerNames()]
+    tracked_markers = markers_names.copy()
+    tracked_markers.remove('Table:Table5')
+    tracked_markers.remove('Table:Table6')
+
     markers = np.zeros((3, len(markers_names), len(points_c3d[0, 0, :])))
 
     # add the extra marker Table:Table6 to the experimental data based on the location of the Table:Table5
@@ -324,6 +314,7 @@ def main(
     new_row = np.zeros((points_c3d.shape[0], 1, points_c3d.shape[2]))
     points_c3d = np.append(points_c3d, new_row, axis=1)
 
+    # add marker to keep the origin of kineva arm in horizontal plan
     labels_markers.append("Table:Table6")
 
     points_c3d[:3, labels_markers.index("Table:Table6"), :] = points_c3d[:3, labels_markers.index("Table:Table5"), :]
@@ -354,52 +345,94 @@ def main(
     q_first_ik[:nb_dof_wu_model, :] = q_upper_limb  # human
 
     nb_frames = markers.shape[2]
-    nb_frames_needed = 10
-    all_frames = False
 
-    weight = np.array([10000, 10000, 50000, 500])
+    #weight correpond to [table, model, continuity, theta, rotation]
+    weight = np.array([100000, 10000, 50000, 500,100])
+
+    #the last segment is the number 45
+
     kcc = KinematicChainCalibration(
         biorbd_model=biorbd_model_merge,
         markers_model=markers_names,
         markers=markers,
         closed_loop_markers=["Table:Table5", "Table:Table6"],
-        tracked_markers=markers_names,
+        tracked_markers=tracked_markers,
         parameter_dofs=parameters,
         kinematic_dofs=kinematic_dof,
         weights=weight,
         q_ik_initial_guess=q_first_ik,
-        # nb_frames_ik_step=nb_frames,
-        # nb_frames_param_step=100,
         nb_frames_ik_step=nb_frames,
         nb_frames_param_step=nb_frame_param_step,
-        # nb_frames_param_step=50,
         randomize_param_step_frames=True,
-        use_analytical_jacobians=False,
+        use_analytical_jacobians=use_analytical_jacobians,
+        segment_id_with_vertical_z=45,
     )
-    pos_init, parameters = kcc.solve()
+
+    return biorbd_model_merge, markers, kcc
+
+
+def main(
+    task: TasksKinova,
+    show_animation: bool,
+    export_model: bool,
+    nb_frame_param_step: int,
+    use_analytical_jacobians: bool,
+):
+    """
+        this function is the main script executed in function of the Task and parameters
+
+        Parameters
+        ----------
+        task: TasksKinova
+            the task
+        show_animation: bool
+            if true we animate the result
+        export_model: bool
+            the biorbd.Model is export to the pre-defined .bioMod
+        nb_frame_param_step:
+            Number of franes used for the parameter optimisation step
+        use_analytical_jacobians : bool
+            indicate if we use an analytical jacobian matrix during the IK or not
+
+        Returns
+        -------
+        tuple
+            - pos_init :  np.ndarray
+            - parameters: np.ndarray
+            - output dict
+        """
+
+    biorbd_model_merge, markers, kcc = prepare_kcc(
+        TasksKinova.DRINK,
+        nb_frame_param_step= nb_frame_param_step,
+        use_analytical_jacobians=use_analytical_jacobians
+    )
+
+    q_out, parameters = kcc.solve(threshold=1e-5)[0],kcc.solve(threshold=1e-5)[1]
+    output = kcc.solution()
 
     if show_animation:
         b = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
         b.load_experimental_markers(markers)
         # b.load_movement(np.array(q0, q0).T)
-        b.load_movement(pos_init)
+        b.load_movement(q_out)
         b.exec()
 
         print("done")
 
     if export_model:
         export_to_biomod(
-            pos_init=pos_init,
+            pos_init=q_out,
             # q_ik_with_floating_base=ik_with_floating_base.q,
-            # todo : send thorax values instead
+            task=task,
             biorbd_model_merge=biorbd_model_merge,
         )
 
-    return pos_init, parameters, output
+    return q_out, parameters, output
+
+
 
 
 if __name__ == "__main__":
-    main(TasksKinova.DRINK, show_animation=True, export_model=False, nb_frame_param_step=100)
-    # #minimun 4 diffents id_frame_param_step
-    # #(start,stop+1,step)
-    # sensibility_study.sensibility_param_id(2, 553, 50)
+    main(task=TasksKinova.DRINK, show_animation=True,export_model=False, nb_frame_param_step=100 , use_analytical_jacobians=False)
+
