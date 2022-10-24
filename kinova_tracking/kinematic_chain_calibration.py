@@ -829,6 +829,29 @@ class KinematicChainCalibration:
 
         return jacobian
 
+    def ik_parameters_jacobian(self, p, biorbd_model, weights):
+
+        table = jacobians.jacobian_table_parameters(p, biorbd_model, self.table_markers_idx, self.q_kinematic_index)
+        model = jacobians.markers_jacobian_model_parameters(p, biorbd_model, self.model_markers_idx, self.q_kinematic_index)
+        rotation = jacobians.rotation_matrix_parameter_jacobian(p, biorbd_model, self.segment_id_with_vertical_z,
+                                                                self.q_kinematic_index)
+        continuity = jacobians.jacobian_q_continuity_parameters()
+        pivot = jacobians.marker_jacobian_theta_parameters()
+
+        # concatenate all Jacobians
+        # size [6  x 69 ]
+        jacobian = np.concatenate(
+            (table * weights[0],
+             model * weights[1],
+             continuity * weights[3],
+             pivot * weights[2],
+             rotation * weights[4],
+             ),
+            axis=0
+        )
+
+        return jacobian
+
     def solution(self):
 
         """
