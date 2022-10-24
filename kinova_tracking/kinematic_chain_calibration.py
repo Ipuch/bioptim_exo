@@ -1,8 +1,13 @@
 from typing import Union
 from enum import Enum
+import random
+import time
 
+import matplotlib.pyplot as plt
+from scipy import optimize
 import numpy as np
 
+from cyipopt import minimize_ipopt
 import biorbd
 
 from scipy import optimize
