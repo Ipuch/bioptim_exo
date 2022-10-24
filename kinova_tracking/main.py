@@ -413,6 +413,12 @@ def main(
     q_out, parameters,jacobian_used,gain_list = kcc.solve(threshold=1e-05)
     output = kcc.solution()
 
+    #plot graph
+    kcc.plot_graph_rmse()
+    kcc.plot_graph_rmse_table()
+    kcc.plot_rotation_matrix_penalty()
+    kcc.pivot()
+
     if show_animation:
         b = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
         b.load_experimental_markers(markers)
