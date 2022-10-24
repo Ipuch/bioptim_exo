@@ -15,7 +15,7 @@ from utils import get_range_q
 import random
 
 import jacobians
-import time
+
 
 class ObjectivesFunctions(Enum):
     ALL_OBJECTIVES = "all objectives"
@@ -114,7 +114,7 @@ class KinematicChainCalibration:
         self.kinematic_dofs = kinematic_dofs
 
         # find the indexes of closed loop markers and tracked markers
-        self.table_markers_idx = [self.markers_model.index(i) for i in self.markers_model if  "Table"  in i]
+        self.table_markers_idx = [self.markers_model.index(i) for i in self.markers_model if "Table" in i]
         self.model_markers_idx = [self.tracked_markers.index(i) for i in self.tracked_markers]
 
         # nb markers
@@ -149,16 +149,16 @@ class KinematicChainCalibration:
         # nb marker table * 3 dim - 1 because we don't use value on z for Table:Table6
 
         weight_open_loop = [self.weights[1]] * (
-            len([i for i in self.tracked_markers if i not in self.closed_loop_markers]) * 3
+                len([i for i in self.tracked_markers if i not in self.closed_loop_markers]) * 3
         )
         # This is for all markers except those for table
 
-        weight_rot_matrix = [self.weights[4]] * 5  #len(rot_matrix_list_xp)
+        weight_rot_matrix = [self.weights[4]] * 5  # len(rot_matrix_list_xp)
         weight_theta_13 = [self.weights[2]]
         weight_continuity = [self.weights[3]] * (self.q_ik_initial_guess.shape[0] - len(self.parameter_dofs))
         # We need the nb of dofs but without parameters
 
-        #self.weight_list = weight_closed_loop + weight_open_loop + weight_continuity + weight_theta_13 + weight_rot_matrix
+        # self.weight_list = weight_closed_loop + weight_open_loop + weight_continuity + weight_theta_13 + weight_rot_matrix
         self.weight_list = weight_closed_loop + weight_open_loop + weight_continuity + weight_theta_13 + weight_rot_matrix
 
 
@@ -173,8 +173,8 @@ class KinematicChainCalibration:
     # self.nb_frame_ik_step = markers.shape[2] if nb_frame_ik_step is None else nb_frames_ik_step
 
     def solve(
-        self,
-        threshold: int = 5e-5,
+            self,
+            threshold: int = 5e-5,
     ):
         """
         This function returns optimised generalized coordinates and the epsilon difference
@@ -190,6 +190,7 @@ class KinematicChainCalibration:
         """
 
         # prepare the size of the output of q
+
         q_output = np.zeros((self.biorbd_model.nbQ(), self.nb_frames_ik_step))
 
         # get the bounds of the model for all dofs
@@ -214,10 +215,10 @@ class KinematicChainCalibration:
         p = np.zeros(self.nb_parameters_dofs)
 
         print("Initialisation")
-        jacobians_used=[]
-        gain_list=[]
+        jacobians_used = []
+        gain_list = []
         # First IK step - INITIALIZATION
-        q_step_2, epsilon, gain, jacobian_ini  = self.step_2(
+        q_step_2, epsilon, gain, jacobian_ini = self.step_2(
             p=p,
             bounds=get_range_q(self.biorbd_model),
             q_output=q_output,
@@ -266,7 +267,7 @@ class KinematicChainCalibration:
 
             # step 2 - ik step
             q_out, epsilon_markers_n, gain2, jacobian_x = self.step_2(
-                p= np.zeros((1,6)),
+                p=np.zeros((1, 6)),
                 bounds=get_range_q(self.biorbd_model),
                 q_output=q_output,
             )
@@ -332,12 +333,12 @@ class KinematicChainCalibration:
         The value of the penalty function
         """
         table5_xyz = vect_pos_markers[
-            self.table_markers_idx[0] * 3 : self.table_markers_idx[0] * 3 + 3
-        ][:]
+                     self.table_markers_idx[0] * 3: self.table_markers_idx[0] * 3 + 3
+                     ][:]
         table_xp = table_markers[:, 0].tolist()
         table6_xy = vect_pos_markers[
-            self.table_markers_idx[1] * 3 : self.table_markers_idx[1] * 3 + 3
-        ][:2]
+                    self.table_markers_idx[1] * 3: self.table_markers_idx[1] * 3 + 3
+                    ][:2]
         table_xp += table_markers[:2, 1].tolist()
         table = table5_xyz.tolist() + table6_xy.tolist()
 
@@ -390,11 +391,11 @@ class KinematicChainCalibration:
         list_model = []
         list_xp = []
         for j, name in enumerate(self.markers_model):
-            if name != self.markers_model[self.table_markers_idx[0]] and name != self.markers_model[self.table_markers_idx[1]]:
-                #ie name is different from "Table:Table5" and "Table:Table6"
+            if name != self.markers_model[self.table_markers_idx[0]] and name != self.markers_model[
+                self.table_markers_idx[1]]:
                 mark = model_markers_values[
-                    self.markers_model.index(name) * 3 : self.markers_model.index(name) * 3 + 3
-                ].tolist()
+                       self.markers_model.index(name) * 3: self.markers_model.index(name) * 3 + 3
+                       ].tolist()
                 open_loop = open_loop_markers[:, self.markers_model.index(name)].tolist()
                 list_model += mark
                 list_xp += open_loop
@@ -483,8 +484,8 @@ class KinematicChainCalibration:
         Q[self.q_parameter_index] = p0
 
         for f, frame in enumerate(self.list_frames_param_step):
-            thorax_markers = markers_calibration[:, index_wu_markers[0] : index_wu_markers[-1] + 1, f]
-            table_markers = markers_calibration[:, index_wu_markers[-1] + 1 :, f]
+            thorax_markers = markers_calibration[:, index_wu_markers[0]: index_wu_markers[-1] + 1, f]
+            table_markers = markers_calibration[:, index_wu_markers[-1] + 1:, f]
 
             Q[self.q_kinematic_index] = x[self.q_kinematic_index, f]
 
@@ -493,7 +494,7 @@ class KinematicChainCalibration:
             vect_pos_markers = np.zeros(3 * len(markers_model))
 
             for m, value in enumerate(markers_model):
-                vect_pos_markers[m * 3 : (m + 1) * 3] = value.to_array()
+                vect_pos_markers[m * 3: (m + 1) * 3] = value.to_array()
 
             table_model, table_xp = self.penalty_table_markers(vect_pos_markers, table_markers)
 
@@ -507,15 +508,16 @@ class KinematicChainCalibration:
 
             mark_out = 0
             for j in range(len(thorax_markers[0, :])):
-                mark = np.linalg.norm(np.array(thorax_list_model[j : j + 3]) - np.array(thorax_list_xp[j : j + 3])) ** 2
+                mark = np.linalg.norm(np.array(thorax_list_model[j: j + 3]) - np.array(thorax_list_xp[j: j + 3])) ** 2
                 mark_out += mark
             mark_out_all_frames += mark_out
 
-            rot_matrix_list_model, rot_matrix_list_xp = self.penalty_rotation_matrix(Q)[0],self.penalty_rotation_matrix(Q)[1]
+            rot_matrix_list_model, rot_matrix_list_xp = self.penalty_rotation_matrix(Q)[0], \
+                                                        self.penalty_rotation_matrix(Q)[1]
 
             rotation_matrix = 0
             for i in rot_matrix_list_model:
-                rotation_matrix += i**2
+                rotation_matrix += i ** 2
 
             rotation_matrix_all_frames += rotation_matrix
 
@@ -530,11 +532,11 @@ class KinematicChainCalibration:
 
 
         return (
-            self.weights[0] * (table5_xyz_all_frames + table6_xy_all_frames)
-            + self.weights[1] * mark_out_all_frames
-            + self.weights[2] * pivot
-            + self.weights[3] * q_continuity
-            + self.weights[4] * rotation_matrix_all_frames
+                self.weights[0] * (table5_xyz_all_frames + table6_xy_all_frames)
+                + self.weights[1] * mark_out_all_frames
+                + self.weights[2] * pivot
+                + self.weights[3] * q_continuity
+                + self.weights[4] * rotation_matrix_all_frames
 
         )
 
@@ -560,7 +562,7 @@ class KinematicChainCalibration:
         thorax_markers: np.ndarray
             The others markers position from experimental data [3x14]
         q_init: np.ndarray
-            The initial values of generalized coordinates fo the actual frame
+            The initial values of generalized coordinates for the actual frame
 
         Return
         ------
@@ -579,7 +581,7 @@ class KinematicChainCalibration:
         vect_pos_markers = np.zeros(3 * len(markers_model))
 
         for m, value in enumerate(markers_model):
-            vect_pos_markers[m * 3 : (m + 1) * 3] = value.to_array()
+            vect_pos_markers[m * 3: (m + 1) * 3] = value.to_array()
 
         # Put the pivot joint vertical
         table_model, table_xp = self.penalty_table_markers(vect_pos_markers, table_markers)
@@ -597,8 +599,8 @@ class KinematicChainCalibration:
         pivot_diff_model, pivot_diff_xp = self.theta_pivot_penalty(new_x)
 
         # We add our vector to the main lists
-        #diff_model = table_model + thorax_list_model + q_continuity_diff_model + pivot_diff_model + rot_matrix_list_model
-        #diff_xp = table_xp + thorax_list_xp + q_continuity_diff_xp + pivot_diff_xp + rot_matrix_list_xp
+        # diff_model = table_model + thorax_list_model + q_continuity_diff_model + pivot_diff_model + rot_matrix_list_model
+        # diff_xp = table_xp + thorax_list_xp + q_continuity_diff_xp + pivot_diff_xp + rot_matrix_list_xp
         diff_model = table_model + thorax_list_model + q_continuity_diff_model + pivot_diff_model + rot_matrix_list_model
         diff_xp = table_xp + thorax_list_xp + q_continuity_diff_xp + pivot_diff_xp + rot_matrix_list_xp
 
@@ -695,11 +697,11 @@ class KinematicChainCalibration:
                 espilon_markers += mark
 
         end = time.time()
-        gain.append(["time spend for the IK =",end - start, "use_analytical_jacobian=", self.use_analytical_jacobians])
+        gain.append(["time spend for the IK =", end - start, "use_analytical_jacobian=", self.use_analytical_jacobians])
         print("step 2 done")
         print(gain)
 
-        return q_output, espilon_markers, gain[0][1],jacobian
+        return q_output, espilon_markers, gain[0][1], jacobian
 
     def calibration_jacobian(self,x, biorbd_model, weights):
 
@@ -723,19 +725,20 @@ class KinematicChainCalibration:
         table = jacobians.marker_jacobian_table(x, biorbd_model, self.table_markers_idx, self.q_parameter_index)
 
         # Minimize difference between thorax markers from model and from experimental data
-        model = jacobians.marker_jacobian_model(x, biorbd_model,self.model_markers_idx, self.q_parameter_index )
+        model = jacobians.marker_jacobian_model(x, biorbd_model, self.model_markers_idx, self.q_parameter_index)
 
         # Force z-axis of final segment to be vertical
         # rot_matrix_list_model  = kcc.penalty_rotation_matrix( x_with_p )
         # rot_matrix_list_xp = kcc.penalty_rotation_matrix(x_with_p)
 
-        rotation = jacobians.rotation_matrix_jacobian(x, biorbd_model, self.segment_id_with_vertical_z, self.q_parameter_index)
+        rotation = jacobians.rotation_matrix_jacobian(x, biorbd_model, self.segment_id_with_vertical_z,
+                                                      self.q_parameter_index)
 
         # Minimize the q of thorax
         continuity = jacobians.jacobian_q_continuity(x, self.q_parameter_index)
 
         # Force part 1 and 3 to not cross
-        pivot = jacobians.marker_jacobian_theta(x,self.q_parameter_index)
+        pivot = jacobians.marker_jacobian_theta(x, self.q_parameter_index)
 
         # concatenate all Jacobians
         # size [16  x 69 ]
@@ -763,15 +766,15 @@ class KinematicChainCalibration:
     def solution(self):
 
         """
-             This function returns a dictionnary which contains the global RMS and the RMS for each axes
+         This function returns a dictionnary which contains the global RMS and the RMS for each axes
 
-             Parameters
-             ----------
+         Parameters
+         ----------
 
-             Return
-             ------
-             the dictionnary with RMS
-             """
+         Return
+         ------
+         the dictionnary with RMS
+         """
 
         residuals_xyz = np.zeros((3, self.nb_markers_model, self.nb_frames))
 
