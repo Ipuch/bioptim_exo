@@ -769,7 +769,7 @@ class KinematicChainCalibration:
 
         return q_output, espilon_markers, gain[0][1], jacobian
 
-    def calibration_jacobian(self,x, biorbd_model, weights):
+    def ik_jacobian(self, x, biorbd_model, weights):
 
         """
              This function return the entire Jacobian of the system for the inverse kinematics step
