@@ -439,6 +439,14 @@ def main(
     return q_out, parameters, output
 
 
+if __name__ == "__main__":
+    main(
+        task=TasksKinova.ARMPIT,
+        show_animation=True,
+        export_model=False,
+        nb_frame_param_step=100,
+        use_analytical_jacobians=True,
+    )
 
 
 if __name__ == "__main__":
