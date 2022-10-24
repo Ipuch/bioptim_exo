@@ -667,6 +667,9 @@ class KinematicChainCalibration:
         index_table_markers = [i for i, value in enumerate(self.markers_model) if "Table" in value]
         index_wu_markers = [i for i, value in enumerate(self.markers_model) if "Table" not in value]
 
+        self.index_table_markers = index_table_markers
+        self.index_wu_markers = index_wu_markers
+
         # build the bounds for step 2
         bounds_without_p_min = bounds[0][self.q_kinematic_index]
         bounds_without_p_max = bounds[1][self.q_kinematic_index]
