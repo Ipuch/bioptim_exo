@@ -57,6 +57,62 @@ def sensibility_param_id(nb_frame_param_step, end_loop, step, nbr_colum,use_anal
 
     return time_IK
 
+def show_RMS(task : TasksKinova,
+             show_animation: bool,
+             export_model: bool,
+             nb_frame_param_step: int,
+             use_analytical_jacobians: bool,
+
+):
+    plt.figure(1)
+    # get RMS
+    RMS = main.main(task, show_animation, export_model, nb_frame_param_step, use_analytical_jacobians)[2].values()
+    # [[RMS_x],[RMS_y],[RMS_z],[RMS_tot], max_marker, gain_time]
+    nb_frames = len(RMS.mapping["rmse_x"])
+
+    plt.grid(True)
+    plt.title("boire , nbre_frame_param_step vaut %r" %nb_frame_param_step)
+    plt.plot([p for p in range(nb_frames)], RMS.mapping["rmse_x"], "b", label="RMS_x")
+    plt.plot([p for p in range(nb_frames)], RMS.mapping["rmse_y"], "y", label="RMS_y")
+    plt.plot([p for p in range(nb_frames)], RMS.mapping["rmse_z"], "g", label="RMS_z")
+    plt.plot([p for p in range(nb_frames)], RMS.mapping["rmse_tot"], "r", label="RMS_tot")
+    plt.xlabel('Frame')
+    plt.ylabel('Valeurs (m)')
+    plt.legend()
+
+    print("max_marker = ", RMS.mapping["max_marker"])
+
+    plt.show()
+
+def compare_RMS(task : TasksKinova,
+                show_animation: bool,
+                export_model: bool,
+                nb_frame_param_step: int,
+):
+    plt.figure(1)
+    L=[True,False]
+    index=1
+
+    for i in L:
+        # get RMS
+        RMS = main.main(task, show_animation, export_model, nb_frame_param_step, i)[2].values()
+        # [[RMS_x],[RMS_y],[RMS_z],[RMS_tot], max_marker, gain_time]
+        nb_frames = len(RMS.mapping["rmse_x"])
+
+        plt.subplot(1,2,index)
+        plt.grid(True)
+        plt.title("boire ,  use analytical jacobian %r" %i )
+        plt.plot([p for p in range(nb_frames)], RMS.mapping["rmse_x"], "b", label="RMS_x")
+        plt.plot([p for p in range(nb_frames)], RMS.mapping["rmse_y"], "y", label="RMS_y")
+        plt.plot([p for p in range(nb_frames)], RMS.mapping["rmse_z"], "g", label="RMS_z")
+        plt.plot([p for p in range(nb_frames)], RMS.mapping["rmse_tot"], "r", label="RMS_tot")
+        plt.xlabel('Frame')
+        plt.ylabel('Valeurs (m)')
+        plt.legend()
+        index+=1
+
+    plt.show()
+
 
 def time_spend_entire_script (nb_frame_param_step, end_loop, step, nbr_colum,use_analytical_jacobians):
     start = time.time()
