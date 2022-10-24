@@ -675,6 +675,7 @@ class KinematicChainCalibration:
         bounds_without_p_max = bounds[1][self.q_kinematic_index]
 
         bounds_without_p = (bounds_without_p_min, bounds_without_p_max)
+        bounds_without_p_list = [list(bounds_without_p_min), list(bounds_without_p_max)]
 
         gain = []
         for f in range(self.nb_frames_ik_step):
