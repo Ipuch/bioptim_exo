@@ -690,26 +690,65 @@ class KinematicChainCalibration:
 
             start = time.time()
 
+            if self.ik_solver == "least square":
 
-            IK_i = optimize.least_squares(
-                fun=self.ik_step,
-                args=(
-                    p,
-                    self.markers[:, index_table_markers, f],
-                    self.markers[:, index_wu_markers, f],
-                    x0,
-                ),
-                x0=x0,  # x0 q without p
-                bounds=bounds_without_p,
-                method="trf",
-                jac=jac,
-                xtol=1e-5,
-            )
+                if self.use_analytical_jacobians:
+                    jac = lambda x, p, index_table_markers, index_wu_markers, x0: self.ik_jacobian(x, self.biorbd_model,
+                                                                                                   self.weights)
+                else:
+                    jac = "3-point"
 
-            q_output[self.q_kinematic_index, f] = IK_i.x
+                IK_i = optimize.least_squares(
+                    fun=self.objective_ik_list,
+                    args=(
+                        p,
+                        self.markers[:, index_table_markers, f],
+                        self.markers[:, index_wu_markers, f],
+                        x0,
+                    ),
+                    x0=x0,  # x0 q without p
+                    bounds=bounds_without_p,
+                    method="trf",
+                    jac=jac,
+                    xtol=1e-5,
+                )
 
-            jacobian=IK_i.jac
+                q_output[self.q_kinematic_index, f] = IK_i.x
 
+                jacobian = IK_i.jac
+
+            elif self.ik_solver == "ipopt":
+                obj_fun = lambda x: self.objective_ik_scalar(x, p, self.markers[:, index_table_markers, f],
+                                                             self.markers[:, index_wu_markers, f], x0)
+
+                jac_scalar = lambda x: self.ik_gradient(x, self.biorbd_model, self.weights)
+
+                # the value of the diff between xp and model markers for the table must reach 0
+                constraint = ()
+                for i in range(5):
+                    constraint_fun = lambda x: self.objective_ik_list(x, p, self.markers[:, index_table_markers, f],
+                    jac_table = lambda x: jacobians.marker_jacobian_table(x, self.biorbd_model, self.table_markers_idx,
+                                                                          self.q_parameter_index)[i, :] * self.weights[0]
+                    constraint += ({"fun": constraint_fun, "jac": jac_table, "type": "eq"},)
+
+                ipopt_i = minimize_ipopt(
+                    fun=obj_fun,
+                    x0=x0,
+                    # jac=jac_scalar,
+                    constraints=constraint,
+                    bounds=bounds_without_p_list,
+                    tol=1e-4,
+                    options={'max_iter': 5000, "print_level": 4},
+                q_output[self.q_kinematic_index, f] = ipopt_i.x
+                # print(ipopt_i)
+
+                if ipopt_i["success"] == False:
+                    raise RuntimeError("This optimization failed")
+
+            else:
+                raise ValueError("This solver is not implemented, please use 'ipopt' or 'leastsquare'.")
+
+            # todo: it seems be all the markers
             markers_model = self.biorbd_model.markers(q_output[:, f])
             markers_to_compare = self.markers[:, :, f]
             espilon_markers = 0
