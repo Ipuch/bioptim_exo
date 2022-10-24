@@ -80,6 +80,8 @@ class KinematicChainCalibration:
         randomize_param_step_frames: bool = True,
         use_analytical_jacobians : bool = True,
         segment_id_with_vertical_z: int = None,
+            param_solver: str = "leastsquare",
+            ik_solver: str = "leastsquare",
     ):
 
         self.nb_markers = None
@@ -127,7 +129,8 @@ class KinematicChainCalibration:
         self.nb_kinematic_dofs = len(kinematic_dofs)
 
         # self.objectives_function
-
+        self.param_solver=param_solver
+        self.ik_solver = ik_solver
 
         # check if q_ik_initial_guess has the right size
         self.q_ik_initial_guess = q_ik_initial_guess
