@@ -630,6 +630,9 @@ class KinematicChainCalibration:
 
         return diff * self.weight_list
 
+    def objective_ik_scalar(self, x, p, table_markers, thorax_markers, q_init):
+        objective_ik_list = self.objective_ik_list(x, p, table_markers, thorax_markers, q_init)
+        return 0.5 * np.sum(np.array(objective_ik_list) ** 2, axis=0)
 
     def step_2(
         self,
