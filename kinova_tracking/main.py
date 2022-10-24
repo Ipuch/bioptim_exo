@@ -403,7 +403,7 @@ def main(
         """
 
     biorbd_model_merge, markers, kcc = prepare_kcc(
-        TasksKinova.DRINK,
+        task=task,
         nb_frame_param_step= nb_frame_param_step,
         use_analytical_jacobians=use_analytical_jacobians
     )
