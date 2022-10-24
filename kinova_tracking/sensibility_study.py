@@ -121,7 +121,26 @@ def time_spend_entire_script (nb_frame_param_step, end_loop, step, nbr_colum,use
     print("running time = ", end-start, "seconds")
     return (end-start,time_IK)
 
-def time_spend_entire_script_comparison(nb_frame_param_step, end_loop, step, nbr_colum):
+
+def time_IK_spend_comparison(task,nb_frame_param_step):
+    L=[True,False]
+    time_spend=[]
+    for j in L:
+        kcc = main.prepare_kcc(task=task, nb_frame_param_step=100, use_analytical_jacobians=j)[2]
+        gain_list=kcc.solve(threshold=5e-5)[3]
+        Ik_time=np.asarray(gain_list)
+        time_spend.append(Ik_time)
+        #gain is a list which contained array time spend for each IK
+    diff_IK_time=time_spend[0]-time_spend[1]
+    print("difference time for each IK done is " ,diff_IK_time)
+    L1=[]
+    for k in diff_IK_time:
+        if k<0:
+            L1.append("Analytic faster")
+        else:
+            L1.append("Numeric faster")
+    print(L1)
+    return diff_IK_time
     L=[True,False]
     t=[]
     time_list=[]
