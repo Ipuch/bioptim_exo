@@ -10,10 +10,7 @@ import numpy as np
 from cyipopt import minimize_ipopt
 import biorbd
 
-from scipy import optimize
 from utils import get_range_q
-import random
-
 import jacobians
 
 
@@ -160,7 +157,6 @@ class KinematicChainCalibration:
 
         # self.weight_list = weight_closed_loop + weight_open_loop + weight_continuity + weight_theta_13 + weight_rot_matrix
         self.weight_list = weight_closed_loop + weight_open_loop + weight_continuity + weight_theta_13 + weight_rot_matrix
-
 
         self.list_sol = []
         self.q = np.zeros((self.biorbd_model.nbQ(), self.nb_frames_ik_step))
@@ -309,8 +305,6 @@ class KinematicChainCalibration:
 
 
 
-        return q_out, p, jacobians_used
-
     def frame_selector(self, frames_needed: int, frames: int):
         """
         Give a list of frames for calibration
@@ -375,7 +369,6 @@ class KinematicChainCalibration:
         """
         # todo : remove the hard coded, put index as an argument of this method
         theta_part1_3 = q[-2] + q[-1]
-
         theta_part1_3_lim = 7 * np.pi / 10
 
         if theta_part1_3 > theta_part1_3_lim:
@@ -546,7 +539,6 @@ class KinematicChainCalibration:
 
             x0 = Q
 
-
         return (
                 self.weights[0] * (table5_xyz_all_frames + table6_xy_all_frames)
                 + self.weights[1] * mark_out_all_frames
@@ -620,7 +612,6 @@ class KinematicChainCalibration:
         diff_model = table_model + thorax_list_model + q_continuity_diff_model + pivot_diff_model + rot_matrix_list_model
         diff_xp = table_xp + thorax_list_xp + q_continuity_diff_xp + pivot_diff_xp + rot_matrix_list_xp
 
-
         # We converted our list into array in order to be used by least_square
         diff_tab_model = np.array(diff_model)
         diff_tab_xp = np.array(diff_xp)
@@ -683,10 +674,6 @@ class KinematicChainCalibration:
             if self.use_analytical_jacobians:
                 jac = lambda x, p, index_table_markers, index_wu_markers, x0 : self.calibration_jacobian(x, self.biorbd_model, self.weights)
 
-            else:
-                jac = "3-point"
-
-            x0 = self.q_ik_initial_guess[self.q_kinematic_index, 0] if f == 0 else q_output[self.q_kinematic_index, f - 1]
 
             start = time.time()
 
@@ -744,6 +731,7 @@ class KinematicChainCalibration:
 
                 q_output[self.q_kinematic_index, f] = ipopt_i.x
                 jacobian = jac_scalar(ipopt_i.x)
+
                 # print(ipopt_i)
 
                 if ipopt_i["success"] == False:
@@ -770,7 +758,6 @@ class KinematicChainCalibration:
         return q_output, espilon_markers, gain[0][1], jacobian
 
     def ik_jacobian(self, x, biorbd_model, weights):
-
         """
              This function return the entire Jacobian of the system for the inverse kinematics step
 
@@ -890,7 +877,6 @@ class KinematicChainCalibration:
             marker_mod, marker_xp = self.penalty_open_loop_markers(vect_pos_markers, mi)
             marker_mod = np.asarray(marker_mod)
             marker_xp = np.asarray(marker_xp)
-            # self.penalty_table_markers()
 
             # get coordinates of the table's markers coming from xp and model
             table_mod, table_xp = self.penalty_table_markers(vect_pos_markers=vect_pos_markers, table_markers=mi)
@@ -945,9 +931,93 @@ class KinematicChainCalibration:
             rmse_tot_table=rmse_tot_table,
             gain_time=self.gain
 
-            # status=[sol.status for sol in self.list_sol],
-            # success=[sol.success for sol in self.list_sol],
         )
 
         return self.output
 
+    # def graphs(self):
+    #
+    #     self.plot_graph_rmse()
+    #     self.plot_graph_rmse_table()
+    #     self.plot_rotation_matrix_penalty()
+    #     self.plot_pivot_penalty()
+    #
+    def plot_graph_rmse(self):
+        dict_rmse = self.output.values()
+        nb_frames = len(dict_rmse.mapping["rmse_x"])
+
+        plt.grid(True)
+        plt.title("Armpit")
+        plt.plot([p for p in range(nb_frames)], dict_rmse.mapping["rmse_x"], "b", label="RMS_x")
+        plt.plot([p for p in range(nb_frames)], dict_rmse.mapping["rmse_y"], "y", label="RMS_y")
+        plt.plot([p for p in range(nb_frames)], dict_rmse.mapping["rmse_z"], "g", label="RMS_z")
+        plt.plot([p for p in range(nb_frames)], dict_rmse.mapping["rmse_tot"], "r", label="RMS_tot")
+        plt.xlabel('Frame')
+        plt.ylabel('Valeurs (m)')
+        plt.legend()
+        plt.show()
+
+    def plot_graph_rmse_table(self):
+        dict_rmse = self.output.values()
+        nb_frames = len(dict_rmse.mapping["rmse_x_table"])
+
+        plt.grid(True)
+        plt.title("Armpit")
+        plt.plot([p for p in range(nb_frames)], dict_rmse.mapping["rmse_x_table"], "b", label="RMS_x_table")
+        plt.plot([p for p in range(nb_frames)], dict_rmse.mapping["rmse_y_table"], "y", label="RMS_y_table")
+        plt.plot([p for p in range(nb_frames)], dict_rmse.mapping["rmse_z_table"], "g", label="RMS_z_table")
+        plt.plot([p for p in range(nb_frames)], dict_rmse.mapping["rmse_tot_table"], "r", label="RMS_tot_table")
+        plt.xlabel('Frame')
+        plt.ylabel('Valeurs (m)')
+        plt.legend()
+        plt.show()
+
+    def plot_rotation_matrix_penalty(self):
+        q_out = self.q
+        rotation_value = []
+        for i in range(self.nb_frames):
+            rot_matrix_list_model, rot_matrix_list_xp = self.penalty_rotation_matrix(q_out[:, i])
+            rotation_value.append(rot_matrix_list_model)
+        plt.figure("rotation_value")
+
+        Rot_20_list = [rotation_value[g][0] for g in range(self.nb_frames)]
+        Rot_21_list = [rotation_value[g][1] for g in range(self.nb_frames)]
+        Rot_02_list = [rotation_value[g][2] for g in range(self.nb_frames)]
+        Rot_12_list = [rotation_value[g][3] for g in range(self.nb_frames)]
+        Rot_22_list = [rotation_value[g][4] for g in range(self.nb_frames)]
+
+        plt.scatter([j for j in range(self.nb_frames)], Rot_20_list, marker="x", color="b", label="Rot_20")
+        plt.scatter([j for j in range(self.nb_frames)], Rot_21_list, marker="o", color="g", label="Rot_21")
+        plt.scatter([j for j in range(self.nb_frames)], Rot_02_list, marker="x", color="y", label="Rot_02")
+        plt.scatter([j for j in range(self.nb_frames)], Rot_12_list, marker="o", color="m", label="Rot_12")
+        plt.scatter([j for j in range(self.nb_frames)], Rot_22_list, marker="x", color="r", label="Rot_22")
+
+        plt.xlabel(" frame")
+        plt.ylabel("value in the rotation matrix")
+        plt.legend()
+        plt.show()
+
+    def pivot(self):
+        q_out = self.q
+        pivot_value = []
+        for i in range(self.nb_frames):
+            pivot_diff_model, pivot_diff_xp = self.theta_pivot_penalty(q_out[:, i])
+            pivot_value.append(pivot_diff_model)
+
+        pivot_value_list = []
+        for u in pivot_value:
+            pivot_value_list += u
+        index_not_zero = []
+        for h in pivot_value_list:
+            if h != 0:
+                index_not_zero.append(pivot_value_list.index(h))
+
+        fig, ax = plt.subplots()
+        ax.bar([k for k in range(self.nb_frames)], pivot_value_list)
+        plt.plot([k for k in range(self.nb_frames)], [(7 * np.pi / 10) for i in range(self.nb_frames)], color="g")
+        ax.set_ylabel("value")
+        ax.set_xlabel("frame")
+        ax.set_title("pivot value")
+        plt.show()
+
+        print("index where pivot value is not 0 =", index_not_zero)
