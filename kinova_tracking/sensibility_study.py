@@ -141,6 +141,9 @@ def time_IK_spend_comparison(task,nb_frame_param_step):
             L1.append("Numeric faster")
     print(L1)
     return diff_IK_time
+
+
+def time_spend_different_param_step_comparison(nb_frame_param_step, end_loop, step, nbr_colum):
     L=[True,False]
     t=[]
     time_list=[]
