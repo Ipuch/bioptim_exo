@@ -872,45 +872,79 @@ class KinematicChainCalibration:
          the dictionnary with RMS
          """
 
-        residuals_xyz = np.zeros((3, self.nb_markers_model, self.nb_frames))
+        residuals_xyz_model = np.zeros((3, self.nb_markers_model, self.nb_frames))
+        residuals_xyz_table = np.zeros((3, self.nb_markers_table, self.nb_frames))
 
         # for each frame
         for f in range(self.nb_frames):
             qi = self.q[:, f]
+            # get the marker's coordinates of the frame coming from xp
             mi = self.markers[:, :, f]
             markers_model = self.biorbd_model.markers(qi)
+            # create a vector corresponding to model coordinates
             vect_pos_markers = np.zeros(3 * len(markers_model))
             for m, value in enumerate(markers_model):
-                vect_pos_markers[m * 3 : (m + 1) * 3] = value.to_array()
+                vect_pos_markers[m * 3: (m + 1) * 3] = value.to_array()
 
-            # get coordinates for model and xp markers
+            # get coordinates for model and xp markers of the thorax , without the table
             marker_mod, marker_xp = self.penalty_open_loop_markers(vect_pos_markers, mi)
             marker_mod = np.asarray(marker_mod)
             marker_xp = np.asarray(marker_xp)
             # self.penalty_table_markers()
 
+            # get coordinates of the table's markers coming from xp and model
+            table_mod, table_xp = self.penalty_table_markers(vect_pos_markers=vect_pos_markers, table_markers=mi)
 
-            residuals = np.zeros(((len(markers_model) - 2),1))
+            # artificially add 0 for table6 z-axis
+            table_mod.append(0)
+            table_xp.append(0)
+
+            table_mod = np.asarray(table_mod)
+            table_xp = np.asarray(table_xp)
+
+            # residuals = np.zeros(((len(markers_model) - 2),1))  remove the 2 Table's markers
+            residuals_model = np.zeros(((len(markers_model) - 2), 1))
+            residuals_table = np.zeros((self.nb_markers_table, 1))
 
             # determinate the residual² btwm the coordinates of each marker
             # x_y_z
-            array_residual = (marker_mod - marker_xp)
-            residuals_xyz[:, :, f] = array_residual.reshape(3, self.nb_markers_model, order='F')
+            # array_residual = (marker_mod - marker_xp)
+            # residuals_xyz[:, :, f] = array_residual.reshape(3, self.nb_markers_model, order='F')
 
-        residuals_norm = np.linalg.norm(residuals_xyz, axis=0)
-        rmse_tot = np.sqrt(np.square(residuals_norm).mean(axis=0))
-        rmse_x = np.sqrt(np.square(residuals_xyz[0, :, :]).mean(axis=0))
-        rmse_y = np.sqrt(np.square(residuals_xyz[1, :, :]).mean(axis=0))
-        rmse_z = np.sqrt(np.square(residuals_xyz[2, :, :]).mean(axis=0))
+            array_residual_model = (marker_mod - marker_xp)
+            array_residual_table = (table_mod - table_xp)
+            residuals_xyz_model[:, :, f] = array_residual_model.reshape(3, self.nb_markers_model, order='F')
+            residuals_xyz_table[:, :, f] = array_residual_table.reshape(3, self.nb_markers_table, order='F')
+
+        # residuals_norm = np.linalg.norm(residuals_xyz, axis=0)
+        # rmse_tot = np.sqrt(np.square(residuals_norm).mean(axis=0))
+        # rmse_x = np.sqrt(np.square(residuals_xyz[0, :, :]).mean(axis=0))
+        # rmse_y = np.sqrt(np.square(residuals_xyz[1, :, :]).mean(axis=0))
+        # rmse_z = np.sqrt(np.square(residuals_xyz[2, :, :]).mean(axis=0))
+
+        residuals_norm_model = np.linalg.norm(residuals_xyz_model, axis=0)
+        rmse_tot_model = np.sqrt(np.square(residuals_norm_model).mean(axis=0))
+        rmse_x_model = np.sqrt(np.square(residuals_xyz_model[0, :, :]).mean(axis=0))
+        rmse_y_model = np.sqrt(np.square(residuals_xyz_model[1, :, :]).mean(axis=0))
+        rmse_z_model = np.sqrt(np.square(residuals_xyz_model[2, :, :]).mean(axis=0))
+
+        residuals_norm_table = np.linalg.norm(residuals_xyz_table, axis=0)
+        rmse_tot_table = np.sqrt(np.square(residuals_norm_table).mean(axis=0))
+        rmse_x_table = np.sqrt(np.square(residuals_xyz_table[0, :, :]).mean(axis=0))
+        rmse_y_table = np.sqrt(np.square(residuals_xyz_table[1, :, :]).mean(axis=0))
+        rmse_z_table = np.sqrt(np.square(residuals_xyz_table[2, :, :]).mean(axis=0))
 
         self.output = dict(
-            rmse_x=rmse_x,
-            rmse_y=rmse_y,
-            rmse_z=rmse_z,
-            rmse_tot=rmse_tot,
-            max_marker=[self.markers_model[i] for i in np.argmax(residuals, axis=0)],
+            rmse_x=rmse_x_model,
+            rmse_y=rmse_y_model,
+            rmse_z=rmse_z_model,
+            rmse_tot=rmse_tot_model,
+            rmse_x_table=rmse_x_table,
+            rmse_y_table=rmse_y_table,
+            rmse_z_table=rmse_z_table,
+            rmse_tot_table=rmse_tot_table,
             gain_time=self.gain
-            # message=[sol.message for sol in self.list_sol],
+
             # status=[sol.status for sol in self.list_sol],
             # success=[sol.success for sol in self.list_sol],
         )
