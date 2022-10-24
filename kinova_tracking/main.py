@@ -366,6 +366,8 @@ def prepare_kcc(
         randomize_param_step_frames=True,
         use_analytical_jacobians=use_analytical_jacobians,
         segment_id_with_vertical_z=45,
+        param_solver= "leastsquare",
+        ik_solver= "ipopt",
     )
 
     return biorbd_model_merge, markers, kcc
