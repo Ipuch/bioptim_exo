@@ -852,6 +852,10 @@ class KinematicChainCalibration:
 
         return jacobian
 
+    def param_gradient(self, p, q_first_ik_not_all_frames, q0, markers_xp_data_not_all_frames):
+        return self.ik_parameters_jacobian(
+            p, self.biorbd_model, self.weights).repeat(self.nb_frames_param_step, axis=0).sum(axis=0).tolist()
+
     def solution(self):
 
         """
