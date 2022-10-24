@@ -42,7 +42,26 @@ def marker_jacobian_model(x, biorbd_model, idx_model_markers, q_parameters_idx):
     return jacobian_without_p
 
 
-def marker_jacobian_table(x, biorbd_model, idx_markers_table, q_parameters_idx):
+def markers_jacobian_model_parameters(p, biorbd_model, idx_model_markers, q_kinematic_idx):
+    x_with_p_shape = p.shape[0] + len(q_kinematic_idx)
+    x_with_p = np.zeros(x_with_p_shape)
+    parameter_idx = np.setdiff1d([i for i in range(x_with_p_shape)], q_kinematic_idx)
+    x_with_p[parameter_idx] = p
+
+    jacobian_matrix = biorbd_model.technicalMarkersJacobian(x_with_p)[idx_model_markers[0]: idx_model_markers[-1] + 1]
+    nb_markers = len(jacobian_matrix)
+    jacobian = np.zeros((3 * nb_markers, len(x_with_p)))
+
+    for m, value in enumerate(jacobian_matrix):
+        jacobian[m * 3: (m + 1) * 3, :] = value.to_array()
+
+    l = [i for i in range(22) if i not in q_kinematic_idx]
+    jacobian_without_x = jacobian[:, l]
+
+    return jacobian_without_x
+
+
+def marker_jacobian_table(x, biorbd_model, idx_markers_table, q_parameters_idx ):
     """
     Generate the Jacobian matrix for each frame.
 
@@ -84,6 +103,27 @@ def marker_jacobian_table(x, biorbd_model, idx_markers_table, q_parameters_idx):
     return jacobian_without_p
 
 
+def jacobian_table_parameters(p, biorbd_model, idx_markers_table, q_kinematic_idx ):
+    x_with_p_shape = p.shape[0] + len(q_kinematic_idx)
+    x_with_p = np.zeros(x_with_p_shape)
+    parameter_idx = np.setdiff1d([i for i in range(x_with_p_shape)], q_kinematic_idx)
+    x_with_p[parameter_idx] = p
+
+    jacobian_matrix = biorbd_model.technicalMarkersJacobian(x_with_p)[idx_markers_table[0]: idx_markers_table[1] + 1]
+    nb_markers = len(jacobian_matrix)
+    jacobian = np.zeros((3 * nb_markers, len(x_with_p)))
+
+    for m, value in enumerate(jacobian_matrix):
+        jacobian[m * 3: (m + 1) * 3, :] = value.to_array()
+
+    l = [i for i in range(22) if i >= 10 and i <16]
+    jacobian_without_x = jacobian[:, l]
+
+    jacobian_without_x = jacobian_without_x[:5, :]  # we removed the value in z for the market Table:Table6
+    return jacobian_without_x
+
+
+
 def marker_jacobian_theta(x, q_parameters_idx):
     """
     Generate the Jacobian matrix for each frame.
@@ -122,6 +162,10 @@ def marker_jacobian_theta(x, q_parameters_idx):
         return np.zeros((1, 16))
 
 
+def marker_jacobian_theta_parameters():
+    return np.zeros((1, 6))
+
+
 def jacobian_q_continuity(x, q_parameters_idx):
     """
     Minimize the q of thorax
@@ -146,6 +190,12 @@ def jacobian_q_continuity(x, q_parameters_idx):
     x_with_p[kinematic_idx] = x
 
     Jacob_q_continuity_analytic = np.eye(16)
+
+    return Jacob_q_continuity_analytic
+
+
+def  jacobian_q_continuity_parameters():
+    Jacob_q_continuity_analytic = np.eye(6)
 
     return Jacob_q_continuity_analytic
 
@@ -179,6 +229,25 @@ def rotation_matrix_jacobian(x, biorbd_model, segment_idx, q_parameters_idx):
     jacob_rot_matrix_analytic_total = biorbd_model.JacobianSegmentRotMat(x_with_p, segment_idx, True).to_array()
     # remove column for parameters values
     column_to_keep = np.unravel_index([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 16, 17, 18, 19, 20, 21], (5, 22))[1]
+
+    # keep lines we want, correpond to values we want to minimize to reach 0
+    row_to_keep = np.ravel_multi_index(([2, 2, 0, 1, 2], [0, 1, 2, 2, 2]), (3, 3))
+    row_to_keep.sort()
+
+    A = jacob_rot_matrix_analytic_total[row_to_keep[:], :]
+    A = A[:, column_to_keep[:]]
+    return A
+
+def rotation_matrix_parameter_jacobian(p, biorbd_model, segment_idx, q_kinematic_idx):
+    x_with_p_shape = p.shape[0] + len(q_kinematic_idx)
+    x_with_p = np.zeros(x_with_p_shape)
+    parameter_idx = np.setdiff1d([i for i in range(x_with_p_shape)], q_kinematic_idx)
+    x_with_p[parameter_idx] = p
+
+    jacob_rot_matrix_analytic_total = biorbd_model.JacobianSegmentRotMat(x_with_p, segment_idx, True).to_array()
+
+    # remove column for parameters values
+    column_to_keep = np.unravel_index([10,11,12,13,14,15], (5, 22))[1]
 
     # keep lines we want, correpond to values we want to minimize to reach 0
     row_to_keep = np.ravel_multi_index(([2, 2, 0, 1, 2], [0, 1, 2, 2, 2]), (3, 3))
