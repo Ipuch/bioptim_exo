@@ -235,7 +235,7 @@ class KinematicChainCalibration:
         p = q_step_2[self.q_parameter_index, 0]
 
         iteration = 0
-        epsilon_markers_n = 10
+        epsilon_markers_n = 10  # arbitrary set
         epsilon_markers_n_minus_1 = 0
         delta_epsilon_markers = epsilon_markers_n - epsilon_markers_n_minus_1
 
@@ -302,8 +302,9 @@ class KinematicChainCalibration:
         self.gain = gain_list
         self.parameters = p
         self.q = q_out
+        self.jacobian_used = jacobians_used
 
-
+        return q_out, p, jacobians_used, gain_list
 
     def frame_selector(self, frames_needed: int, frames: int):
         """
