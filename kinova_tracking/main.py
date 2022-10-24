@@ -410,7 +410,7 @@ def main(
         use_analytical_jacobians=use_analytical_jacobians
     )
 
-    q_out, parameters = kcc.solve(threshold=1e-5)[0],kcc.solve(threshold=1e-5)[1]
+    q_out, parameters,jacobian_used,gain_list = kcc.solve(threshold=1e-05)
     output = kcc.solution()
 
     if show_animation:
