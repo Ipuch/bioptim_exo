@@ -727,6 +727,7 @@ class KinematicChainCalibration:
                 constraint = ()
                 for i in range(5):
                     constraint_fun = lambda x: self.objective_ik_list(x, p, self.markers[:, index_table_markers, f],
+                                                                      self.markers[:, index_wu_markers, f], x0)[i]
                     jac_table = lambda x: jacobians.marker_jacobian_table(x, self.biorbd_model, self.table_markers_idx,
                                                                           self.q_parameter_index)[i, :] * self.weights[0]
                     constraint += ({"fun": constraint_fun, "jac": jac_table, "type": "eq"},)
@@ -739,7 +740,10 @@ class KinematicChainCalibration:
                     bounds=bounds_without_p_list,
                     tol=1e-4,
                     options={'max_iter': 5000, "print_level": 4},
+                )
+
                 q_output[self.q_kinematic_index, f] = ipopt_i.x
+                jacobian = jac_scalar(ipopt_i.x)
                 # print(ipopt_i)
 
                 if ipopt_i["success"] == False:
