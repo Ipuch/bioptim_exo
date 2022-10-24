@@ -54,7 +54,7 @@ def test_rotation_matrix():
 
     L = np.asarray([64, 65, 66, 67, 68])
     objective_function = lambda x: \
-    kcc_object.ik_step(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers, q_init[:, 0])[L]
+    kcc_object.objective_ik_list(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers, q_init[:, 0])[L]
 
     Jacob_rotation_numeric = approx_fprime(x, objective_function, epsilon=1e-10)
     jacobian_analytic = lambda x: rotation_matrix_jacobian(x, biorbd_model, 45, q_idx_param)
@@ -85,7 +85,7 @@ def test_marker_jacobian_model():
     q_init = kcc_object.q_ik_initial_guess
     weights = kcc_object.weights
 
-    objective_function = lambda x: kcc_object.ik_step(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers,
+    objective_function = lambda x: kcc_object.objective_ik_list(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers,
                                                       q_init[:, 0])[5:47]
 
     Jacob_model_numeric = approx_fprime(x, objective_function, epsilon=1e-10)
@@ -126,7 +126,7 @@ def test_marker_jacobian_table():
     q_init = kcc_object.q_ik_initial_guess
     weights = kcc_object.weights
 
-    objective_function = lambda x: kcc_object.ik_step(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers,
+    objective_function = lambda x: kcc_object.objective_ik_list(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers,
                                                       q_init[:, 0])[0:5]
 
     jacobian_analytic = lambda x: marker_jacobian_table(x, biorbd_model, idx_markers_table, q_idx_param)
@@ -159,7 +159,7 @@ def test_q_continuity():
     weights = kcc_object.weights
 
     jacobian_analytic = lambda x: jacobian_q_continuity(x, q_idx_param)
-    objective_function = lambda x: kcc_object.ik_step(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers,
+    objective_function = lambda x: kcc_object.objective_ik_list(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers,
                                                       q_init[:, 0])[47:63]
 
     Jacob_q_continuity_numeric = approx_fprime(x, objective_function, epsilon=1e-10)
@@ -194,7 +194,7 @@ def test_pivot_theta():
     weights = kcc_object.weights
 
     jacobian_analytic = lambda x: marker_jacobian_theta(x, q_idx_param)
-    objective_function = lambda x: kcc_object.ik_step(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers,
+    objective_function = lambda x: kcc_object.objective_ik_list(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers,
                                                       q_init[:, 0])[63:64]
 
     jacob_theta_numeric = approx_fprime(x, objective_function, epsilon=1e-10)
@@ -273,23 +273,23 @@ def test_entire_jacobian(x):
     thorax_markers = kcc_object.markers[:, kcc_object.model_markers_idx, 0]
     q_init = kcc_object.q_ik_initial_guess
 
-    objective_function1 = lambda x: kcc_object.ik_step(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers,
+    objective_function1 = lambda x: kcc_object.objective_ik_list(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers,
                                                        q_init[:, 0])[64:69]
     Jacob_rotation_numeric = approx_fprime(x, objective_function1, epsilon=1e-10)
 
-    objective_function2 = lambda x: kcc_object.ik_step(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers,
+    objective_function2 = lambda x: kcc_object.objective_ik_list(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers,
                                                        q_init[:, 0])[5:47]
     Jacob_model_numeric = approx_fprime(x, objective_function2, epsilon=1e-10)
 
-    objective_function3 = lambda x: kcc_object.ik_step(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers,
+    objective_function3 = lambda x: kcc_object.objective_ik_list(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers,
                                                        q_init[:, 0])[0:5]
     Jacob_table_numeric = approx_fprime(x, objective_function3, epsilon=1e-10)
 
-    objective_function4 = lambda x: kcc_object.ik_step(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers,
+    objective_function4 = lambda x: kcc_object.objective_ik_list(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers,
                                                        q_init[:, 0])[47:63]
     Jacob_q_continuity_numeric = approx_fprime(x, objective_function4, epsilon=1e-10)
 
-    objective_function5 = lambda x: kcc_object.ik_step(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers,
+    objective_function5 = lambda x: kcc_object.objective_ik_list(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers,
                                                        q_init[:, 0])[63:64]
     jacob_theta_numeric = approx_fprime(x, objective_function5, epsilon=1e-10)
     # resize as a 1D vector
@@ -315,3 +315,4 @@ def test_entire_jacobian(x):
     print("index where the difference is maximun", index_max_diff)
 
     np.testing.assert_allclose(jacobian_total_analytic, jacobian_total_numeric, rtol=1e-03, atol=1e-3)
+
