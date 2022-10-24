@@ -556,7 +556,7 @@ class KinematicChainCalibration:
 
         )
 
-    def ik_step(
+    def objective_ik_list(
         self,
         x: np.ndarray,
         p: np.ndarray,
