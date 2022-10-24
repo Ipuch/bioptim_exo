@@ -189,12 +189,12 @@ def show_final_q(task,show_animation,export_model, nb_frame_param_step):
 
     plt.show()
 
-def show_numeric_jacobian(task, nb_frame_param_step):
-    L=[True,False]
+def show_jacobian_used(task, nb_frame_param_step):
+    L = [True, False]
     for j in L:
         if j == True:
-            kcc = main.prepare_kcc(task=task,nb_frame_param_step= nb_frame_param_step, use_analytical_jacobians= j)[2]
-            jacobians_used_analytic, q_out = kcc.solve(threshold=1e-5)[2], kcc.solve(threshold=1e-5)[0]
+            kcc = main.prepare_kcc(task=task, nb_frame_param_step=nb_frame_param_step, use_analytical_jacobians= j)[2]
+            q_out, p_analytic, jacobians_used_analytic, gain_list = kcc.solve(threshold=1e-5)
 
             #list which contains each matrix of step2 used in the solve method, often len(list) is 3
         else:
