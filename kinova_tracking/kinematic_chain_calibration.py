@@ -234,6 +234,8 @@ class KinematicChainCalibration:
             (mini, maxi) for mini, maxi in zip(get_range_q(self.biorbd_model)[0], get_range_q(self.biorbd_model)[1])
         ]
 
+        bounds_list = [[bounds[k][0] for k in self.q_parameter_index], [bounds[l][1] for l in self.q_parameter_index]]
+
         p = q_step_2[self.q_parameter_index, 0]
 
         iteration = 0
