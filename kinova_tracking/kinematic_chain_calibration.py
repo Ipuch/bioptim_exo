@@ -64,22 +64,22 @@ class KinematicChainCalibration:
     """
 
     def __init__(
-        self,
-        biorbd_model: biorbd.Model,
-        markers_model: list[str],
-        markers: np.array,  # [3 x nb_markers x nb_frames]
-        closed_loop_markers: list[str],
-        tracked_markers: list[str],
-        parameter_dofs: list[str],
-        kinematic_dofs: list[str],
-        weights: Union[list[float], np.ndarray],
-        q_ik_initial_guess: np.ndarray,
-        objectives_functions: ObjectivesFunctions = None,  # [n_dof x n_frames]
-        nb_frames_ik_step: int = None,
-        nb_frames_param_step: int = None,
-        randomize_param_step_frames: bool = True,
-        use_analytical_jacobians : bool = True,
-        segment_id_with_vertical_z: int = None,
+            self,
+            biorbd_model: biorbd.Model,
+            markers_model: list[str],
+            markers: np.array,  # [3 x nb_markers x nb_frames]
+            closed_loop_markers: list[str],
+            tracked_markers: list[str],
+            parameter_dofs: list[str],
+            kinematic_dofs: list[str],
+            weights: Union[list[float], np.ndarray],
+            q_ik_initial_guess: np.ndarray,
+            objectives_functions: ObjectivesFunctions = None,  # [n_dof x n_frames]
+            nb_frames_ik_step: int = None,
+            nb_frames_param_step: int = None,
+            randomize_param_step_frames: bool = True,
+            use_analytical_jacobians: bool = True,
+            segment_id_with_vertical_z: int = None,
             param_solver: str = "leastsquare",
             ik_solver: str = "leastsquare",
     ):
