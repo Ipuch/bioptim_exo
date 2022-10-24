@@ -153,7 +153,8 @@ def time_IK_spend_comparison(task,nb_frame_param_step):
 
     return time_difference
 
-def show_q(task,show_animation,export_model, nb_frame_param_step):
+
+def show_final_q(task,show_animation,export_model, nb_frame_param_step):
     #get the model
     biorbd_model = biorbd.Model(enums.Models.WU_AND_KINOVA_WITHOUT_FLOATING_BASE_WITH_6_DOF_SUPPORT_VARIABLES.value )
     model_dofs = [dof.to_string() for dof in biorbd_model.nameDof()]
@@ -163,17 +164,19 @@ def show_q(task,show_animation,export_model, nb_frame_param_step):
     q_list = []
     for i in L:
         #pos shape is [22x710]
-        pos= main.main( task, show_animation, export_model, nb_frame_param_step,i)[0]
+        q_list.append(main.main( task, show_animation, export_model, nb_frame_param_step,i)[0])
         q_list.append( pos )
 
+    #q_list is len(2) with 2 matrix [22 x 710]
     nb_frame = np.shape(q_list[0])[1]
     diff_q = q_list[0] - q_list[1]
 
     index = 1
-    for i in range(np.shape(diff_q)[0]):
-            plt.figure(i)
-            plt.subplot(4, 4, index)
-            plt.plot([k for k in range(nb_frame)], q_list[0][i,:],"b", label="q_analytic_%r" %i )
+    plt.figure(1)
+    for i in range(np.shape(q_list[0])[0]):
+
+            plt.subplot(4, 6, index)
+            #plt.plot([k for k in range(nb_frame)], q_list[0][i,:],"b", label="q_analytic_%r" %i )
             plt.plot([k for k in range(nb_frame)], q_list[1][i,:], "r", label="q_numeric_%r" %i  )
             plt.xlabel('Frame')
             plt.ylabel(' q ')
