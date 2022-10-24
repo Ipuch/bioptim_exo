@@ -252,15 +252,29 @@ class KinematicChainCalibration:
 
             epsilon_markers_n_minus_1 = epsilon_markers_n
             # step 1 - param opt
-            param_opt = optimize.minimize(
-                fun=self.objective_function_param,
-                args=(q_first_ik_not_all_frames, q0, markers_xp_data_not_all_frames),
-                x0=p,
-                bounds=bounds[10:16],
-                method="trust-constr",
-                jac="3-point",
-                tol=1e-5,
-            )
+
+            if self.param_solver == "leastsquare":
+                param_opt = optimize.minimize(
+                    fun=self.objective_function_param,
+                    args=(q_first_ik_not_all_frames, q0, markers_xp_data_not_all_frames),
+                    x0=p,
+                    bounds=bounds[10:16],
+                    method="trust-constr",
+                    jac="3-point",
+                    tol=1e-5,
+                )
+
+            elif self.param_solver == "ipopt":
+                param_opt = minimize_ipopt(
+                    fun=self.objective_function_param,
+                    x0=p,
+                    args=(q_first_ik_not_all_frames, q0, markers_xp_data_not_all_frames),
+                    bounds=bounds_list,
+                    jac=self.ik_parameters_jacobian_concatenate,
+                    tol=1e-4,
+                    options={'max_iter': 3000},
+                )
+
             print(param_opt.x)
 
             self.q_ik_initial_guess[self.q_parameter_index, :] = np.array([param_opt.x] * self.nb_frames_ik_step).T
