@@ -264,7 +264,7 @@ class KinematicChainCalibration:
             if self.param_solver == "leastsquare":
                 param_opt = optimize.minimize(
                     fun=self.objective_function_param,
-                    args=(q_first_ik_not_all_frames, q0, markers_xp_data_not_all_frames),
+                    args=(q_first_ik_not_all_frames, q0, markers_xp_data_not_all_frames,self.weights_ls),
                     x0=p,
                     bounds=bounds[10:16],
                     method="trust-constr",
