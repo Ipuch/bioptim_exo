@@ -273,12 +273,47 @@ class KinematicChainCalibration:
                 )
 
             elif self.param_solver == "ipopt":
+
+                # # the value of the diff between xp and model markers for the table must reach 0
+                # constraint = ()
+                # for i in range(5):
+                #     l=[]
+                #     j1=[]
+                #     j=np.zeros((len(self.list_frames_param_step),6))
+                #     c=0
+                #     for f, frame in enumerate(self.list_frames_param_step):
+                #         x0 = self.q_ik_initial_guess[self.q_kinematic_index, 0] if f == 0 else q_output[
+                #             self.q_kinematic_index, f - 1]
+                #
+                #         # get the value of the distance from objective_ik_list
+                #         s =lambda x : self.objective_ik_list(x, p, self.markers[:, self.index_table_markers, f],
+                #                                                           self.markers[:, self.index_wu_markers, f], x0)[i]
+                #         l.append(s)
+                #         jac_table_f = lambda x: jacobians.jacobian_table_parameters(x, self.biorbd_model, self.table_markers_idx,
+                #                                                                                        self.q_parameter_index)[i, :] * self.weights[0]
+                #         #list of list with shape len(list-frames_param_step) x   list[len (6)]
+                #         j1.append(jac_table_f)
+                #         #j[c,:]=jac_table_f
+                #         c+=1
+                #
+
+                jac_scalar = lambda x : self.param_gradient(p,q_first_ik_not_all_frames,q0,markers_xp_data_not_all_frames)
+
+                frame_constraint=self.list_frames_param_step[0]
+                #x0 = q_step_2[self.q_kinematic_index, 0] if frame_constraint == 0 else q_output[
+                    #self.q_kinematic_index, frame_constraint - 1]
+                x0 = q_step_2[self.q_kinematic_index, 0] if frame_constraint == 0 else q_output[
+                    self.q_kinematic_index, frame_constraint - 1]
+                q_init=q_step_2[:,0] if frame_constraint == 0 else q_output[:,frame_constraint - 1]
+                constraint = self.build_constraint_parameters(f=frame_constraint,q_init=q_init,x=x0)
+
                 param_opt = minimize_ipopt(
                     fun=self.objective_function_param,
                     x0=p,
-                    args=(q_first_ik_not_all_frames, q0, markers_xp_data_not_all_frames),
-                    bounds=bounds_list,
-                    jac=self.ik_parameters_jacobian_concatenate,
+                    args=(q_first_ik_not_all_frames, q0, markers_xp_data_not_all_frames,self.weights_ipopt),
+                    bounds=self.bounds_param,
+                    #jac=self.param_gradient,
+                    #constraints=constraint,
                     tol=1e-4,
                     options={'max_iter': 3000},
                 )
