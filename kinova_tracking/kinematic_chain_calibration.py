@@ -508,7 +508,7 @@ class KinematicChainCalibration:
 
         return q_continuity_diff_model, q_continuity_diff_xp
 
-    def objective_function_param(self, p0: np.ndarray, x: np.ndarray, x0: np.ndarray, markers_calibration: np.ndarray):
+    def objective_function_param(self, p0: np.ndarray, x: np.ndarray, x0: np.ndarray, markers_calibration: np.ndarray, weight:list):
         """
         Objective function,use in the Inverse Kinematic
 
