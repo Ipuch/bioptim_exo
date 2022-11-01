@@ -810,6 +810,59 @@ class KinematicChainCalibration:
 
         return q_output, espilon_markers, gain[0][1], jacobian
 
+
+    def build_constraint(self, f, q_init, p):
+        constraint = ()
+        index_table_markers = self.table_markers_idx
+        index_wu_markers = self.model_markers_idx
+
+        # 1
+        constraint_fun = lambda x: self.objective_ik_list(x, p, self.markers[:, index_table_markers, f],
+                                                          self.markers[:, index_wu_markers, f], q_init)[0]
+
+
+        jac_table = lambda x: jacobians.marker_jacobian_table(x, self.biorbd_model, self.table_markers_idx,
+                                                              self.q_parameter_index)[0, :] * self.weights_ipopt[0]
+
+        constraint += ({"fun": constraint_fun, "jac": jac_table, "type": "eq"},)
+
+        # 2
+        constraint_fun = lambda x: self.objective_ik_list(x, p, self.markers[:, index_table_markers, f],
+                                                          self.markers[:, index_wu_markers, f], q_init)[1]
+
+        jac_table = lambda x: jacobians.marker_jacobian_table(x, self.biorbd_model, self.table_markers_idx,
+                                                              self.q_parameter_index)[1, :] * self.weights_ipopt[0]
+
+        constraint += ({"fun": constraint_fun, "jac": jac_table, "type": "eq"},)
+
+        # 3
+        constraint_fun = lambda x: self.objective_ik_list(x, p, self.markers[:, index_table_markers, f],
+                                                          self.markers[:, index_wu_markers, f], q_init)[2]
+
+        jac_table = lambda x: jacobians.marker_jacobian_table(x, self.biorbd_model, self.table_markers_idx,
+                                                              self.q_parameter_index)[2, :] * self.weights_ipopt[0]
+
+        constraint += ({"fun": constraint_fun, "jac": jac_table, "type": "eq"},)
+
+        # 4
+        constraint_fun = lambda x: self.objective_ik_list(x, p, self.markers[:, index_table_markers, f],
+                                                          self.markers[:, index_wu_markers, f], q_init)[3]
+
+        jac_table = lambda x: jacobians.marker_jacobian_table(x, self.biorbd_model, self.table_markers_idx,
+                                                              self.q_parameter_index)[3, :] * self.weights_ipopt[0]
+
+        constraint += ({"fun": constraint_fun, "jac": jac_table, "type": "eq"},)
+
+        # 5
+        constraint_fun = lambda x: self.objective_ik_list(x, p, self.markers[:, index_table_markers, f],
+                                                          self.markers[:, index_wu_markers, f], q_init)[4]
+
+        jac_table = lambda x: jacobians.marker_jacobian_table(x, self.biorbd_model, self.table_markers_idx,
+                                                              self.q_parameter_index)[4, :] * self.weights_ipopt[0]
+
+        constraint += ({"fun": constraint_fun, "jac": jac_table, "type": "eq"},)
+
+        return constraint
     def ik_jacobian(self, x, biorbd_model, weights):
         """
              This function return the entire Jacobian of the system for the inverse kinematics step
