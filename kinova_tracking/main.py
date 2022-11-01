@@ -347,7 +347,8 @@ def prepare_kcc(
     nb_frames = markers.shape[2]
 
     #weight correpond to [table, model, continuity, theta, rotation]
-    weight = np.array([100000, 10000, 50000, 500,100])
+    weight_ls = np.array([100000, 10000, 50000, 500,100])
+    weight_ipopt=np.array([1,30,0,3,2])
 
     #the last segment is the number 45
 
@@ -359,15 +360,16 @@ def prepare_kcc(
         tracked_markers=tracked_markers,
         parameter_dofs=parameters,
         kinematic_dofs=kinematic_dof,
-        weights=weight,
+        weights_param=weight_ls,
+        weights_ik=weight_ipopt,
         q_ik_initial_guess=q_first_ik,
         nb_frames_ik_step=nb_frames,
         nb_frames_param_step=nb_frame_param_step,
         randomize_param_step_frames=True,
         use_analytical_jacobians=use_analytical_jacobians,
         segment_id_with_vertical_z=45,
-        param_solver= "leastsquare",
-        ik_solver= "ipopt",
+        param_solver="ipopt",
+        ik_solver="ipopt",
     )
 
     return biorbd_model_merge, markers, kcc
@@ -418,6 +420,7 @@ def main(
     kcc.plot_graph_rmse_table()
     kcc.plot_rotation_matrix_penalty()
     kcc.pivot()
+    kcc.plot_param_value()
 
     if show_animation:
         b = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
