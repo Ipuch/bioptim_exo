@@ -38,7 +38,7 @@ class KinematicChainCalibration:
         name dof for which parameters are constant on each frame
     kinematic_dofs : list
         name dof which parameters aren't constant on each frame
-    weights :np.ndarray
+    weights_ls :np.ndarray
         weight associated with cost functions
     q_ik_initial_guess : array
         initialize q
@@ -69,7 +69,8 @@ class KinematicChainCalibration:
             tracked_markers: list[str],
             parameter_dofs: list[str],
             kinematic_dofs: list[str],
-            weights: Union[list[float], np.ndarray],
+            weights_param: Union[list[float], np.ndarray],
+            weights_ik: Union[list[float], np.ndarray],
             q_ik_initial_guess: np.ndarray,
             objectives_functions: ObjectivesFunctions = None,  # [n_dof x n_frames]
             nb_frames_ik_step: int = None,
@@ -140,29 +141,40 @@ class KinematicChainCalibration:
 
         # number of weights has to be checked
         # raise Error if not the right number
-        self.weights = weights
+        self.weights_ls = weights_param
+        self.weights_ipopt = weights_ik
 
-        weight_closed_loop = [self.weights[0]] * (len(self.closed_loop_markers) * 3 - 1)
+        weight_closed_loop_ls = [self.weights_ls[0]] * (len(self.closed_loop_markers) * 3 - 1)
+        weight_closed_loop_ipopt = [self.weights_ipopt[0]] * (len(self.closed_loop_markers) * 3 - 1)
         # nb marker table * 3 dim - 1 because we don't use value on z for Table:Table6
 
-        weight_open_loop = [self.weights[1]] * (
+        weight_open_loop_ls = [self.weights_ls[1]] * (
+                len([i for i in self.tracked_markers if i not in self.closed_loop_markers]) * 3
+        )
+        weight_open_loop_ipopt = [self.weights_ipopt[1]] * (
                 len([i for i in self.tracked_markers if i not in self.closed_loop_markers]) * 3
         )
         # This is for all markers except those for table
 
-        weight_rot_matrix = [self.weights[4]] * 5  # len(rot_matrix_list_xp)
-        weight_theta_13 = [self.weights[2]]
-        weight_continuity = [self.weights[3]] * (self.q_ik_initial_guess.shape[0] - len(self.parameter_dofs))
+        weight_rot_matrix_ls = [self.weights_ls[4]] * 5  # len(rot_matrix_list_xp)
+        weight_rot_matrix_ipopt = [self.weights_ipopt[4]] * 5  # len(rot_matrix_list_xp)
+
+        weight_theta_13_ls = [self.weights_ls[2]]
+        weight_theta_13_ipopt = [self.weights_ipopt[2]]
+
+        weight_continuity_ls = [self.weights_ls[3]] * (self.q_ik_initial_guess.shape[0] - len(self.parameter_dofs))
+        weight_continuity_ipopt = [self.weights_ipopt[3]] * (self.q_ik_initial_guess.shape[0] - len(self.parameter_dofs))
         # We need the nb of dofs but without parameters
 
-        # self.weight_list = weight_closed_loop + weight_open_loop + weight_continuity + weight_theta_13 + weight_rot_matrix
-        self.weight_list = weight_closed_loop + weight_open_loop + weight_continuity + weight_theta_13 + weight_rot_matrix
+        self.weight_list_ls = weight_closed_loop_ls + weight_open_loop_ls + weight_continuity_ls + weight_theta_13_ls + weight_rot_matrix_ls
+        self.weight_list_ipopt = weight_closed_loop_ipopt + weight_open_loop_ipopt + weight_continuity_ipopt + weight_theta_13_ipopt + weight_rot_matrix_ipopt
 
         self.list_sol = []
         self.q = np.zeros((self.biorbd_model.nbQ(), self.nb_frames_ik_step))
-        self.parameters = np.zeros(self.nb_parameters_dofs)
+        #self.parameters = np.zeros(self.nb_parameters_dofs)
         self.segment_id_with_vertical_z = segment_id_with_vertical_z
         self.output = dict()
+
 
     # if nb_frames_ik_step> markers.shape[2]:
     # raise error
@@ -541,11 +553,11 @@ class KinematicChainCalibration:
             x0 = Q
 
         return (
-                self.weights[0] * (table5_xyz_all_frames + table6_xy_all_frames)
-                + self.weights[1] * mark_out_all_frames
-                + self.weights[2] * pivot
-                + self.weights[3] * q_continuity
-                + self.weights[4] * rotation_matrix_all_frames
+                    weight[0] * (table5_xyz_all_frames + table6_xy_all_frames)
+                + weight[1] * mark_out_all_frames
+                + weight[2] * pivot
+                + weight[3] * q_continuity
+                + weight[4] * rotation_matrix_all_frames
 
         )
 
@@ -620,7 +632,10 @@ class KinematicChainCalibration:
         # We created the difference vector
         diff = diff_tab_model - diff_tab_xp
 
-        return diff * self.weight_list
+        if self.ik_solver == "leastsquare":
+            return diff * self.weight_list_ls
+        if self.ik_solver == "ipopt":
+            return diff * self.weight_list_ipopt
 
     def objective_ik_scalar(self, x, p, table_markers, thorax_markers, q_init):
         objective_ik_list = self.objective_ik_list(x, p, table_markers, thorax_markers, q_init)
@@ -682,7 +697,7 @@ class KinematicChainCalibration:
 
                 if self.use_analytical_jacobians:
                     jac = lambda x, p, index_table_markers, index_wu_markers, x0: self.ik_jacobian(x, self.biorbd_model,
-                                                                                                   self.weights)
+                                                                                                   self.weights_ls)
                 else:
                     jac = "3-point"
 
@@ -706,6 +721,7 @@ class KinematicChainCalibration:
                 jacobian = IK_i.jac
 
             elif self.ik_solver == "ipopt":
+
                 obj_fun = lambda x: self.objective_ik_scalar(x, p, self.markers[:, index_table_markers, f],
                                                              self.markers[:, index_wu_markers, f], x0)
 
