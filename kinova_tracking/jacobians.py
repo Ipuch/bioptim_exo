@@ -95,6 +95,7 @@ def marker_jacobian_table(x, biorbd_model, idx_markers_table, q_parameters_idx )
     for m, value in enumerate(jacobian_matrix):
         jacobian[m * 3: (m + 1) * 3, :] = value.to_array()
 
+    #todo remove hard code
     l = [i for i in range(22) if i < 10 or i > 15]
     jacobian_without_p = jacobian[:, l]
 
@@ -103,7 +104,7 @@ def marker_jacobian_table(x, biorbd_model, idx_markers_table, q_parameters_idx )
     return jacobian_without_p
 
 
-def jacobian_table_parameters(p, biorbd_model, idx_markers_table, q_kinematic_idx ):
+def jacobian_table_parameters(p, biorbd_model, idx_markers_table, q_kinematic_idx):
     x_with_p_shape = p.shape[0] + len(q_kinematic_idx)
     x_with_p = np.zeros(x_with_p_shape)
     parameter_idx = np.setdiff1d([i for i in range(x_with_p_shape)], q_kinematic_idx)
