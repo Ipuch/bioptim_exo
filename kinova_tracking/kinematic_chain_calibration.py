@@ -1178,3 +1178,19 @@ class KinematicChainCalibration:
         plt.show()
 
         print("index where pivot value is not 0 =", index_not_zero)
+
+    def plot_param_value(self):
+        bound_param = self.bounds_param
+        param_value = self.parameters
+        for i in range(self.nb_parameters_dofs):
+            if param_value[i]==bound_param[0][i] or param_value[i] == bound_param[1][0]:
+                print("parameters number %r reach a bound value " %i )
+        plt.figure("param value")
+        plt.plot([k for k in range(self.nb_parameters_dofs)],[bound_param[0][u] for u in range(self.nb_parameters_dofs)],label="lower bound")
+        plt.plot([k for k in range(self.nb_parameters_dofs)],[bound_param[1][u] for u in range(self.nb_parameters_dofs)],label="upper bound")
+        plt.plot([k for k in range(self.nb_parameters_dofs)],param_value,label="parameters values")
+        plt.xlabel(" number of parameter")
+        plt.ylabel("value of parameter")
+        plt.legend()
+        plt.show()
+        print("parameters values = ", param_value)
