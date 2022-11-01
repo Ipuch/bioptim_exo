@@ -326,7 +326,7 @@ class KinematicChainCalibration:
 
             # step 2 - ik step
             q_out, epsilon_markers_n, gain2, jacobian_x = self.step_2(
-                p=np.zeros((1, 6)),
+                p= p,
                 bounds=get_range_q(self.biorbd_model),
                 q_output=q_output,
             )
