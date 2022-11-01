@@ -722,8 +722,8 @@ class KinematicChainCalibration:
         gain = []
         for f in range(self.nb_frames_ik_step):
 
-            if self.use_analytical_jacobians:
-                jac = lambda x, p, index_table_markers, index_wu_markers, x0 : self.calibration_jacobian(x, self.biorbd_model, self.weights)
+            x0 = self.q_ik_initial_guess[self.q_kinematic_index, 0] if f == 0 else q_output[
+                self.q_kinematic_index, f - 1]
 
 
             start = time.time()
@@ -760,8 +760,8 @@ class KinematicChainCalibration:
                 obj_fun = lambda x: self.objective_ik_scalar(x, p, self.markers[:, index_table_markers, f],
                                                              self.markers[:, index_wu_markers, f], x0)
 
-                jac_scalar = lambda x: self.ik_gradient(x, self.biorbd_model, self.weights)
-
+                jac_scalar = lambda x: self.ik_gradient(x,p,self.markers[:, index_table_markers, f],self.markers[:, index_wu_markers, f], x0,self.biorbd_model, self.weights_ipopt)
+                constraint = self.build_constraint(f, x0, p)
                 # the value of the diff between xp and model markers for the table must reach 0
                 constraint = ()
                 for i in range(5):
@@ -780,6 +780,7 @@ class KinematicChainCalibration:
                     tol=1e-4,
                     options={'max_iter': 5000, "print_level": 4},
                 )
+
 
                 q_output[self.q_kinematic_index, f] = ipopt_i.x
                 jacobian = jac_scalar(ipopt_i.x)
