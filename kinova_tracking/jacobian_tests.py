@@ -4,6 +4,7 @@ import pytest
 from models import enums
 import numpy as np
 from scipy.optimize import approx_fprime
+from cyipopt import minimize_ipopt
 from data.enums import TasksKinova
 from jacobians import (
     rotation_matrix_jacobian,
@@ -13,6 +14,7 @@ from jacobians import (
     marker_jacobian_theta,
 )
 from main import prepare_kcc as prep_kcc
+import main
 import random as rd
 
 model_name = '/home/nicolas/Documents/Stage_Robin/bioptim_exo/models/KINOVA_merge_without_floating_base_with_6_dof_support_template_with_variables.bioMod'
@@ -50,7 +52,7 @@ def test_rotation_matrix():
     table_markers = kcc_object.markers[:, kcc_object.table_markers_idx, 0]
     thorax_markers = kcc_object.markers[:, kcc_object.model_markers_idx, 0]
     q_init = kcc_object.q_ik_initial_guess
-    weights = kcc_object.weights_ls
+    weights = kcc_object.weights_param
 
     L = np.asarray([64, 65, 66, 67, 68])
     objective_function = lambda x: \
@@ -83,7 +85,7 @@ def test_marker_jacobian_model():
     table_markers = kcc_object.markers[:, kcc_object.table_markers_idx, 0]
     thorax_markers = kcc_object.markers[:, kcc_object.model_markers_idx, 0]
     q_init = kcc_object.q_ik_initial_guess
-    weights = kcc_object.weights_ls
+    weights = kcc_object.weights_param
 
     objective_function = lambda x: kcc_object.objective_ik_list(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers,
                                                       q_init[:, 0])[5:47]
@@ -124,7 +126,7 @@ def test_marker_jacobian_table():
     table_markers = kcc_object.markers[:, kcc_object.table_markers_idx, 0]
     thorax_markers = kcc_object.markers[:, kcc_object.model_markers_idx, 0]
     q_init = kcc_object.q_ik_initial_guess
-    weights = kcc_object.weights_ls
+    weights = kcc_object.weights_param
 
     objective_function = lambda x: kcc_object.objective_ik_list(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers,
                                                       q_init[:, 0])[0:5]
@@ -156,7 +158,7 @@ def test_q_continuity():
     table_markers = kcc_object.markers[:, kcc_object.table_markers_idx, 0]
     thorax_markers = kcc_object.markers[:, kcc_object.model_markers_idx, 0]
     q_init = kcc_object.q_ik_initial_guess
-    weights = kcc_object.weights_ls
+    weights = kcc_object.weights_param
 
     jacobian_analytic = lambda x: jacobian_q_continuity(x, q_idx_param)
     objective_function = lambda x: kcc_object.objective_ik_list(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers,
@@ -191,7 +193,7 @@ def test_pivot_theta():
     table_markers = kcc_object.markers[:, kcc_object.table_markers_idx, 0]
     thorax_markers = kcc_object.markers[:, kcc_object.model_markers_idx, 0]
     q_init = kcc_object.q_ik_initial_guess
-    weights = kcc_object.weights_ls
+    weights = kcc_object.weights_param
 
     jacobian_analytic = lambda x: marker_jacobian_theta(x, q_idx_param)
     objective_function = lambda x: kcc_object.objective_ik_list(x, np.zeros(len(q_idx_param)), table_markers, thorax_markers,
@@ -232,7 +234,7 @@ def test_entire_jacobian(x):
     q_idx_param = kcc_object.q_parameter_index
     idx_markers_model = kcc_object.model_markers_idx
     idx_markers_table = kcc_object.table_markers_idx
-    weights = kcc_object.weights_ls
+    weights = kcc_object.weights_param
 
     # get all the analytical Jacobian
     jacobian_analytic = lambda x: rotation_matrix_jacobian(x, biorbd_model, 45, q_idx_param)

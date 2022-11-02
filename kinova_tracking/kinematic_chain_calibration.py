@@ -38,7 +38,7 @@ class KinematicChainCalibration:
         name dof for which parameters are constant on each frame
     kinematic_dofs : list
         name dof which parameters aren't constant on each frame
-    weights_ls :np.ndarray
+    weights_param :np.ndarray
         weight associated with cost functions
     q_ik_initial_guess : array
         initialize q
@@ -127,7 +127,7 @@ class KinematicChainCalibration:
         self.nb_kinematic_dofs = len(kinematic_dofs)
 
         # self.objectives_function
-        self.param_solver=param_solver
+        self.param_solver = param_solver
         self.ik_solver = ik_solver
 
         # check if q_ik_initial_guess has the right size
@@ -141,33 +141,33 @@ class KinematicChainCalibration:
 
         # number of weights has to be checked
         # raise Error if not the right number
-        self.weights_ls = weights_param
-        self.weights_ipopt = weights_ik
+        self.weights_param = weights_param
+        self.weights_ik = weights_ik
 
-        weight_closed_loop_ls = [self.weights_ls[0]] * (len(self.closed_loop_markers) * 3 - 1)
-        weight_closed_loop_ipopt = [self.weights_ipopt[0]] * (len(self.closed_loop_markers) * 3 - 1)
+        weight_closed_loop_ls = [self.weights_param[0]] * (len(self.closed_loop_markers) * 3 - 1)
+        weight_closed_loop_ipopt = [self.weights_ik[0]] * (len(self.closed_loop_markers) * 3 - 1)
         # nb marker table * 3 dim - 1 because we don't use value on z for Table:Table6
 
-        weight_open_loop_ls = [self.weights_ls[1]] * (
+        weight_open_loop_ls = [self.weights_param[1]] * (
                 len([i for i in self.tracked_markers if i not in self.closed_loop_markers]) * 3
         )
-        weight_open_loop_ipopt = [self.weights_ipopt[1]] * (
+        weight_open_loop_ipopt = [self.weights_ik[1]] * (
                 len([i for i in self.tracked_markers if i not in self.closed_loop_markers]) * 3
         )
         # This is for all markers except those for table
 
-        weight_rot_matrix_ls = [self.weights_ls[4]] * 5  # len(rot_matrix_list_xp)
-        weight_rot_matrix_ipopt = [self.weights_ipopt[4]] * 5  # len(rot_matrix_list_xp)
+        weight_rot_matrix_ls = [self.weights_param[4]] * 5  # len(rot_matrix_list_xp)
+        weight_rot_matrix_ipopt = [self.weights_ik[4]] * 5  # len(rot_matrix_list_xp)
 
-        weight_theta_13_ls = [self.weights_ls[2]]
-        weight_theta_13_ipopt = [self.weights_ipopt[2]]
+        weight_theta_13_ls = [self.weights_param[2]]
+        weight_theta_13_ipopt = [self.weights_ik[2]]
 
-        weight_continuity_ls = [self.weights_ls[3]] * (self.q_ik_initial_guess.shape[0] - len(self.parameter_dofs))
-        weight_continuity_ipopt = [self.weights_ipopt[3]] * (self.q_ik_initial_guess.shape[0] - len(self.parameter_dofs))
+        weight_continuity_ls = [self.weights_param[3]] * (self.q_ik_initial_guess.shape[0] - len(self.parameter_dofs))
+        weight_continuity_ipopt = [self.weights_ik[3]] * (self.q_ik_initial_guess.shape[0] - len(self.parameter_dofs))
         # We need the nb of dofs but without parameters
 
-        self.weight_list_ls = weight_closed_loop_ls + weight_open_loop_ls + weight_continuity_ls + weight_theta_13_ls + weight_rot_matrix_ls
-        self.weight_list_ipopt = weight_closed_loop_ipopt + weight_open_loop_ipopt + weight_continuity_ipopt + weight_theta_13_ipopt + weight_rot_matrix_ipopt
+        self.weight_list_param = weight_closed_loop_ls + weight_open_loop_ls + weight_continuity_ls + weight_theta_13_ls + weight_rot_matrix_ls
+        self.weight_list_ik = weight_closed_loop_ipopt + weight_open_loop_ipopt + weight_continuity_ipopt + weight_theta_13_ipopt + weight_rot_matrix_ipopt
 
         self.list_sol = []
         self.q = np.zeros((self.biorbd_model.nbQ(), self.nb_frames_ik_step))
@@ -242,7 +242,7 @@ class KinematicChainCalibration:
             (mini, maxi) for mini, maxi in zip(get_range_q(self.biorbd_model)[0], get_range_q(self.biorbd_model)[1])
         ]
 
-        bounds_list = [[bounds[k][0] for k in self.q_parameter_index], [bounds[l][1] for l in self.q_parameter_index]]
+        self.bounds_param = [[bounds[k][0] for k in self.q_parameter_index], [bounds[l][1] for l in self.q_parameter_index]]
 
         p = q_step_2[self.q_parameter_index, 0]
 
@@ -264,7 +264,7 @@ class KinematicChainCalibration:
             if self.param_solver == "leastsquare":
                 param_opt = optimize.minimize(
                     fun=self.objective_function_param,
-                    args=(q_first_ik_not_all_frames, q0, markers_xp_data_not_all_frames,self.weights_ls),
+                    args=(q_first_ik_not_all_frames, q0, markers_xp_data_not_all_frames,self.weights_param),
                     x0=p,
                     bounds=bounds[10:16],
                     method="trust-constr",
@@ -310,7 +310,7 @@ class KinematicChainCalibration:
                 param_opt = minimize_ipopt(
                     fun=self.objective_function_param,
                     x0=p,
-                    args=(q_first_ik_not_all_frames, q0, markers_xp_data_not_all_frames,self.weights_ipopt),
+                    args=(q_first_ik_not_all_frames, q0, markers_xp_data_not_all_frames,self.weights_ik),
                     bounds=self.bounds_param,
                     #jac=self.param_gradient,
                     #constraints=constraint,
@@ -493,7 +493,7 @@ class KinematicChainCalibration:
         x: np.ndarray
             Generalized coordinates for all dof except those between ulna and piece 7, unique for all frames
         q_init: np.ndarray
-            The initial values of generalized coordinates fo the actual frame
+            The initial values of generalized coordinates for the actual frame
 
         Return
         ------
@@ -626,7 +626,7 @@ class KinematicChainCalibration:
         """
         if p is not None:
             new_x = np.zeros(self.biorbd_model.nbQ())  # we add p to x because the optimization is on p so we can't
-            # give all x to mininimize
+            # give all x to minimize
             new_x[self.q_kinematic_index] = x
             new_x[self.q_parameter_index] = p
         else:
@@ -668,9 +668,9 @@ class KinematicChainCalibration:
         diff = diff_tab_model - diff_tab_xp
 
         if self.ik_solver == "leastsquare":
-            return diff * self.weight_list_ls
+            return diff * self.weight_list_param
         if self.ik_solver == "ipopt":
-            return diff * self.weight_list_ipopt
+            return diff * self.weight_list_ik
 
     def objective_ik_scalar(self, x, p, table_markers, thorax_markers, q_init):
         objective_ik_list = self.objective_ik_list(x, p, table_markers, thorax_markers, q_init)
@@ -728,11 +728,11 @@ class KinematicChainCalibration:
 
             start = time.time()
 
-            if self.ik_solver == "least square":
+            if self.ik_solver == "leastsquare":
 
                 if self.use_analytical_jacobians:
                     jac = lambda x, p, index_table_markers, index_wu_markers, x0: self.ik_jacobian(x, self.biorbd_model,
-                                                                                                   self.weights_ls)
+                                                                                                   self.weights_param)
                 else:
                     jac = "3-point"
 
@@ -760,21 +760,12 @@ class KinematicChainCalibration:
                 obj_fun = lambda x: self.objective_ik_scalar(x, p, self.markers[:, index_table_markers, f],
                                                              self.markers[:, index_wu_markers, f], x0)
 
-                jac_scalar = lambda x: self.ik_gradient(x,p,self.markers[:, index_table_markers, f],self.markers[:, index_wu_markers, f], x0,self.biorbd_model, self.weights_ipopt)
+                jac_scalar = lambda x: self.ik_gradient(x, p,self.markers[:, index_table_markers, f],self.markers[:, index_wu_markers, f], x0, self.biorbd_model, self.weights_ik)
                 constraint = self.build_constraint(f, x0, p)
-                # the value of the diff between xp and model markers for the table must reach 0
-                constraint = ()
-                for i in range(5):
-                    constraint_fun = lambda x: self.objective_ik_list(x, p, self.markers[:, index_table_markers, f],
-                                                                      self.markers[:, index_wu_markers, f], x0)[i]
-                    jac_table = lambda x: jacobians.marker_jacobian_table(x, self.biorbd_model, self.table_markers_idx,
-                                                                          self.q_parameter_index)[i, :] * self.weights[0]
-                    constraint += ({"fun": constraint_fun, "jac": jac_table, "type": "eq"},)
-
                 ipopt_i = minimize_ipopt(
                     fun=obj_fun,
                     x0=x0,
-                    # jac=jac_scalar,
+                    #jac=jac_scalar,
                     constraints=constraint,
                     bounds=bounds_without_p_list,
                     tol=1e-4,
@@ -822,7 +813,7 @@ class KinematicChainCalibration:
 
 
         jac_table = lambda x: jacobians.marker_jacobian_table(x, self.biorbd_model, self.table_markers_idx,
-                                                              self.q_parameter_index)[0, :] * self.weights_ipopt[0]
+                                                              self.q_parameter_index)[0, :] * self.weights_ik[0]
 
         constraint += ({"fun": constraint_fun, "jac": jac_table, "type": "eq"},)
 
@@ -831,7 +822,7 @@ class KinematicChainCalibration:
                                                           self.markers[:, index_wu_markers, f], q_init)[1]
 
         jac_table = lambda x: jacobians.marker_jacobian_table(x, self.biorbd_model, self.table_markers_idx,
-                                                              self.q_parameter_index)[1, :] * self.weights_ipopt[0]
+                                                              self.q_parameter_index)[1, :] * self.weights_ik[0]
 
         constraint += ({"fun": constraint_fun, "jac": jac_table, "type": "eq"},)
 
@@ -840,7 +831,7 @@ class KinematicChainCalibration:
                                                           self.markers[:, index_wu_markers, f], q_init)[2]
 
         jac_table = lambda x: jacobians.marker_jacobian_table(x, self.biorbd_model, self.table_markers_idx,
-                                                              self.q_parameter_index)[2, :] * self.weights_ipopt[0]
+                                                              self.q_parameter_index)[2, :] * self.weights_ik[0]
 
         constraint += ({"fun": constraint_fun, "jac": jac_table, "type": "eq"},)
 
@@ -849,7 +840,7 @@ class KinematicChainCalibration:
                                                           self.markers[:, index_wu_markers, f], q_init)[3]
 
         jac_table = lambda x: jacobians.marker_jacobian_table(x, self.biorbd_model, self.table_markers_idx,
-                                                              self.q_parameter_index)[3, :] * self.weights_ipopt[0]
+                                                              self.q_parameter_index)[3, :] * self.weights_ik[0]
 
         constraint += ({"fun": constraint_fun, "jac": jac_table, "type": "eq"},)
 
@@ -858,11 +849,12 @@ class KinematicChainCalibration:
                                                           self.markers[:, index_wu_markers, f], q_init)[4]
 
         jac_table = lambda x: jacobians.marker_jacobian_table(x, self.biorbd_model, self.table_markers_idx,
-                                                              self.q_parameter_index)[4, :] * self.weights_ipopt[0]
+                                                              self.q_parameter_index)[4, :] * self.weights_ik[0]
 
         constraint += ({"fun": constraint_fun, "jac": jac_table, "type": "eq"},)
 
         return constraint
+
     def build_constraint_parameters(self, f, q_init, x):
         constraint = ()
         index_table_markers = self.table_markers_idx
@@ -873,7 +865,7 @@ class KinematicChainCalibration:
                                                           self.markers[:, index_wu_markers, f], q_init)[0]
 
         jac_table = lambda p: jacobians.marker_jacobian_table(x, self.biorbd_model, self.table_markers_idx,
-                                                              self.q_parameter_index)[0, :] * self.weights_ipopt[0]
+                                                              self.q_parameter_index)[0, :] * self.weights_ik[0]
 
         constraint += ({"fun": constraint_fun, "jac": jac_table, "type": "eq"},)
 
@@ -882,7 +874,7 @@ class KinematicChainCalibration:
                                                           self.markers[:, index_wu_markers, f], q_init)[1]
 
         jac_table = lambda p: jacobians.marker_jacobian_table(x, self.biorbd_model, self.table_markers_idx,
-                                                              self.q_parameter_index)[1, :] * self.weights_ipopt[0]
+                                                              self.q_parameter_index)[1, :] * self.weights_ik[0]
 
         constraint += ({"fun": constraint_fun, "jac": jac_table, "type": "eq"},)
 
@@ -891,7 +883,7 @@ class KinematicChainCalibration:
                                                           self.markers[:, index_wu_markers, f], q_init)[2]
 
         jac_table = lambda p: jacobians.marker_jacobian_table(x, self.biorbd_model, self.table_markers_idx,
-                                                              self.q_parameter_index)[2, :] * self.weights_ipopt[0]
+                                                              self.q_parameter_index)[2, :] * self.weights_ik[0]
 
         constraint += ({"fun": constraint_fun, "jac": jac_table, "type": "eq"},)
 
@@ -900,7 +892,7 @@ class KinematicChainCalibration:
                                                           self.markers[:, index_wu_markers, f], q_init)[3]
 
         jac_table = lambda p: jacobians.marker_jacobian_table(x, self.biorbd_model, self.table_markers_idx,
-                                                              self.q_parameter_index)[3, :] * self.weights_ipopt[0]
+                                                              self.q_parameter_index)[3, :] * self.weights_ik[0]
 
         constraint += ({"fun": constraint_fun, "jac": jac_table, "type": "eq"},)
 
@@ -909,14 +901,15 @@ class KinematicChainCalibration:
                                                           self.markers[:, index_wu_markers, f], q_init)[4]
 
         jac_table = lambda p: jacobians.marker_jacobian_table(x, self.biorbd_model, self.table_markers_idx,
-                                                              self.q_parameter_index)[4, :] * self.weights_ipopt[0]
+                                                              self.q_parameter_index)[4, :] * self.weights_ik[0]
 
         constraint += ({"fun": constraint_fun, "jac": jac_table, "type": "eq"},)
 
         return constraint
+
     def ik_jacobian(self, x, biorbd_model, weights):
         """
-             This function return the entire Jacobian of the system for the inverse kinematics step
+        This function return the entire Jacobian of the system for the inverse kinematics step
 
              Parameters
              ----------
@@ -952,15 +945,6 @@ class KinematicChainCalibration:
 
         # concatenate all Jacobians
         # size [16  x 69 ]
-        # #jacobian = np.concatenate(
-        #     (table * weights[0],
-        #      model * weights[1],
-        #      continuity * weights[3],
-        #      pivot * weights[2],
-        #      rotation * weights[4],
-        #      ),
-        #     axis=0
-        # )
         jacobian = np.concatenate(
             (table * weights[0],
              model * weights[1],
@@ -976,7 +960,8 @@ class KinematicChainCalibration:
     def ik_parameters_jacobian(self, p, biorbd_model, weights):
 
         table = jacobians.jacobian_table_parameters(p, biorbd_model, self.table_markers_idx, self.q_kinematic_index)
-        model = jacobians.markers_jacobian_model_parameters(p, biorbd_model, self.model_markers_idx, self.q_kinematic_index)
+        model = jacobians.markers_jacobian_model_parameters(p, biorbd_model, self.model_markers_idx,
+                                                            self.q_kinematic_index)
         rotation = jacobians.rotation_matrix_parameter_jacobian(p, biorbd_model, self.segment_id_with_vertical_z,
                                                                 self.q_kinematic_index)
         continuity = jacobians.jacobian_q_continuity_parameters()
@@ -996,12 +981,23 @@ class KinematicChainCalibration:
 
         return jacobian
 
-    def param_gradient(self, p, q_first_ik_not_all_frames, q0, markers_xp_data_not_all_frames):
-        return self.ik_parameters_jacobian(
-            p, self.biorbd_model, self.weights).repeat(self.nb_frames_param_step, axis=0).sum(axis=0).tolist()
+    # def param_gradient(self, p,p0,x,x0,markers_calibration q_first_ik_not_all_frames, q0, markers_xp_data_not_all_frames,weight):
+    #     jac=self.ik_parameters_jacobian(
+    #         p, self.biorbd_model, self.weights_ipopt).repeat(self.nb_frames_param_step, axis=0)
+    #     for k in range(np.shape(jac)[1]):
+    #         for i in range(np.shape(jac)[0]):
+    #             jac[i][k]*self.objective_function_param( p0=, x=, x0=, markers_calibration=, weight=)
+    #     return self.ik_parameters_jacobian(
+    #         p, self.biorbd_model, self.weights_ipopt).repeat(self.nb_frames_param_step, axis=0).sum(axis=0).tolist()
 
-    def ik_gradient(self, x, biorbd_model, weights):
-        return self.ik_jacobian(x, biorbd_model, weights).sum(axis=0).tolist()
+    def ik_gradient(self, x,p, table_markers,thorax_markers,q_init, biorbd_model, weights):
+        jac=self.ik_jacobian(x,biorbd_model,weights)
+        shape=np.shape(jac)
+        for k in range(shape[1]):
+            for i in range(shape[0]):
+                jac[i][k]*self.objective_ik_list(x,p,table_markers,thorax_markers,q_init)[i]
+        return jac.sum(axis=0).tolist()
+        #return self.ik_jacobian(x, biorbd_model, weights).sum(axis=0).tolist()
 
     def solution(self):
 
@@ -1032,13 +1028,17 @@ class KinematicChainCalibration:
 
             # get coordinates for model and xp markers of the thorax , without the table
             marker_mod, marker_xp = self.penalty_open_loop_markers(vect_pos_markers, mi)
+
+
+
             marker_mod = np.asarray(marker_mod)
             marker_xp = np.asarray(marker_xp)
 
             # get coordinates of the table's markers coming from xp and model
-            table_mod, table_xp = self.penalty_table_markers(vect_pos_markers=vect_pos_markers, table_markers=mi)
+            #table_mod, table_xp = self.penalty_table_markers(vect_pos_markers=vect_pos_markers, table_markers=mi)
+            table_mod, table_xp = self.penalty_table_markers(vect_pos_markers=vect_pos_markers, table_markers=mi[:,14:16])
 
-            # artificially add 0 for table6 z-axis
+            # artificially add 0 for table6 z-axis used to reshape
             table_mod.append(0)
             table_xp.append(0)
 
@@ -1194,3 +1194,5 @@ class KinematicChainCalibration:
         plt.legend()
         plt.show()
         print("parameters values = ", param_value)
+
+

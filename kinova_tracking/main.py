@@ -15,13 +15,15 @@ from data.enums import TasksKinova
 
 from kinematic_chain_calibration import KinematicChainCalibration
 
+
+
 def move_marker(
     marker_to_move: int,
     c3d_point: np.ndarray,
     offset: np.ndarray,
 ) -> np.array:
     """
-    This function applies an offet to a marker
+    This function applies an offset to a marker
 
     Parameters
     ----------
@@ -348,7 +350,9 @@ def prepare_kcc(
 
     #weight correpond to [table, model, continuity, theta, rotation]
     weight_ls = np.array([100000, 10000, 50000, 500,100])
+    #weight = np.array([100000,10000,50000,500,100])
     weight_ipopt=np.array([1,30,0,3,2])
+    #weight = np.array([1, 1, 1, 1, 1])
 
     #the last segment is the number 45
 
@@ -412,14 +416,14 @@ def main(
         use_analytical_jacobians=use_analytical_jacobians
     )
 
-    q_out, parameters,jacobian_used,gain_list = kcc.solve(threshold=1e-05)
+    q_out, parameters, jacobian_used, gain_list = kcc.solve(threshold=1e-05)
     output = kcc.solution()
 
     #plot graph
     kcc.plot_graph_rmse()
     kcc.plot_graph_rmse_table()
-    kcc.plot_rotation_matrix_penalty()
-    kcc.pivot()
+    #kcc.plot_rotation_matrix_penalty()
+    #kcc.pivot()
     kcc.plot_param_value()
 
     if show_animation:
@@ -444,7 +448,7 @@ def main(
 
 if __name__ == "__main__":
     main(
-        task=TasksKinova.ARMPIT,
+        task=TasksKinova.HEAD,
         show_animation=True,
         export_model=False,
         nb_frame_param_step=100,
@@ -452,6 +456,4 @@ if __name__ == "__main__":
     )
 
 
-if __name__ == "__main__":
-    main(task=TasksKinova.DRINK, show_animation=True,export_model=False, nb_frame_param_step=100 , use_analytical_jacobians=False)
 

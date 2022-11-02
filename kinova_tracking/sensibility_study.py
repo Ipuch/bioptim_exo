@@ -201,9 +201,6 @@ def show_jacobian_used(task, nb_frame_param_step):
             kcc = main.prepare_kcc(task=task, nb_frame_param_step=nb_frame_param_step, use_analytical_jacobians=j)[2]
             jacobians_used_numeric = kcc.solve(threshold=1e-5)[2]
 
-    #np.delete(q_out,[10,11,12,13,14,15])
-    # for l in jacobians_used_analytic:
-    #     l= l * q_out
 
     nb_line = np.shape(jacobians_used_numeric[0])[0]
     nb_column = np.shape(jacobians_used_numeric[0])[1]
@@ -230,6 +227,5 @@ def show_jacobian_used(task, nb_frame_param_step):
 
 
 
-
 if __name__ == "__main__":
-    show_q(task= TasksKinova.DRINK ,show_animation=False,export_model=False, nb_frame_param_step= 100)
+    time_IK_spend_comparison(task=TasksKinova.DRAW,nb_frame_param_step=100)
