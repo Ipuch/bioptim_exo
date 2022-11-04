@@ -199,7 +199,7 @@ class KinematicChainCalibration:
 
         # prepare the size of the output of q
 
-        q_output = np.zeros((self.biorbd_model.nbQ(), self.nb_frames_ik_step))
+        x_output = MX.zeros((self.biorbd_model.nbQ(), self.nb_frames_ik_step))
 
         # get the bounds of the model for all dofs
         bounds = [
@@ -210,7 +210,7 @@ class KinematicChainCalibration:
         idx_zeros = np.where(np.sum(self.q_ik_initial_guess, axis=1) == 0)[0]
         kinematic_idx_zeros = [idx for idx in idx_zeros if idx in self.q_kinematic_index]
 
-        # inititialize q_ik with in the half-way between bounds
+        # initialize q_ik with in the half-way between bounds
         bounds_kinematic_idx_zeros = [b for i, b in enumerate(bounds) if i in kinematic_idx_zeros]
         kinova_q0 = np.array([(b[0] + b[1]) / 2 for b in bounds_kinematic_idx_zeros])
 
@@ -220,20 +220,21 @@ class KinematicChainCalibration:
         )
 
         # initialized parameters values
-        p = np.zeros(self.nb_parameters_dofs)
+        #self.p_sym[:] = 0
 
-        print("Initialisation")
+        print(" #######  Initialisation beginning  ########")
         jacobians_used = []
         gain_list = []
         # First IK step - INITIALIZATION
-        q_step_2, epsilon, gain, jacobian_ini = self.step_2(
+        x_step_2 = self.step_2_cas(
             p=p,
             bounds=get_range_q(self.biorbd_model),
-            q_output=q_output,
+            x_output=x_output,
         )
 
-        gain_list.append(gain)
-        jacobians_used.append(jacobian_ini)
+        print(" #######  Initialisation ending ########")
+
+
         q0 = self.q_ik_initial_guess[:, 0]
 
         q_output = np.zeros((self.biorbd_model.nbQ(), self.markers.shape[2]))
