@@ -348,6 +348,34 @@ class KinematicChainCalibration:
 
         obj = Function("f", [Xp], [s])
         return obj
+    def step_1(self,
+               x_step_2,
+               p_init,
+               ):
+
+        F = self.objective_param(x_step_2,
+                                 self.Xp,
+                                 )
+        objective = F(self.Xp)
+
+        # Create a NLP solver
+        prob = {"f": objective, "x": self.Xp}
+        opts = {"ipopt": {"max_iter": 5000, "linear_solver": "ma57"}}
+        solver = nlpsol('solver', 'ipopt', prob, opts)  # no constraint yet
+
+        # Solve the NLP
+        sol = solver(
+            x0=p_init,
+            lbx=self.bounds_p_list[0],
+            ubx=self.bounds_p_list[1],
+        )
+        param_opt = sol["x"].full().flatten()
+
+        print(param_opt)
+
+        self.x_output[self.q_parameter_index, :] = param_opt.x
+        return param_opt
+
     def solve(
             self,
             threshold: int = 5e-5,
