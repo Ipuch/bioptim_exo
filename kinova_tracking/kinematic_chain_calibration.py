@@ -376,6 +376,33 @@ class KinematicChainCalibration:
         self.x_output[self.q_parameter_index, :] = param_opt.x
         return param_opt
 
+    def objective_ik(self, Xq: MX, Xp: MX, table_markers_xp: np.ndarray, model_markers_xp: np.ndarray) -> Function:
+
+        # rebuilt Xp and Xq
+
+        #x = MX.zeros(self.nb_total_dofs)
+        #x = MX.zeros(self.nb_total_dofs)
+        self.x[self.q_kinematic_index] = Xq
+        self.x[self.q_parameter_index] = Xp
+
+        # get the position of the markers for the info model
+        markers_model = self.biorbd_model.markers(self.x)
+
+        vect_pos_markers = MX.zeros(3 * len(markers_model))
+
+        for m, value in enumerate(markers_model):
+            vect_pos_markers[m * 3: (m + 1) * 3] = value.to_mx()
+
+        # built the objective function by adding penalties
+        obj_closed_loop = self.penalty_table(vect_pos_markers, table_markers_xp)
+        obj_open_loop = self.penalty_open_loop_marker(vect_pos_markers, model_markers_xp)
+        obj_rotation = self.penalty_rotation_matrix_cas(self.x)
+        #q_continuity = self.penalty_q_continuity(q_sym, q_init)
+        obj_pivot = self.penalty_theta(self.x)
+
+        output = obj_closed_loop + obj_open_loop + obj_rotation + obj_pivot                                  #Don't forget to add penalty
+        obj = Function("f", [Xq, Xp], [output])
+        return obj
     def solve(
             self,
             threshold: int = 5e-5,
