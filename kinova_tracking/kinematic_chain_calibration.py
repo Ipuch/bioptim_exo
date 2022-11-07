@@ -495,8 +495,8 @@ class KinematicChainCalibration:
             The optimized Generalized coordinates and parameters
         """
 
-        # prepare the size of the output of q
-
+        # prepare the size of the output of q (22 x nb frame )
+        self.x_output = MX.zeros((self.biorbd_model.nbQ(), self.nb_frames_ik_step))
         x_output = MX.zeros((self.biorbd_model.nbQ(), self.nb_frames_ik_step))
 
         # get the bounds of the model for all dofs
@@ -518,32 +518,33 @@ class KinematicChainCalibration:
         )
 
         # initialized parameters values
-        #self.p_sym[:] = 0
+        Xp_sym = MX.zeros(6)
+        q_init = self.q_ik_initial_guess[self.q_kinematic_index, :]
 
         print(" #######  Initialisation beginning  ########")
-        jacobians_used = []
+
         gain_list = []
         # First IK step - INITIALIZATION
-        x_step_2 = self.step_2_cas(
-            p=p,
-            bounds=get_range_q(self.biorbd_model),
-            x_output=x_output,
-        )
+
+        x_step_2 = self.step_2(
+            q_init=q_init,
+            Xp_sym=Xp_sym,
+        )[0]
 
         print(" #######  Initialisation ending ########")
 
 
-        q0 = self.q_ik_initial_guess[:, 0]
+        #q0 = self.q_ik_initial_guess[:, 0]
 
-        q_output = np.zeros((self.biorbd_model.nbQ(), self.markers.shape[2]))
+        #x_output = np.zeros((self.biorbd_model.nbQ(), self.markers.shape[2]))
 
-        bounds = [
-            (mini, maxi) for mini, maxi in zip(get_range_q(self.biorbd_model)[0], get_range_q(self.biorbd_model)[1])
-        ]
+        # #bounds = [
+        #     (mini, maxi) for mini, maxi in zip(get_range_q(self.biorbd_model)[0], get_range_q(self.biorbd_model)[1])
+        # ]
 
-        self.bounds_param = [[bounds[k][0] for k in self.q_parameter_index], [bounds[l][1] for l in self.q_parameter_index]]
+        #self.bounds_param = [[bounds[k][0] for k in self.q_parameter_index], [bounds[l][1] for l in self.q_parameter_index]]
 
-        p = q_step_2[self.q_parameter_index, 0]
+        p_init = x_step_2[self.q_parameter_index, 0]
 
         iteration = 0
         epsilon_markers_n = 10  # arbitrary set
@@ -553,15 +554,16 @@ class KinematicChainCalibration:
         while abs(delta_epsilon_markers) > threshold:
             q_first_ik_not_all_frames = q_step_2[:, self.list_frames_param_step]
 
-            markers_xp_data_not_all_frames = self.markers[:, :, self.list_frames_param_step]
+
+            #markers_xp_data_not_all_frames = self.markers[:, :, self.list_frames_param_step]
 
             print("threshold", threshold, "delta", abs(delta_epsilon_markers))
 
             epsilon_markers_n_minus_1 = epsilon_markers_n
             # step 1 - param opt
 
-            if self.param_solver == "leastsquare":
-                param_opt = optimize.minimize(
+            # step 1 - param opt
+            # elif self.param_solver == "ipopt":
                     fun=self.objective_function_param,
                     args=(q_first_ik_not_all_frames, q0, markers_xp_data_not_all_frames,self.weights_param),
                     x0=p,
@@ -583,24 +585,37 @@ class KinematicChainCalibration:
                 #     for f, frame in enumerate(self.list_frames_param_step):
                 #         x0 = self.q_ik_initial_guess[self.q_kinematic_index, 0] if f == 0 else q_output[
                 #             self.q_kinematic_index, f - 1]
-                #
-                #         # get the value of the distance from objective_ik_list
-                #         s =lambda x : self.objective_ik_list(x, p, self.markers[:, self.index_table_markers, f],
-                #                                                           self.markers[:, self.index_wu_markers, f], x0)[i]
-                #         l.append(s)
-                #         jac_table_f = lambda x: jacobians.jacobian_table_parameters(x, self.biorbd_model, self.table_markers_idx,
-                #                                                                                        self.q_parameter_index)[i, :] * self.weights[0]
-                #         #list of list with shape len(list-frames_param_step) x   list[len (6)]
-                #         j1.append(jac_table_f)
-                #         #j[c,:]=jac_table_f
-                #         c+=1
-                #
+            #
+            #
+            #
+            #     jac_scalar = lambda x : self.param_gradient(p,q_first_ik_not_all_frames,q0,markers_xp_data_not_all_frames)
+            #
+            #     frame_constraint=self.list_frames_param_step[0]
+            #     #x0 = q_step_2[self.q_kinematic_index, 0] if frame_constraint == 0 else x_output[
+            #         #self.q_kinematic_index, frame_constraint - 1]
+            #     x0 = q_step_2[self.q_kinematic_index, 0] if frame_constraint == 0 else x_output[
+            #         self.q_kinematic_index, frame_constraint - 1]
+            #     q_init=q_step_2[:,0] if frame_constraint == 0 else x_output[:,frame_constraint - 1]
+            #     constraint = self.build_constraint_parameters(f=frame_constraint,q_init=q_init,x=x0)
+            #
+            #     param_opt = minimize_ipopt(
+            #         fun=self.objective_function_param,
+            #         x0=p,
+            #         args=(q_first_ik_not_all_frames, q0, markers_xp_data_not_all_frames,self.weights_ik),
+            #         bounds=self.bounds_param,
+            #         #jac=self.param_gradient,
+            #         #constraints=constraint,
+            #         tol=1e-4,
+            #         options={'max_iter': 3000},
+            #     )
+            #
+            # frame_constraint = self.list_frames_param_step[0]
 
                 jac_scalar = lambda x : self.param_gradient(p,q_first_ik_not_all_frames,q0,markers_xp_data_not_all_frames)
 
-                frame_constraint=self.list_frames_param_step[0]
-                #x0 = q_step_2[self.q_kinematic_index, 0] if frame_constraint == 0 else q_output[
-                    #self.q_kinematic_index, frame_constraint - 1]
+            param_opt = self.step_1(
+                x_step_2=x_step_2,
+                p_init=p_init,
                 x0 = q_step_2[self.q_kinematic_index, 0] if frame_constraint == 0 else q_output[
                     self.q_kinematic_index, frame_constraint - 1]
                 q_init=q_step_2[:,0] if frame_constraint == 0 else q_output[:,frame_constraint - 1]
@@ -619,15 +634,15 @@ class KinematicChainCalibration:
 
             print(param_opt.x)
 
-            self.q_ik_initial_guess[self.q_parameter_index, :] = np.array([param_opt.x] * self.nb_frames_ik_step).T
-            p = param_opt.x
-            q_output[self.q_parameter_index, :] = np.array([param_opt.x] * q_output.shape[1]).T
+            #self.q_ik_initial_guess[self.q_parameter_index, :] = np.array([param_opt.x] * self.nb_frames_ik_step).T
+            self.q_ik_initial_guess[self.q_parameter_index, : ] = param_opt
+            p = param_opt
+            #x_output[self.q_parameter_index, :] = np.array([param_opt.x] * x_output.shape[1]).T
 
             # step 2 - ik step
-            q_out, epsilon_markers_n, gain2, jacobian_x = self.step_2(
-                p= p,
-                bounds=get_range_q(self.biorbd_model),
-                q_output=q_output,
+            q_out, epsilon_markers_n,  = self.step_2(
+                x_init=self.x_output[self.q_kinematic_index],
+                Xp_sym=self.x_output[self.q_parameter_index],
             )
 
             gain_list.append(gain2)
@@ -642,15 +657,16 @@ class KinematicChainCalibration:
             print("epsilon_markers_n_minus_1:", epsilon_markers_n_minus_1)
             iteration += 1
             print("iteration:", iteration)
+            self.q_ik_initial_guess = self.x_output
 
-            self.q_ik_initial_guess = q_output
+        self.parameters = param_opt
 
         self.gain = gain_list
         self.parameters = p
         self.q = q_out
         self.jacobian_used = jacobians_used
 
-        return q_out, p, jacobians_used, gain_list
+        return q_out, param_opt
 
     def frame_selector(self, frames_needed: int, frames: int):
         """
@@ -965,6 +981,7 @@ class KinematicChainCalibration:
 
         # We created the difference vector
         diff = diff_tab_model - diff_tab_xp
+        diff * self.weight_list_ik
 
         if self.ik_solver == "leastsquare":
             return diff * self.weight_list_param
@@ -975,7 +992,7 @@ class KinematicChainCalibration:
         objective_ik_list = self.objective_ik_list(x, p, table_markers, thorax_markers, q_init)
         return 0.5 * np.sum(np.array(objective_ik_list) ** 2, axis=0)
 
-    def step_2(
+    def step_2_old(
         self,
         p: np.ndarray = None,
         bounds: np.ndarray = None,
