@@ -285,6 +285,14 @@ class KinematicChainCalibration:
             diff += i**2
 
         return diff
+    def penalty_q_continuity(self, q_sym: MX, x_init: np.ndarray) -> MX:
+        # TODO: sqme format for xinit as other functions
+        diff = MX.zeros(1)
+        for i in enumerate(q_sym):
+            q_continuity_xp = [x_init[i]]
+            q_continuity_model_mx = [i]
+            diff += (q_continuity_model_mx - q_continuity_xp) **2
+        return diff
     def solve(
             self,
             threshold: int = 5e-5,
