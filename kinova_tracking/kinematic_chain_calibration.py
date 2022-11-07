@@ -226,6 +226,36 @@ class KinematicChainCalibration:
 
         return diff
 
+    def penalty_open_loop_marker(self, model_markers_mx: MX, model_markers_xp: np.ndarray) -> MX:
+        """
+        Calculate the penalty cost for wu's markers
+
+        Parameters
+        ----------
+        model_markers_mx : MX
+            The position of each marker of the informatic model
+
+        model_markers_xp : np.ndarray
+            The position of the markers associated with wu model , coming from experiment
+
+        Returns
+        -------
+        The cost of the penalty function
+
+        """
+        diff = MX.zeros(1)
+
+        # get only markers which aren't associated to the table
+        for j, name in enumerate(self.markers_model[:self.model_markers_idx[-1]+1]):
+
+            pos_model_mx = model_markers_mx[self.markers_model.index(name) * 3: self.markers_model.index(name) * 3 + 3]
+            pos_xp = model_markers_xp[:, self.markers_model.index(name)].tolist()
+
+            for i in range(len(pos_xp)):
+                diff += (pos_model_mx[i] - pos_xp[i]) ** 2
+
+        return diff
+
     def solve(
             self,
             threshold: int = 5e-5,
