@@ -191,6 +191,40 @@ class KinematicChainCalibration:
     # if nb_frames_ik_step> markers.shape[2]:
     # raise error
     # self.nb_frame_ik_step = markers.shape[2] if nb_frame_ik_step is None else nb_frames_ik_step
+    def penalty_table(self, model_markers_mx: MX, table_markers_xp: np.ndarray) -> MX:
+        """
+        Calculate the penalty cost for table's markers
+
+        Parameters
+        ----------
+        model_pos_all_mk : MX
+            The position of each marker of the informatic model
+
+        table_markers_xp : np.ndarray
+            The position of the markers associated with the table, coming from experiment
+
+        Returns
+        -------
+        The cost of the penalty function
+
+        """
+        diff = MX.zeros(1)
+
+        table5_xyz_mx = model_markers_mx[
+                     self.table_markers_idx[0] * 3: self.table_markers_idx[0] * 3 + 3][:]
+        table_xp = table_markers_xp[:, 0].tolist()
+
+        table6_xy_mx = model_markers_mx[
+                    self.table_markers_idx[1] * 3: self.table_markers_idx[1] * 3 + 3][:2]
+
+        table_xp += table_markers_xp[:2, 1].tolist()
+
+        table_mx = vertcat(table5_xyz_mx, table6_xy_mx)
+
+        for i in range(self.nb_markers_table):
+            diff += (table_mx[i] - table_xp[i]) ** 2
+
+        return diff
 
     def solve(
             self,
