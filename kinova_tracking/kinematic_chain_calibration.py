@@ -8,7 +8,9 @@ from scipy import optimize
 import numpy as np
 
 from cyipopt import minimize_ipopt
-import biorbd
+from casadi import MX, Function, vertcat, nlpsol, if_else, norm_2, sumsqr
+
+import biorbd_casadi as biorbd
 
 from utils import get_range_q
 import jacobians
@@ -83,7 +85,7 @@ class KinematicChainCalibration:
     ):
 
         self.nb_markers = None
-        self.biorbd_model = biorbd_model
+        self.biorbd_model = biorbd.Model(biorbd_model.path().absolutePath().to_string())
         self.model_dofs = [dof.to_string() for dof in biorbd_model.nameDof()]
 
         self.nb_markers = self.biorbd_model.nbMarkers()
@@ -125,6 +127,7 @@ class KinematicChainCalibration:
 
         self.nb_parameters_dofs = len(parameter_dofs)
         self.nb_kinematic_dofs = len(kinematic_dofs)
+        self.nb_total_dofs = self.nb_kinematic_dofs + self.nb_parameters_dofs
 
         # self.objectives_function
         self.param_solver = param_solver
@@ -136,6 +139,11 @@ class KinematicChainCalibration:
         self.nb_frames_param_step = nb_frames_param_step
         self.randomize_param_step_frames = randomize_param_step_frames
         self.use_analytical_jacobians = use_analytical_jacobians
+        self.bounds = get_range_q(self.biorbd_model)
+        self.bounds_q_list = [list(self.bounds[0][self.q_kinematic_index]),
+                              list(self.bounds[1][self.q_kinematic_index])]
+        self.bounds_p_list = [list(self.bounds[0][self.q_parameter_index]),
+                              list(self.bounds[1][self.q_parameter_index])]
 
         self.list_frames_param_step = self.frame_selector(self.nb_frames_param_step, self.nb_frames_ik_step)
 
@@ -175,6 +183,10 @@ class KinematicChainCalibration:
         self.segment_id_with_vertical_z = segment_id_with_vertical_z
         self.output = dict()
 
+        # symbolic variables
+        self.Xq = MX.sym("Xq", self.nb_kinematic_dofs)
+        self.Xp = MX.sym("Xp", self.nb_parameters_dofs)
+        self.x = MX.zeros( self.nb_total_dofs)
 
     # if nb_frames_ik_step> markers.shape[2]:
     # raise error
