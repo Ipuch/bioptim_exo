@@ -256,6 +256,35 @@ class KinematicChainCalibration:
 
         return diff
 
+    def penalty_rotation_matrix_cas(self, x: MX) -> MX:
+        """
+        Calculate the penalty cost for rotation matrix
+
+        Parameters
+        ----------
+        x : MX
+            the entire vector with q and p
+
+        Returns
+        -------
+        The cost of the penalty function
+
+        """
+        diff = MX.zeros(1)
+        rotation_matrix = self.biorbd_model.globalJCS(x, self.biorbd_model.nbSegment() - 1).rot().to_mx()
+        rot_matrix_list_model = [
+            rotation_matrix[2, 0],
+            rotation_matrix[2, 1],
+            rotation_matrix[0, 2],
+            rotation_matrix[1, 2],
+            (rotation_matrix[2, 2] - 1),
+        ]
+
+        #diff = sumsqr(rot_matrix_list_model) #problem w/ sumsqr method
+        for i in rot_matrix_list_model:
+            diff += i**2
+
+        return diff
     def solve(
             self,
             threshold: int = 5e-5,
