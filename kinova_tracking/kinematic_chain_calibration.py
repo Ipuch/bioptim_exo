@@ -318,6 +318,36 @@ class KinematicChainCalibration:
         )
 
         return diff
+    def objective_param(self, x_step_2, Xp: MX):
+
+        # be filled in the loop
+        s = MX.zeros(1)
+
+        for f in self.list_frames_param_step:
+            table_markers_xp = self.markers[:, self.table_markers_idx, f]
+            model_markers_xp = self.markers[:, self.model_markers_idx, f]
+
+            self.x[self.q_kinematic_index] = x_step_2[:,f]
+            self.x[self.q_parameter_index] = Xp
+            # put previous values for kinematic index
+            #self.x[self.q_kinematic_index] = x_step_2[self.q_kinematic_index, f]
+
+            markers_model = self.biorbd_model.markers(self.x)
+
+            vect_pos_markers = MX.zeros(3 * len(markers_model))
+
+            for m, value in enumerate(markers_model):
+                vect_pos_markers[m * 3: (m + 1) * 3] = value.to_mx()
+
+            obj_closedloop = self.penalty_table(vect_pos_markers, table_markers_xp)
+            obj_openloop = self.penalty_open_loop_marker(vect_pos_markers, model_markers_xp)
+            obj_rotation = self.penalty_rotation_matrix_cas(self.x)
+            obj_theta = self.penalty_theta(self.x)
+            output_f = obj_closedloop + obj_openloop + obj_rotation + obj_theta
+            s += output_f
+
+        obj = Function("f", [Xp], [s])
+        return obj
     def solve(
             self,
             threshold: int = 5e-5,
