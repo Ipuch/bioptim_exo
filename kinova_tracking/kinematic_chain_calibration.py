@@ -293,6 +293,31 @@ class KinematicChainCalibration:
             q_continuity_model_mx = [i]
             diff += (q_continuity_model_mx - q_continuity_xp) **2
         return diff
+    def penalty_theta(self, x: MX) -> MX:
+        """
+        Calculate the penalty cost for theta angle
+
+        Parameters
+        ----------
+        x : MX
+            the entire vector with q and p
+
+        Returns
+        -------
+        The cost of the penalty function
+
+        """
+
+        theta_part1_3 = x[-2] + x[-1]
+        theta_part1_3_lim = 7 * np.pi / 10
+
+        diff = if_else(
+            theta_part1_3 > theta_part1_3_lim,  # cond
+            (theta_part1_3-theta_part1_3_lim) ** 2,  # if true
+            0  # if false
+        )
+
+        return diff
     def solve(
             self,
             threshold: int = 5e-5,
