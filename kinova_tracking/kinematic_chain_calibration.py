@@ -403,6 +403,81 @@ class KinematicChainCalibration:
         output = obj_closed_loop + obj_open_loop + obj_rotation + obj_pivot                                  #Don't forget to add penalty
         obj = Function("f", [Xq, Xp], [output])
         return obj
+    def step_2(self,
+               q_init: np.ndarray,
+               Xp_sym: MX,
+    ):
+
+        q_output = MX.zeros(self.nb_kinematic_dofs, self.nb_frames_ik_step)
+
+        # enter the frame loop
+        for f in range(self.nb_frames_ik_step):
+
+            #Xq = MX.sym("Xq", self.nb_kinematic_dofs)
+            #Xp = MX.sym("Xp", self.nb_parameters_dofs)
+            #x = self.x
+            #Xq = self.Xq
+            #Xp = self.Xp
+
+            #self.x = vertcat(self.Xq, self.Xp)
+            #x[self.q_kinematic_index] = Xq
+            #x[self.q_parameter_index] = Xp
+            #self.x[self.q_kinematic_index] = self.Xq[:]
+            #self.x[self.q_parameter_index] = Xp_sym[:]
+
+            # q_init = q_init[:, f]
+            # p_init = Xp_sym
+            #x_init = vertcat(q_init, p_init)
+            x_init = MX.zeros(self.nb_kinematic_dofs)
+            #x_init[self.q_kinematic_index] = q_init[:, f]
+            #x_init[self.q_parameter_index] = Xp_sym
+            x_init = q_init[:, f]
+
+            #self.x[self.q_kinematic_index] = self.Xq
+            #self.x[self.q_parameter_index] = Xp_sym
+
+            F = self.objective_ik(
+                Xq=self.Xq,
+                Xp=self.Xp,
+                table_markers_xp=self.markers[:, self.table_markers_idx, f],
+                model_markers_xp=self.markers[:, self.model_markers_idx, f],
+            )
+
+            # evaluate for the first time
+            objective = F(self.Xq, Xp_sym)
+
+            # Create a NLP solver
+            prob = {"f": objective, "x": self.Xq}
+            opts = {"ipopt": {"max_iter": 5000, "linear_solver": "ma57"}}
+            solver = nlpsol('solver', 'ipopt', prob, opts)  # no constraint yet
+
+            # Solve the NLP
+            sol = solver(
+                x0=x_init,
+                lbx=self.bounds_q_list[0],
+                ubx=self.bounds_q_list[1],
+            )
+            x_opt = sol["x"].full().flatten()
+
+            print(x_opt)
+            q_output[:, f] = x_opt[:]
+            self.x_output[self.q_kinematic_index, f] = x_opt[:]
+
+            markers_model = self.biorbd_model.markers(self.x_output[:, f])
+            markers_to_compare = self.markers[:, :, f]
+            espilon_markers = 0
+
+            # sum of squared norm of difference of markers
+            c = 0
+            for m, value in enumerate(markers_model):
+                mark = norm_2(value.to_mx() - markers_to_compare[:, c]) ** 2
+                espilon_markers += mark
+                c += 1
+
+        print("step 2 done")
+
+        return q_output, espilon_markers
+
     def solve(
             self,
             threshold: int = 5e-5,
