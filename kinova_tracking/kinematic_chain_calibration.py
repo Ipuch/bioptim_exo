@@ -292,7 +292,7 @@ class KinematicChainCalibration:
             (rotation_matrix[2, 2] - 1),
         ]
 
-        #diff = sumsqr(rot_matrix_list_model) #problem w/ sumsqr method
+        return sumsqr(vertcat(*rot_matrix_list_model))
         for i in rot_matrix_list_model:
             diff += i**2
 
