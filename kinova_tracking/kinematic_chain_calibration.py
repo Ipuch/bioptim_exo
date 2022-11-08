@@ -397,15 +397,42 @@ class KinematicChainCalibration:
         #
         # obj = Function("f", [p_sym], [s])
         # return obj
-               ):
+    def parameters_optimization(self,
+                                q_init_all: np.ndarray,
+                                p_init: np.ndarray,
+                                ):
+        """
+        This method return the value of optimal parameters
 
-        F = self.objective_param(x_step_2,
-                                 self.Xp,
+        Parameters
+        ----------
+        q_init_all:  np.ndarray
+            the MX which contains the solution found during the initialization
+        p_init: np.ndarray
+            the value of parameters used at the starting point
+
+        Returns
+        -------
+        the value of optimal parameters
+        """
+
+        obj_func = self.objective_param()
+        objective = 0
+
+        for f in self.list_frames_param_step:
+
+            objective += obj_func(q_init_all[:,f],
+                                 self.p_sym,
+                                 self.markers[:, self.model_markers_idx, f].flatten("F"),
+                                 self.markers[:, self.table_markers_idx, f].flatten("F")[:-1],
                                  )
-        objective = F(self.Xp)
+
+        #obj_func = self.objective_param()
+        # F(q_sym_all_frames, p_sym, markers_model_sym, table_sym)
+        #objective = obj_func(self.p_sym)
 
         # Create a NLP solver
-        prob = {"f": objective, "x": self.Xp}
+        prob = {"f": objective, "x": self.p_sym}
         opts = {"ipopt": {"max_iter": 5000, "linear_solver": "ma57"}}
         solver = nlpsol('solver', 'ipopt', prob, opts)  # no constraint yet
 
@@ -418,8 +445,7 @@ class KinematicChainCalibration:
         param_opt = sol["x"].full().flatten()
 
         print(param_opt)
-
-        self.x_output[self.q_parameter_index, :] = param_opt.x
+        #x_output[]
         return param_opt
 
     def objective_ik(self, Xq: MX, Xp: MX, table_markers_xp: np.ndarray, model_markers_xp: np.ndarray) -> Function:
