@@ -11,6 +11,7 @@ from cyipopt import minimize_ipopt
 from casadi import MX, Function, vertcat, nlpsol, if_else, norm_2, sumsqr
 
 import biorbd_casadi as biorbd
+import biorbd as biorbd_eigen
 
 from utils import get_range_q
 import jacobians
@@ -86,6 +87,7 @@ class KinematicChainCalibration:
 
         self.nb_markers = None
         self.biorbd_model = biorbd.Model(biorbd_model.path().absolutePath().to_string())
+        self.biorbd_model_eigen = biorbd_eigen.Model(biorbd_model.path().absolutePath().to_string())
         self.model_dofs = [dof.to_string() for dof in biorbd_model.nameDof()]
 
         self.nb_markers = self.biorbd_model.nbMarkers()
@@ -184,14 +186,34 @@ class KinematicChainCalibration:
         self.output = dict()
 
         # symbolic variables
-        self.Xq = MX.sym("Xq", self.nb_kinematic_dofs)
-        self.Xp = MX.sym("Xp", self.nb_parameters_dofs)
-        self.x = MX.zeros( self.nb_total_dofs)
+        self.q_sym = MX.sym("q_sym", self.nb_kinematic_dofs)
+        self.p_sym = MX.sym("p_sym", self.nb_parameters_dofs)
+        self.q_frames_sym = MX.sym("q_sym", (self.nb_kinematic_dofs, self.nb_frames_param_step))
 
-    # if nb_frames_ik_step> markers.shape[2]:
-    # raise error
-    # self.nb_frame_ik_step = markers.shape[2] if nb_frame_ik_step is None else nb_frames_ik_step
-    def penalty_table(self, model_markers_mx: MX, table_markers_xp: np.ndarray) -> MX:
+        # synbolic x with q qnd p variables
+        self.x_sym = MX.zeros(self.nb_total_dofs)
+        self.x_sym[self.q_kinematic_index] = self.q_sym
+        self.x_sym[self.q_parameter_index] = self.p_sym
+
+        # symbolic xp data
+        self.m_model_sym = MX.sym("markers_model", self.nb_markers_model * 3)
+        self.m_table_sym = MX.sym("markers_table", 5)  # xyz and xy
+
+
+        # initialize x which is a combination of q and p
+        self.x = MX.zeros(self.nb_total_dofs)
+
+
+    # data xp
+    # self.markers
+
+    # examples symboliques
+    #f_mk1 = Function("marker1", [self.q_sym, self.p_sym], [self.biorbd_model.markers(self.x_sym)[0].to_mx()]).expand()
+    # f_mk1(np.zeros(16), np.zeros(6)).toarray()
+    # f_mk1(self.q_sym, np.zeros(6))
+    # f_mk1(self.q_sym, np.zeros(6)) * MX(2)
+    #
+    # Function = ("markers_residuals", [self.q_sym, self.p_sym], [])
         """
         Calculate the penalty cost for table's markers
 
