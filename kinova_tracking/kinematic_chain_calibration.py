@@ -238,19 +238,8 @@ class KinematicChainCalibration:
                      self.table_markers_idx[0] * 3: self.table_markers_idx[0] * 3 + 3][:]
         table_xp = table_markers_xp[:, 0].tolist()
 
-        table6_xy_mx = model_markers_mx[
-                    self.table_markers_idx[1] * 3: self.table_markers_idx[1] * 3 + 3][:2]
-
-        table_xp += table_markers_xp[:2, 1].tolist()
-
-        table_mx = vertcat(table5_xyz_mx, table6_xy_mx)
-
-        for i in range(self.nb_markers_table):
-            diff += (table_mx[i] - table_xp[i]) ** 2
-
-        return diff
-
-    def penalty_open_loop_marker(self, model_markers_mx: MX, model_markers_xp: np.ndarray) -> MX:
+    @staticmethod
+    def penalty_open_loop_marker(model_markers_mx: MX, model_markers_xp: np.ndarray) -> MX:
         """
         Calculate the penalty cost for wu's markers
 
@@ -259,7 +248,7 @@ class KinematicChainCalibration:
         model_markers_mx : MX
             The position of each marker of the informatic model
 
-        model_markers_xp : np.ndarray
+        model_markers_xp : MX
             The position of the markers associated with wu model , coming from experiment
 
         Returns
@@ -267,9 +256,8 @@ class KinematicChainCalibration:
         The cost of the penalty function
 
         """
-        diff = MX.zeros(1)
 
-        # get only markers which aren't associated to the table
+        return sumsqr(model_markers_mx - model_markers_xp)
         for j, name in enumerate(self.markers_model[:self.model_markers_idx[-1]+1]):
 
             pos_model_mx = model_markers_mx[self.markers_model.index(name) * 3: self.markers_model.index(name) * 3 + 3]
