@@ -595,14 +595,14 @@ class KinematicChainCalibration:
         gain_list = []
         # First IK step - INITIALIZATION
 
-        x_step_2 = self.step_2(
-            q_init=q_init,
-            Xp_sym=Xp_sym,
+        q_all_frames = self.inverse_kinematics(
+            q_init=q_init_global,
+            p_init=p_init_global,
         )[0]
 
         print(" #######  Initialisation ending ########")
 
-
+        p_init = p_init_global
         #q0 = self.q_ik_initial_guess[:, 0]
 
         #x_output = np.zeros((self.biorbd_model.nbQ(), self.markers.shape[2]))
@@ -619,8 +619,9 @@ class KinematicChainCalibration:
         epsilon_markers_n = 10  # arbitrary set
         epsilon_markers_n_minus_1 = 0
         delta_epsilon_markers = epsilon_markers_n - epsilon_markers_n_minus_1
+        print("#####   Starting the while loop   #####")
 
-        while abs(delta_epsilon_markers) > threshold:
+        while fabs(delta_epsilon_markers) > threshold:
             q_first_ik_not_all_frames = q_step_2[:, self.list_frames_param_step]
 
 
@@ -631,8 +632,8 @@ class KinematicChainCalibration:
             epsilon_markers_n_minus_1 = epsilon_markers_n
             # step 1 - param opt
 
-            # step 1 - param opt
-            # elif self.param_solver == "ipopt":
+            param_opt = self.parameters_optimization(
+                q_init_all=q_all_frames,
                     fun=self.objective_function_param,
                     args=(q_first_ik_not_all_frames, q0, markers_xp_data_not_all_frames,self.weights_param),
                     x0=p,
@@ -701,17 +702,17 @@ class KinematicChainCalibration:
                     options={'max_iter': 3000},
                 )
 
-            print(param_opt.x)
+            print(" param opt =" , param_opt)
 
             #self.q_ik_initial_guess[self.q_parameter_index, :] = np.array([param_opt.x] * self.nb_frames_ik_step).T
-            self.q_ik_initial_guess[self.q_parameter_index, : ] = param_opt
-            p = param_opt
+            #self.q_ik_initial_guess[self.q_parameter_index, : ] = param_opt
+            #self.x_output[self.q_parameter_index, :] = param_opt.x
             #x_output[self.q_parameter_index, :] = np.array([param_opt.x] * x_output.shape[1]).T
 
             # step 2 - ik step
-            q_out, epsilon_markers_n,  = self.step_2(
-                x_init=self.x_output[self.q_kinematic_index],
-                Xp_sym=self.x_output[self.q_parameter_index],
+            q_all_frames, epsilon_markers_n = self.inverse_kinematics(
+                q_init=q_all_frames,
+                p_init=param_opt,
             )
 
             gain_list.append(gain2)
@@ -728,14 +729,16 @@ class KinematicChainCalibration:
             print("iteration:", iteration)
             self.q_ik_initial_guess = self.x_output
 
-        self.parameters = param_opt
+        print("#####   Leaving the while loop   #####")
 
+        self.parameters = param_opt
+        self.q = q_all_frames
         self.gain = gain_list
         self.parameters = p
         self.q = q_out
         self.jacobian_used = jacobians_used
 
-        return q_out, param_opt
+        return q_all_frames, param_opt
 
     def frame_selector(self, frames_needed: int, frames: int):
         """
