@@ -481,70 +481,57 @@ class KinematicChainCalibration:
 
         return Function("f", [self.q_sym, self.p_sym, self.m_model_sym, self.m_table_sym], [output], ["q_sym", "p_sym", "markers_model", "markers_table"], ["obj_function"])
 
-        output = obj_closed_loop + obj_open_loop + obj_rotation + obj_pivot                                  #Don't forget to add penalty
-        obj = Function("f", [Xq, Xp], [output])
-        return obj
-    def step_2(self,
-               q_init: np.ndarray,
-               Xp_sym: MX,
-    ):
+    def inverse_kinematics(self,
+                           q_init: np.ndarray,
+                           p_init: np.ndarray,
+                           ):
+        """
+        This method complete the index of kinematic value for all frames with the optimal values found
+        Parameters
+        ----------
+        q_init: np.ndarray
+            array of value use as initial guess, each column represents one frame, expected to be changed by the end of this step
+        p_init: np.ndarray
+            array of value use as initial guess, NOT expected to change by the end of this step
 
-        q_output = MX.zeros(self.nb_kinematic_dofs, self.nb_frames_ik_step)
+        Returns
+        -------
+        the MX which represent the total x vector for each frame with optimal generalized coordinates and the epsilon
+        value btwm each marker
+        """
+        q_output = np.zeros((self.nb_kinematic_dofs, self.nb_frames_ik_step))
+        x_output = np.zeros((self.nb_kinematic_dofs + self.nb_parameters_dofs, self.nb_frames_ik_step))
+        x_output[self.q_parameter_index, :] = p_init  # broadcasting p_init
+
+        obj_func = self.objective_ik()
 
         # enter the frame loop
         for f in range(self.nb_frames_ik_step):
 
-            #Xq = MX.sym("Xq", self.nb_kinematic_dofs)
-            #Xp = MX.sym("Xp", self.nb_parameters_dofs)
-            #x = self.x
-            #Xq = self.Xq
-            #Xp = self.Xp
-
-            #self.x = vertcat(self.Xq, self.Xp)
-            #x[self.q_kinematic_index] = Xq
-            #x[self.q_parameter_index] = Xp
-            #self.x[self.q_kinematic_index] = self.Xq[:]
-            #self.x[self.q_parameter_index] = Xp_sym[:]
-
-            # q_init = q_init[:, f]
-            # p_init = Xp_sym
-            #x_init = vertcat(q_init, p_init)
-            x_init = MX.zeros(self.nb_kinematic_dofs)
-            #x_init[self.q_kinematic_index] = q_init[:, f]
-            #x_init[self.q_parameter_index] = Xp_sym
-            x_init = q_init[:, f]
-
-            #self.x[self.q_kinematic_index] = self.Xq
-            #self.x[self.q_parameter_index] = Xp_sym
-
-            F = self.objective_ik(
-                Xq=self.Xq,
-                Xp=self.Xp,
-                table_markers_xp=self.markers[:, self.table_markers_idx, f],
-                model_markers_xp=self.markers[:, self.model_markers_idx, f],
-            )
-
-            # evaluate for the first time
-            objective = F(self.Xq, Xp_sym)
+            objective = obj_func(self.q_sym,
+                                 p_init,
+                                 self.markers[:, self.model_markers_idx, f].flatten("F"),
+                                 self.markers[:, self.table_markers_idx, f].flatten("F")[:-1],
+                                 )
 
             # Create a NLP solver
-            prob = {"f": objective, "x": self.Xq}
-            opts = {"ipopt": {"max_iter": 5000, "linear_solver": "ma57"}}
+            prob = {"f": objective, "x": self.q_sym}
+            opts = {"ipopt": {"max_iter": 110, "linear_solver": "ma57"}}
             solver = nlpsol('solver', 'ipopt', prob, opts)  # no constraint yet
 
             # Solve the NLP
             sol = solver(
-                x0=x_init,
+                x0=q_init[:, f],
                 lbx=self.bounds_q_list[0],
                 ubx=self.bounds_q_list[1],
             )
-            x_opt = sol["x"].full().flatten()
-
+            x_opt = sol["x"].toarray()
             print(x_opt)
-            q_output[:, f] = x_opt[:]
-            self.x_output[self.q_kinematic_index, f] = x_opt[:]
 
-            markers_model = self.biorbd_model.markers(self.x_output[:, f])
+            q_output[:, f] = sol["x"].toarray().squeeze()
+            x_output[self.q_kinematic_index, f] = sol["x"].toarray().squeeze()
+
+            markers_model = self.c.markers(x_output[:, f])
             markers_to_compare = self.markers[:, :, f]
             espilon_markers = 0
 
@@ -578,8 +565,9 @@ class KinematicChainCalibration:
 
         # prepare the size of the output of q (22 x nb frame )
         self.x_output = MX.zeros((self.biorbd_model.nbQ(), self.nb_frames_ik_step))
-        x_output = MX.zeros((self.biorbd_model.nbQ(), self.nb_frames_ik_step))
 
+
+        # TODO: use the bounds built in the init.
         # get the bounds of the model for all dofs
         bounds = [
             (mini, maxi) for mini, maxi in zip(get_range_q(self.biorbd_model)[0], get_range_q(self.biorbd_model)[1])
@@ -598,9 +586,9 @@ class KinematicChainCalibration:
             kinova_q0[:, np.newaxis], self.nb_frames_ik_step, axis=1
         )
 
-        # initialized parameters values
-        Xp_sym = MX.zeros(6)
-        q_init = self.q_ik_initial_guess[self.q_kinematic_index, :]
+        # initialized q qnd p for the whole algorithm.
+        p_init_global = np.zeros(6)
+        q_init_global = self.q_ik_initial_guess[self.q_kinematic_index, :]
 
         print(" #######  Initialisation beginning  ########")
 
