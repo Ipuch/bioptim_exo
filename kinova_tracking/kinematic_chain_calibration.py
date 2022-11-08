@@ -214,25 +214,27 @@ class KinematicChainCalibration:
     # f_mk1(self.q_sym, np.zeros(6)) * MX(2)
     #
     # Function = ("markers_residuals", [self.q_sym, self.p_sym], [])
+    @staticmethod
+    def penalty_table(table_markers_mx: MX, table_markers_xp: np.ndarray) -> MX:
         """
         Calculate the penalty cost for table's markers
 
         Parameters
         ----------
-        model_pos_all_mk : MX
+        table_markers_mx : MX
             The position of each marker of the informatic model
 
-        table_markers_xp : np.ndarray
+        table_markers_xp : MX
             The position of the markers associated with the table, coming from experiment
 
         Returns
         -------
+        MX
         The cost of the penalty function
 
         """
-        diff = MX.zeros(1)
 
-        table5_xyz_mx = model_markers_mx[
+        return sumsqr(table_markers_mx - table_markers_xp)
                      self.table_markers_idx[0] * 3: self.table_markers_idx[0] * 3 + 3][:]
         table_xp = table_markers_xp[:, 0].tolist()
 
