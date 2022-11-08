@@ -329,40 +329,74 @@ class KinematicChainCalibration:
             0  # if false
         )
 
-        return diff
-    def objective_param(self, x_step_2, Xp: MX):
+    # def objective_param(self, x_step_2: MX, q_sym: MX, p_sym: MX):
+    def objective_param(self):
+        """
+        Calculate the objective function used to determine parameters, build differently from objective_ik
+
+        Parameters
+        ----------
+        x_step_2: MX
+            the MX which contains the solution found during the initialization
+        Returns
+        -------
+        the value of the objective function for the set of parameters
+        """
+        # get the position of the markers for the info model
+        all_markers_model = self.biorbd_model.markers(self.x_sym)
+
+        # built the objective function by adding penalties one by one
+
+        # first build the table markers symbolics based on q and p
+        table_markers_model_sym = [all_markers_model[i] for i in self.table_markers_idx]
+        table_markers_model_sym = vertcat(table_markers_model_sym[0].to_mx(), table_markers_model_sym[0].to_mx()[:2])
+        # second send this to penalty with symbolic experimental array
+        obj_closed_loop = self.penalty_table(table_markers_model_sym, self.m_table_sym)
+
+        # first build the other markers symbolics based on q and p
+        model_markers_model_sym = vertcat(*[all_markers_model[i].to_mx() for i in self.model_markers_idx])
+        # second send this to penalty with symbolic experimental array
+        obj_open_loop = self.penalty_open_loop_marker(model_markers_model_sym, self.m_model_sym)
+
+        obj_rotation = self.penalty_rotation_matrix_cas(self.x_sym)
+
+        # q_continuity = self.penalty_q_continuity(q_sym, q_init)
+        obj_pivot = self.penalty_theta(self.x_sym)
+
+        output = obj_closed_loop + obj_open_loop + obj_rotation + obj_pivot
+
+        return Function("f", [self.q_sym, self.p_sym, self.m_model_sym, self.m_table_sym], [output],
+                        ["q_sym", "p_sym", "markers_model", "markers_table"], ["obj_function"])
+
+
 
         # be filled in the loop
-        s = MX.zeros(1)
-
-        for f in self.list_frames_param_step:
-            table_markers_xp = self.markers[:, self.table_markers_idx, f]
-            model_markers_xp = self.markers[:, self.model_markers_idx, f]
-
-            self.x[self.q_kinematic_index] = x_step_2[:,f]
-            self.x[self.q_parameter_index] = Xp
-            # put previous values for kinematic index
-            #self.x[self.q_kinematic_index] = x_step_2[self.q_kinematic_index, f]
-
-            markers_model = self.biorbd_model.markers(self.x)
-
-            vect_pos_markers = MX.zeros(3 * len(markers_model))
-
-            for m, value in enumerate(markers_model):
-                vect_pos_markers[m * 3: (m + 1) * 3] = value.to_mx()
-
-            obj_closedloop = self.penalty_table(vect_pos_markers, table_markers_xp)
-            obj_openloop = self.penalty_open_loop_marker(vect_pos_markers, model_markers_xp)
-            obj_rotation = self.penalty_rotation_matrix_cas(self.x)
-            obj_theta = self.penalty_theta(self.x)
-            output_f = obj_closedloop + obj_openloop + obj_rotation + obj_theta
-            s += output_f
-
-        obj = Function("f", [Xp], [s])
-        return obj
-    def step_1(self,
-               x_step_2,
-               p_init,
+        # s = MX.zeros(1)
+        #
+        # for f in self.list_frames_param_step:
+        #     table_markers_xp = self.markers[:, self.table_markers_idx, f]
+        #     model_markers_xp = self.markers[:, self.model_markers_idx, f]
+        #
+        #     q_sym[:] = x_step_2[self.q_kinematic_index, f]
+        #     self.x[self.q_kinematic_index] = q_sym
+        #     self.x[self.q_parameter_index] = p_sym
+        #
+        #     markers_model = self.biorbd_model.markers(self.x)
+        #
+        #     vect_pos_markers = MX.zeros(3 * len(markers_model))
+        #
+        #     for m, value in enumerate(markers_model):
+        #         vect_pos_markers[m * 3: (m + 1) * 3] = value.to_mx()
+        #
+        #     obj_closedloop = self.penalty_table(vect_pos_markers, table_markers_xp)
+        #     obj_openloop = self.penalty_open_loop_marker(vect_pos_markers, model_markers_xp)
+        #     obj_rotation = self.penalty_rotation_matrix_cas(self.x)
+        #     obj_theta = self.penalty_theta(self.x)
+        #     output_f = obj_closedloop + obj_openloop + obj_rotation + obj_theta
+        #     s += output_f
+        #
+        # obj = Function("f", [p_sym], [s])
+        # return obj
                ):
 
         F = self.objective_param(x_step_2,
