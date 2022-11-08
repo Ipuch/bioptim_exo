@@ -323,7 +323,7 @@ class KinematicChainCalibration:
         theta_part1_3 = x[-2] + x[-1]
         theta_part1_3_lim = 7 * np.pi / 10
 
-        diff = if_else(
+        return if_else(
             theta_part1_3 > theta_part1_3_lim,  # cond
             (theta_part1_3-theta_part1_3_lim) ** 2,  # if true
             0  # if false
