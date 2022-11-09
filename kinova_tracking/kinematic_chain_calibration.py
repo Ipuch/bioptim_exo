@@ -531,14 +531,14 @@ class KinematicChainCalibration:
             q_output[:, f] = sol["x"].toarray().squeeze()
             x_output[self.q_kinematic_index, f] = sol["x"].toarray().squeeze()
 
-            markers_model = self.c.markers(x_output[:, f])
+            markers_model = self.biorbd_model_eigen.markers(x_output[:, f])
             markers_to_compare = self.markers[:, :, f]
             espilon_markers = 0
 
             # sum of squared norm of difference of markers
             c = 0
-            for m, value in enumerate(markers_model):
-                mark = norm_2(value.to_mx() - markers_to_compare[:, c]) ** 2
+            for j in range(self.nb_markers):
+                mark = np.linalg.norm(markers_model[j].to_array()- markers_to_compare[:, j]) ** 2
                 espilon_markers += mark
                 c += 1
 
