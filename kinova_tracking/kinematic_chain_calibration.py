@@ -565,6 +565,52 @@ class KinematicChainCalibration:
 
         return q_output, espilon_markers
 
+    # def build_constraint(self):
+    #
+    #     # get the position of the markers for the info model
+    #     all_markers_model = self.biorbd_model.markers(self.x_sym)
+    #
+    #     # built the constraint function by adding closed loop penalties one by one
+    #
+    #     # all_markers_model[14].to_mx()[0].shape
+    #
+    #     # first build the table markers symbolics based on q and p
+    #     table_markers_model_sym = [all_markers_model[i] for i in self.table_markers_idx]
+    #     table_markers_model_sym = vertcat(table_markers_model_sym[0].to_mx(), table_markers_model_sym[0].to_mx()[:2])
+    #     # second send this to penalty with symbolic experimental array
+    #     # 1
+    #     obj_closed_loop_1 = self.penalty_table(table_markers_model_sym[0], self.m_table_sym[0])
+    #     # 2
+    #     obj_closed_loop_2 = self.penalty_table(table_markers_model_sym[1], self.m_table_sym[1])
+    #     # 3
+    #     obj_closed_loop_3 = self.penalty_table(table_markers_model_sym[2], self.m_table_sym[2])
+    #     # 4
+    #     obj_closed_loop_4 = self.penalty_table(table_markers_model_sym[3], self.m_table_sym[3])
+    #     # 5
+    #     obj_closed_loop_5 = self.penalty_table(table_markers_model_sym[4], self.m_table_sym[4])
+    #
+    #
+    #     constraint = vertcat(obj_closed_loop_1,
+    #                           obj_closed_loop_2,
+    #                           obj_closed_loop_3,
+    #                           obj_closed_loop_4,
+    #                           obj_closed_loop_5,
+    #                         )
+    #
+    #     return Function("g",  [self.q_sym, self.p_sym, self.m_table_sym], [constraint], ["q_sym", "p_sym","markers_table"], ["constraint_function"])
+
+    def build_constraint_2(self,q_sym, p_sym, f):
+        x_sym = MX.zeros(22)
+        x_sym[self.q_kinematic_index] = q_sym
+        x_sym[self.q_parameter_index] = p_sym
+        table_markers1_model = self.biorbd_model.markers(x_sym)[self.table_markers_idx[0]].to_mx()
+        table_markers2_model = self.biorbd_model.markers(x_sym)[self.table_markers_idx[1]].to_mx()
+        table_markers_table = vertcat(table_markers1_model, table_markers2_model)
+        table_markers_xp = self.markers[:, self.table_markers_idx, f].flatten("F")
+        diff = table_markers_table - table_markers_xp    # MX (6x1)
+
+        return diff
+
     def solve(
             self,
             threshold: int = 5e-5,
