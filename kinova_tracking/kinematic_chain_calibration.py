@@ -6,7 +6,7 @@ import time
 import matplotlib.pyplot as plt
 from scipy import optimize
 import numpy as np
-
+from casadi import MX, Function, vertcat, nlpsol, if_else, norm_2, sumsqr, fabs
 from cyipopt import minimize_ipopt
 from casadi import MX, Function, vertcat, nlpsol, if_else, norm_2, sumsqr
 
@@ -146,6 +146,7 @@ class KinematicChainCalibration:
                               list(self.bounds[1][self.q_kinematic_index])]
         self.bounds_p_list = [list(self.bounds[0][self.q_parameter_index]),
                               list(self.bounds[1][self.q_parameter_index])]
+        self.bound_constraint = np.zeros(6)
 
         self.list_frames_param_step = self.frame_selector(self.nb_frames_param_step, self.nb_frames_ik_step)
 
@@ -298,13 +299,14 @@ class KinematicChainCalibration:
 
         return diff
     def penalty_q_continuity(self, q_sym: MX, x_init: np.ndarray) -> MX:
-        # TODO: sqme format for xinit as other functions
+
         diff = MX.zeros(1)
         for i in enumerate(q_sym):
             q_continuity_xp = [x_init[i]]
             q_continuity_model_mx = [i]
             diff += (q_continuity_model_mx - q_continuity_xp) **2
         return diff
+
     def penalty_theta(self, x: MX) -> MX:
         """
         Calculate the penalty cost for theta angle
@@ -363,7 +365,10 @@ class KinematicChainCalibration:
         # q_continuity = self.penalty_q_continuity(q_sym, q_init)
         obj_pivot = self.penalty_theta(self.x_sym)
 
-        output = obj_closed_loop + obj_open_loop + obj_rotation + obj_pivot
+        output = obj_closed_loop * self.weights_param[0]\
+                 + obj_open_loop * self.weights_param[1]\
+                 + obj_rotation * self.weights_param[2]\
+                 + obj_pivot * self.weights_param[3]\
 
         return Function("f", [self.q_sym, self.p_sym, self.m_model_sym, self.m_table_sym], [output],
                         ["q_sym", "p_sym", "markers_model", "markers_table"], ["obj_function"])
@@ -477,7 +482,10 @@ class KinematicChainCalibration:
         #q_continuity = self.penalty_q_continuity(q_sym, q_init)
         obj_pivot = self.penalty_theta(self.x_sym)
 
-        output = obj_closed_loop + obj_open_loop + obj_rotation + obj_pivot
+        output = obj_closed_loop * self.weights_ik[0]\
+                    + obj_open_loop * self.weights_ik[1]\
+                    + obj_rotation * self.weights_ik[2]\
+                    + obj_pivot * self.weights_ik[3]\
 
         return Function("f", [self.q_sym, self.p_sym, self.m_model_sym, self.m_table_sym], [output], ["q_sym", "p_sym", "markers_model", "markers_table"], ["obj_function"])
 
@@ -501,9 +509,12 @@ class KinematicChainCalibration:
         """
         q_output = np.zeros((self.nb_kinematic_dofs, self.nb_frames_ik_step))
         x_output = np.zeros((self.nb_kinematic_dofs + self.nb_parameters_dofs, self.nb_frames_ik_step))
-        x_output[self.q_parameter_index, :] = p_init  # broadcasting p_init
+        #x_output[self.q_parameter_index, :] = p_init  # broadcasting p_init
+        # for f in range(self.nb_frames):
+        #     x_output[self.q_parameter_index, f] = p_init
 
         obj_func = self.objective_ik()
+        #constraint_func = self.build_constraint()
 
         # enter the frame loop
         for f in range(self.nb_frames_ik_step):
