@@ -518,25 +518,33 @@ class KinematicChainCalibration:
 
         # enter the frame loop
         for f in range(self.nb_frames_ik_step):
+            x_output[self.q_parameter_index, f] = p_init
 
             objective = obj_func(self.q_sym,
                                  p_init,
                                  self.markers[:, self.model_markers_idx, f].flatten("F"),
                                  self.markers[:, self.table_markers_idx, f].flatten("F")[:-1],
                                  )
+            # constraint = constraint_func(self.q_sym,
+            #                              p_init,
+            #                              self.markers[:, self.table_markers_idx, f].flatten("F")[:-1])
+            constraint_func = self.build_constraint_2(q_sym=self.q_sym, p_sym=p_init, f=f)
 
             # Create a NLP solver
-            prob = {"f": objective, "x": self.q_sym}
+            prob = {"f": objective, "x": self.q_sym, "g": constraint_func}
+            #prob = {"f": objective, "x": self.q_sym}
             opts = {"ipopt": {"max_iter": 110, "linear_solver": "ma57"}}
-            solver = nlpsol('solver', 'ipopt', prob, opts)  # no constraint yet
+            solver = nlpsol('solver', 'ipopt', prob, opts)
 
             # Solve the NLP
             sol = solver(
                 x0=q_init[:, f],
                 lbx=self.bounds_q_list[0],
                 ubx=self.bounds_q_list[1],
+                lbg=self.bound_constraint,
+                ubg=self.bound_constraint,
             )
-            x_opt = sol["x"].toarray()
+            #x_opt = sol["x"].toarray()
             print(x_opt)
 
             q_output[:, f] = sol["x"].toarray().squeeze()
