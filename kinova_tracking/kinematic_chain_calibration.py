@@ -1470,30 +1470,33 @@ class KinematicChainCalibration:
 
         # for each frame
         for f in range(self.nb_frames):
+
             qi = self.q[:, f]
             # get the marker's coordinates of the frame coming from xp
-            mi = self.markers[:, :, f]
-            markers_model = self.biorbd_model.markers(qi)
+            #mi = self.markers[:, :, f]
+            markers_model = self.biorbd_model_eigen.markers(qi)
+
             # create a vector corresponding to model coordinates
             vect_pos_markers = np.zeros(3 * len(markers_model))
             for m, value in enumerate(markers_model):
                 vect_pos_markers[m * 3: (m + 1) * 3] = value.to_array()
 
             # get coordinates for model and xp markers of the thorax , without the table
-            marker_mod, marker_xp = self.penalty_open_loop_markers(vect_pos_markers, mi)
-
+            marker_mod = vect_pos_markers[:(3 * self.nb_markers_model)]
+            marker_xp = self.markers[:, self.model_markers_idx, f].flatten("F")
 
 
             marker_mod = np.asarray(marker_mod)
             marker_xp = np.asarray(marker_xp)
 
             # get coordinates of the table's markers coming from xp and model
-            #table_mod, table_xp = self.penalty_table_markers(vect_pos_markers=vect_pos_markers, table_markers=mi)
-            table_mod, table_xp = self.penalty_table_markers(vect_pos_markers=vect_pos_markers, table_markers=mi[:,14:16])
+
+            table_mod = vect_pos_markers[(3 * self.nb_markers_model):]
+            table_xp = self.markers[:, self.table_markers_idx, f].flatten("F")
 
             # artificially add 0 for table6 z-axis used to reshape
-            table_mod.append(0)
-            table_xp.append(0)
+            #table_mod.append(0)
+            #table_xp.append(0)
 
             table_mod = np.asarray(table_mod)
             table_xp = np.asarray(table_xp)
@@ -1583,10 +1586,19 @@ class KinematicChainCalibration:
         plt.show()
 
     def plot_rotation_matrix_penalty(self):
-        q_out = self.q
+        #q_out = self.q
         rotation_value = []
         for i in range(self.nb_frames):
-            rot_matrix_list_model, rot_matrix_list_xp = self.penalty_rotation_matrix(q_out[:, i])
+            # rot_matrix_list_model, rot_matrix_list_xp = self.penalty_rotation_matrix(q_out[:, i])
+            # rotation_value.append(rot_matrix_list_model)
+            rotation_matrix = self.biorbd_model_eigen.globalJCS(self.x_all_frames[:, i], self.biorbd_model.nbSegment() - 1).rot().to_array()
+            rot_matrix_list_model = [
+                rotation_matrix[2, 0],
+                rotation_matrix[2, 1],
+                rotation_matrix[0, 2],
+                rotation_matrix[1, 2],
+                (rotation_matrix[2, 2] - 1),
+            ]
             rotation_value.append(rot_matrix_list_model)
         plt.figure("rotation_value")
 
@@ -1609,14 +1621,17 @@ class KinematicChainCalibration:
 
     def pivot(self):
         q_out = self.q
-        pivot_value = []
-        for i in range(self.nb_frames):
-            pivot_diff_model, pivot_diff_xp = self.theta_pivot_penalty(q_out[:, i])
-            pivot_value.append(pivot_diff_model)
+        #pivot_value = []
+        # for i in range(self.nb_frames):
+        #     pivot_diff_model = self.x_all_frames[-2:]
+        #     pivot_value.append(pivot_diff_model)
 
         pivot_value_list = []
-        for u in pivot_value:
-            pivot_value_list += u
+        for f in range(self.nb_frames):
+            if self.x_all_frames[-2, f] + self.x_all_frames[-1, f] > 7 * np.pi /10 :
+                pivot_value_list.append(self.x_all_frames[-2, f] + self.x_all_frames[-1, f])
+            else:
+                pivot_value_list.append(0)
         index_not_zero = []
         for h in pivot_value_list:
             if h != 0:
@@ -1633,10 +1648,10 @@ class KinematicChainCalibration:
         print("index where pivot value is not 0 =", index_not_zero)
 
     def plot_param_value(self):
-        bound_param = self.bounds_param
+        bound_param = self.bounds_p_list
         param_value = self.parameters
         for i in range(self.nb_parameters_dofs):
-            if param_value[i]==bound_param[0][i] or param_value[i] == bound_param[1][0]:
+            if param_value[i] == bound_param[0][i] or param_value[i] == bound_param[1][0]:
                 print("parameters number %r reach a bound value " %i )
         plt.figure("param value")
         plt.plot([k for k in range(self.nb_parameters_dofs)],[bound_param[0][u] for u in range(self.nb_parameters_dofs)],label="lower bound")
