@@ -820,12 +820,13 @@ class KinematicChainCalibration:
 
         self.parameters = param_opt
         self.q = q_all_frames
-        self.gain = gain_list
-        self.parameters = p
-        self.q = q_out
-        self.jacobian_used = jacobians_used
+        x_all_frames = np.zeros((self.nb_total_dofs, self.nb_frames))
+        for f in range(self.nb_frames):
+            x_all_frames[self.q_kinematic_index, f] = q_all_frames[:, f]
+            x_all_frames[self.q_parameter_index, f] = param_opt[:]
+        self.x_all_frames = x_all_frames
 
-        return q_all_frames, param_opt
+        return q_all_frames, param_opt, x_all_frames
 
     def frame_selector(self, frames_needed: int, frames: int):
         """
