@@ -534,6 +534,7 @@ class KinematicChainCalibration:
         # enter the frame loop
         for f in range(self.nb_frames_ik_step):
             x_output[self.q_parameter_index, f] = p_init
+            self.frame = f
 
             objective = obj_func(self.q_sym,
                                  p_init,
@@ -626,9 +627,10 @@ class KinematicChainCalibration:
 
         return diff
 
+
     def solve(
             self,
-            threshold: int = 5e-5,
+            threshold: int = 5e-3,
     ):
         """
         This function returns optimised generalized coordinates and the epsilon difference
@@ -644,7 +646,7 @@ class KinematicChainCalibration:
         """
 
         # prepare the size of the output of q (22 x nb frame )
-        self.x_output = MX.zeros((self.biorbd_model.nbQ(), self.nb_frames_ik_step))
+        #self.x_output = MX.zeros((self.biorbd_model.nbQ(), self.nb_frames_ik_step))
 
 
         # TODO: use the bounds built in the init.
@@ -654,7 +656,7 @@ class KinematicChainCalibration:
         ]
 
         # find kinematic dof with initial guess at zeros
-        idx_zeros = np.where(np.sum(self.q_ik_initial_guess, axis=1) == 0)[0]
+        idx_zeros = np.where(np.sum(self.x_ik_initial_guess, axis=1) == 0)[0]
         kinematic_idx_zeros = [idx for idx in idx_zeros if idx in self.q_kinematic_index]
 
         # initialize q_ik with in the half-way between bounds
@@ -662,17 +664,17 @@ class KinematicChainCalibration:
         kinova_q0 = np.array([(b[0] + b[1]) / 2 for b in bounds_kinematic_idx_zeros])
 
         # initialized q trajectories for each frames for dofs without a priori knowledge of the q (kinova arm here)
-        self.q_ik_initial_guess[kinematic_idx_zeros, :] = np.repeat(
+        self.x_ik_initial_guess[kinematic_idx_zeros, :] = np.repeat(
             kinova_q0[:, np.newaxis], self.nb_frames_ik_step, axis=1
         )
 
         # initialized q qnd p for the whole algorithm.
         p_init_global = np.zeros(6)
-        q_init_global = self.q_ik_initial_guess[self.q_kinematic_index, :]
+        q_init_global = self.x_ik_initial_guess[self.q_kinematic_index, :]
 
         print(" #######  Initialisation beginning  ########")
 
-        gain_list = []
+
         # First IK step - INITIALIZATION
 
         q_all_frames = self.inverse_kinematics(
@@ -682,6 +684,7 @@ class KinematicChainCalibration:
 
         print(" #######  Initialisation ending ########")
 
+        #self.x_ik_initial_guess[self.q_kinematic_index, :] = q_all_frames
         p_init = p_init_global
         #q0 = self.q_ik_initial_guess[:, 0]
 
@@ -701,10 +704,11 @@ class KinematicChainCalibration:
         delta_epsilon_markers = epsilon_markers_n - epsilon_markers_n_minus_1
         print("#####   Starting the while loop   #####")
 
+
         while fabs(delta_epsilon_markers) > threshold:
             q_first_ik_not_all_frames = q_step_2[:, self.list_frames_param_step]
 
-
+            #print("threshold", threshold, "delta", abs(delta_epsilon_markers))
             #markers_xp_data_not_all_frames = self.markers[:, :, self.list_frames_param_step]
 
             print("threshold", threshold, "delta", abs(delta_epsilon_markers))
@@ -781,6 +785,8 @@ class KinematicChainCalibration:
                     tol=1e-4,
                     options={'max_iter': 3000},
                 )
+            #self.x_ik_initial_guess[self.q_parameter_index, :] = param_opt
+            print(" param opt =", param_opt)
 
             print(" param opt =" , param_opt)
 
@@ -795,7 +801,7 @@ class KinematicChainCalibration:
                 p_init=param_opt,
             )
 
-            gain_list.append(gain2)
+            #self.x_ik_initial_guess[self.q_kinematic_index, :] = q_all_frames
             jacobians_used.append(jacobian_x)
             # data_frame = self.solution()  # dict
             # for valeur in data_frame():
@@ -807,7 +813,8 @@ class KinematicChainCalibration:
             print("epsilon_markers_n_minus_1:", epsilon_markers_n_minus_1)
             iteration += 1
             print("iteration:", iteration)
-            self.q_ik_initial_guess = self.x_output
+            #self.x_ik_initial_guess = self.x_output
+
 
         print("#####   Leaving the while loop   #####")
 
