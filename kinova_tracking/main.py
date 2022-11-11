@@ -348,10 +348,10 @@ def prepare_kcc(
 
     nb_frames = markers.shape[2]
 
-    #weight correpond to [table, model, continuity, theta, rotation]
-    weight_ls = np.array([100000, 10000, 50000, 500,100])
-    #weight = np.array([100000,10000,50000,500,100])
-    weight_ipopt=np.array([1,30,0,3,2])
+    # weight correpond to [ model, rotation, pivot, continuity]
+    weight_ls = np.array([10000, 50000, 500,100])
+    weight_ipopt = np.array([30, 2, 3, 10])
+
     #weight = np.array([1, 1, 1, 1, 1])
 
     #the last segment is the number 45
@@ -364,7 +364,7 @@ def prepare_kcc(
         tracked_markers=tracked_markers,
         parameter_dofs=parameters,
         kinematic_dofs=kinematic_dof,
-        weights_param=weight_ls,
+        weights_param=weight_ipopt,
         weights_ik=weight_ipopt,
         q_ik_initial_guess=q_first_ik,
         nb_frames_ik_step=nb_frames,
@@ -416,37 +416,39 @@ def main(
         use_analytical_jacobians=use_analytical_jacobians
     )
 
-    q_out, parameters, jacobian_used, gain_list = kcc.solve(threshold=1e-05)
+    q_all_frames, param_opt, x_all_frames = kcc.solve(threshold=1e-01)
     output = kcc.solution()
 
     #plot graph
     kcc.plot_graph_rmse()
     kcc.plot_graph_rmse_table()
-    #kcc.plot_rotation_matrix_penalty()
-    #kcc.pivot()
+    kcc.plot_rotation_matrix_penalty()
+    kcc.pivot()
     kcc.plot_param_value()
 
     if show_animation:
         b = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
         b.load_experimental_markers(markers)
         # b.load_movement(np.array(q0, q0).T)
-        b.load_movement(q_out)
+        b.load_movement(x_all_frames)
         b.exec()
 
-        print("done")
+        print(" animation done")
+
     # show times
     print("time for each param optimization = ", kcc.time_param)
     print("time for each generalized coordinates optimization = ", kcc.time_ik)
 
     if export_model:
         export_to_biomod(
-            pos_init=q_out,
+            pos_init=q_all_frames,
             # q_ik_with_floating_base=ik_with_floating_base.q,
             task=task,
             biorbd_model_merge=biorbd_model_merge,
         )
 
-    return q_out, parameters, output
+    return q_all_frames, param_opt, output
+
 
 
 if __name__ == "__main__":
@@ -454,7 +456,7 @@ if __name__ == "__main__":
         task=TasksKinova.HEAD,
         show_animation=True,
         export_model=False,
-        nb_frame_param_step=100,
+        nb_frame_param_step=5,
         use_analytical_jacobians=True,
     )
 
