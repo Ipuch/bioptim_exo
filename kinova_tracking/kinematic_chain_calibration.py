@@ -155,8 +155,8 @@ class KinematicChainCalibration:
         self.weights_param = weights_param
         self.weights_ik = weights_ik
 
-        weight_closed_loop_ls = [self.weights_param[0]] * (len(self.closed_loop_markers) * 3 - 1)
-        weight_closed_loop_ipopt = [self.weights_ik[0]] * (len(self.closed_loop_markers) * 3 - 1)
+        self.time_param = []
+        self.time_ik = []
         # nb marker table * 3 dim - 1 because we don't use value on z for Table:Table6
 
         weight_open_loop_ls = [self.weights_param[1]] * (
@@ -200,6 +200,9 @@ class KinematicChainCalibration:
         self.m_model_sym = MX.sym("markers_model", self.nb_markers_model * 3)
         self.m_table_sym = MX.sym("markers_table", 5)  # xyz and xy
 
+        # symbolic frame
+        #self.f_sym = MX.sym("f_sym" , 1)
+        self.frame = 0
 
         # initialize x which is a combination of q and p
         self.x = MX.zeros(self.nb_total_dofs)
