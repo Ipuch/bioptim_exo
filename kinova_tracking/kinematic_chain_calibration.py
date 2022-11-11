@@ -366,13 +366,17 @@ class KinematicChainCalibration:
 
         obj_rotation = self.penalty_rotation_matrix_cas(self.x_sym)
 
-        # q_continuity = self.penalty_q_continuity(q_sym, q_init)
+        #obl_q_continuity = self.penalty_q_continuity(q_sym, )
         obj_pivot = self.penalty_theta(self.x_sym)
 
-        output = obj_closed_loop * self.weights_param[0]\
-                 + obj_open_loop * self.weights_param[1]\
-                 + obj_rotation * self.weights_param[2]\
-                 + obj_pivot * self.weights_param[3]\
+        # output = obj_closed_loop * self.weights_param[0]\
+        #          + obj_open_loop * self.weights_param[1]\
+        #          + obj_rotation * self.weights_param[2]\
+        #          + obj_pivot * self.weights_param[3]\
+
+        output = obj_open_loop * self.weights_param[0]\
+                 + obj_rotation * self.weights_param[1]\
+                 + obj_pivot * self.weights_param[2]\
 
         return Function("f", [self.q_sym, self.p_sym, self.m_model_sym, self.m_table_sym], [output],
                         ["q_sym", "p_sym", "markers_model", "markers_table"], ["obj_function"])
