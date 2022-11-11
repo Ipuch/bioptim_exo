@@ -1494,10 +1494,10 @@ class KinematicChainCalibration:
         # for each frame
         for f in range(self.nb_frames):
 
-            qi = self.q[:, f]
+            xi = self.x_all_frames[:, f]
             # get the marker's coordinates of the frame coming from xp
             #mi = self.markers[:, :, f]
-            markers_model = self.biorbd_model_eigen.markers(qi)
+            markers_model = self.biorbd_model_eigen.markers(xi)
 
             # create a vector corresponding to model coordinates
             vect_pos_markers = np.zeros(3 * len(markers_model))
