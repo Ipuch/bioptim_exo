@@ -303,12 +303,12 @@ class KinematicChainCalibration:
     def penalty_q_continuity(self, q_sym: MX, q_init: np.ndarray) -> MX:
     def penalty_q_continuity(self, q_sym: MX, x_init: np.ndarray) -> MX:
 
-        diff = MX.zeros(1)
-        for i in enumerate(q_sym):
-            q_continuity_xp = [x_init[i]]
-            q_continuity_model_mx = [i]
-            diff += (q_continuity_model_mx - q_continuity_xp) **2
-        return diff
+        # diff = MX.zeros(1)
+        # for i in enumerate(q_sym):
+        #     q_continuity_xp = [x_init[i]]
+        #     q_continuity_model_mx = [i]
+        #     diff += (q_continuity_model_mx - q_continuity_xp) **2
+        # return diff
         return sumsqr(q_sym - q_init)
 
     def penalty_theta(self, x: MX) -> MX:
@@ -488,13 +488,18 @@ class KinematicChainCalibration:
 
         obj_rotation = self.penalty_rotation_matrix_cas(self.x_sym)
 
-        #q_continuity = self.penalty_q_continuity(q_sym, q_init)
+        obj_q_continuity = self.penalty_q_continuity(self.q_sym, self.x_ik_initial_guess[self.q_kinematic_index , self.frame])
+
         obj_pivot = self.penalty_theta(self.x_sym)
 
-        output = obj_closed_loop * self.weights_ik[0]\
-                    + obj_open_loop * self.weights_ik[1]\
-                    + obj_rotation * self.weights_ik[2]\
-                    + obj_pivot * self.weights_ik[3]\
+        # output = obj_closed_loop * self.weights_ik[0]\
+        #             + obj_open_loop * self.weights_ik[1]\
+        #             + obj_rotation * self.weights_ik[2]\
+        #             + obj_pivot * self.weights_ik[3]\
+        output = obj_open_loop * self.weights_ik[0]\
+                + obj_rotation * self.weights_ik[1]\
+                + obj_pivot * self.weights_ik[2]\
+                + obj_q_continuity * self.weights_ik[3]
 
         return Function("f", [self.q_sym, self.p_sym, self.m_model_sym, self.m_table_sym], [output], ["q_sym", "p_sym", "markers_model", "markers_table"], ["obj_function"])
 
