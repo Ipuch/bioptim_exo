@@ -300,7 +300,7 @@ class KinematicChainCalibration:
         for i in rot_matrix_list_model:
             diff += i**2
 
-        return diff
+    def penalty_q_continuity(self, q_sym: MX, q_init: np.ndarray) -> MX:
     def penalty_q_continuity(self, q_sym: MX, x_init: np.ndarray) -> MX:
 
         diff = MX.zeros(1)
@@ -309,6 +309,7 @@ class KinematicChainCalibration:
             q_continuity_model_mx = [i]
             diff += (q_continuity_model_mx - q_continuity_xp) **2
         return diff
+        return sumsqr(q_sym - q_init)
 
     def penalty_theta(self, x: MX) -> MX:
         """
