@@ -434,6 +434,9 @@ def main(
         b.exec()
 
         print("done")
+    # show times
+    print("time for each param optimization = ", kcc.time_param)
+    print("time for each generalized coordinates optimization = ", kcc.time_ik)
 
     if export_model:
         export_to_biomod(

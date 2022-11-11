@@ -431,6 +431,7 @@ class KinematicChainCalibration:
 
         obj_func = self.objective_param()
         objective = 0
+        start_param = time.time()
 
         for f in self.list_frames_param_step:
 
@@ -457,8 +458,8 @@ class KinematicChainCalibration:
         )
         param_opt = sol["x"].full().flatten()
 
-        print(param_opt)
-        #x_output[]
+        end_param = time.time()
+        self.time_param.append(end_param-start_param)
         return param_opt
 
     def objective_ik(self) -> Function:
@@ -522,6 +523,7 @@ class KinematicChainCalibration:
         #     x_output[self.q_parameter_index, f] = p_init
 
         obj_func = self.objective_ik()
+        start_ik = time.time()
         #constraint_func = self.build_constraint()
 
         # enter the frame loop
@@ -569,8 +571,8 @@ class KinematicChainCalibration:
                 espilon_markers += mark
                 c += 1
 
-        print("step 2 done")
-
+        end_ik = time.time()
+        self.time_ik.append(end_ik-start_ik)
         return q_output, espilon_markers
 
     # def build_constraint(self):
@@ -1550,7 +1552,7 @@ class KinematicChainCalibration:
             rmse_y_table=rmse_y_table,
             rmse_z_table=rmse_z_table,
             rmse_tot_table=rmse_tot_table,
-            gain_time=self.gain
+            #gain_time=self.gain
 
         )
 
