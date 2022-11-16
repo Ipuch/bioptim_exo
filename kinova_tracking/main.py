@@ -244,7 +244,8 @@ def load_c3d_file(task: TasksKinova) -> Tuple:
     points_c3d = c3d_kinova["data"]["points"][:, :, :]
 
     marker_move = False
-    offset = np.array([0, -50, 0])  # [offsetX,offsetY,offsetZ] mm
+    # offset = np.array([0, -50, 0])  # [offsetX,offsetY,offsetZ] mm
+    offset = np.array([0, -25, 0])
     print("offset", offset)
     # Markers trajectories
     points_c3d = (
@@ -350,9 +351,9 @@ def prepare_kcc(
 
     # weight correpond to [ model, rotation, pivot, continuity]
     weight_ls = np.array([10000, 50000, 500,100])
-    weight_ipopt = np.array([30, 2, 3, 10])
+    weight_ipopt = np.array([30, 5, 3, 1])
 
-    #weight = np.array([1, 1, 1, 1, 1])
+
 
     #the last segment is the number 45
 
