@@ -560,20 +560,60 @@ class KinematicChainCalibration:
 
             # Create a NLP solver
             prob = {"f": objective, "x": self.q_sym, "g": constraint_func}
-            #prob = {"f": objective, "x": self.q_sym}
-            opts = {"ipopt": {"max_iter": 110, "linear_solver": "ma57"}}
-            solver = nlpsol('solver', 'ipopt', prob, opts)
+            #opts = {"ipopt": {"max_iter": 300, "linear_solver": "ma57"}}
+            # # tester 1e-1 e-2 e-3
+            # val = 1e-3
+            # tol = val
+            # compl_inf_tol = val
+            # acceptable_tol = val
+            # acceptable_compl_inf_tol = val
+            #hessian_approximation: str = "limited-memory"  # "exact", "limited-memory"
+            # if f == 0:
+            #     opts = {"ipopt": {"max_iter": 5000, "linear_solver": "ma57"}}
+            # else:
+            #     opts = {"ipopt": {"max_iter": 5000, "linear_solver": "ma57",
+            #                       "hessian_approximation": hessian_approximation}}
+                              # "tol": tol,"compl_inf_tol": compl_inf_tol,
+                              #"acceptable_tol": acceptable_tol, "acceptable_compl_inf_tol": acceptable_compl_inf_tol}}
+            #opts = dict(qpsol="qpoases")
+            #solver = nlpsol('solver', 'ipopt', prob, opts)
+            if f == 0:
+                opts = {"ipopt": {"max_iter": 5000, "linear_solver": "ma57"}}
+                solver = nlpsol('solver', 'ipopt', prob, opts)
+
+            else:
+                opts = {"ipopt": {"max_iter": 5000, "linear_solver": "ma57"}}
+                solver = nlpsol('solver', 'ipopt', prob, opts)
+
+
+
+                # opts = dict(qpsol="qpoases",
+                #             error_on_fail=False,
+                #             )
+                # solver = nlpsol('solver', 'sqpmethod', prob, opts)
+
+
 
             # Solve the NLP
             sol = solver(
-                x0=q_init[:, f],
+                x0=q_init[:, f] if f == 0 else q_output[:, f - 1],
                 lbx=self.bounds_q_list[0],
                 ubx=self.bounds_q_list[1],
                 lbg=self.bound_constraint,
                 ubg=self.bound_constraint,
             )
-            #x_opt = sol["x"].toarray()
-            print(x_opt)
+
+            if solver.stats()['success'] == False:
+
+                print("#########################################################")
+                print("#########################################################")
+                print("#########################################################")
+                print("#########################################################")
+                print("--------------   IT DID NOT CONVERGE   ------------------")
+                print("#########################################################")
+                print("#########################################################")
+                print("#########################################################")
+                print("#########################################################")
 
             q_output[:, f] = sol["x"].toarray().squeeze()
             x_output[self.q_kinematic_index, f] = sol["x"].toarray().squeeze()
