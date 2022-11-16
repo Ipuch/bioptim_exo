@@ -337,9 +337,16 @@ def prepare_kcc(
     parameters = [i for i in name_dof if "part7" in i]
     kinova_dof = [i for i in name_dof if "part" in i and not "7" in i]
 
+    # kinematic_dof = [i for i in name_dof if "part7" not in i]
+    # kinematic_dof.append(name_dof[11])
+    # kinematic_dof.append(name_dof[14])
+    # wu_dof = [i for i in name_dof if not "part" in i]
+    # parameters = [i for i in name_dof if "part7" in i]
+    # parameters.remove("part7_TransY")
+    # parameters.remove("part7_RotY")
     nb_dof_wu_model = len(wu_dof)
-    # nb_parameters = len(parameters)
-    # nb_dof_kinova = len(kinova_dof)
+    nb_parameters = len(parameters)
+    nb_dof_kinova = len(kinova_dof)
 
     # prepare the inverse kinematics of the first step of the algorithm
     # initialize q with zeros
