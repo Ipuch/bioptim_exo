@@ -420,6 +420,15 @@ def main(
     q_all_frames, param_opt, x_all_frames = kcc.solve(threshold=1e-01)
     output = kcc.solution()
 
+    if show_animation:
+        b = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
+        b.load_experimental_markers(markers)
+        # b.load_movement(np.array(q0, q0).T)
+        b.load_movement(x_all_frames)
+        b.exec()
+
+        print(" animation done")
+
     #plot graph
     kcc.plot_graph_rmse()
     kcc.plot_graph_rmse_table()
