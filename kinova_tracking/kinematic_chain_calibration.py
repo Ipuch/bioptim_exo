@@ -30,8 +30,8 @@ class KinematicChainCalibration:
     biord_model : biorbd.Model
         The biorbd Model
     markers_model : list[str]
-        Name of each markers
-    markers : np.ndarray
+        Name of each marker
+    marker : np.ndarray
         matrix of zeros [3 x Nb markers , x nb frame]
     closed_loop_markers : list[str]
         Name of markers associated to the table
@@ -43,7 +43,7 @@ class KinematicChainCalibration:
         name dof which parameters aren't constant on each frame
     weights_param :np.ndarray
         weight associated with cost functions
-    q_ik_initial_guess : array
+    x_ik_initial_guess : array
         initialize q
     nb_frames_ik_step : int
         number frame for Inverse Kinematics steps
@@ -135,8 +135,8 @@ class KinematicChainCalibration:
         self.param_solver = param_solver
         self.ik_solver = ik_solver
 
-        # check if q_ik_initial_guess has the right size
-        self.q_ik_initial_guess = q_ik_initial_guess
+        # check if x_ik_initial_guess has the right size
+        self.x_ik_initial_guess = q_ik_initial_guess
         self.nb_frames_ik_step = nb_frames_ik_step
         self.nb_frames_param_step = nb_frames_param_step
         self.randomize_param_step_frames = randomize_param_step_frames
@@ -198,7 +198,8 @@ class KinematicChainCalibration:
 
         # symbolic xp data
         self.m_model_sym = MX.sym("markers_model", self.nb_markers_model * 3)
-        self.m_table_sym = MX.sym("markers_table", 5)  # xyz and xy
+        # self.m_table_sym = MX.sym("markers_table", 5)  # xyz and xy
+        self.m_table_sym = MX.sym("markers_table", 6)  # xyz and xyz
 
         # symbolic frame
         #self.f_sym = MX.sym("f_sym" , 1)
