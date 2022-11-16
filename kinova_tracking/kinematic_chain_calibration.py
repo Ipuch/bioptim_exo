@@ -1671,6 +1671,12 @@ class KinematicChainCalibration:
         plt.show()
 
     def plot_graph_rmse_table(self):
+        """
+
+        Returns
+        -------
+        This function plot the graph of the total RMSE as well as RMSE for x, y and z direction for closed loop markers
+        """
         dict_rmse = self.output.values()
         nb_frames = len(dict_rmse.mapping["rmse_x_table"])
 
