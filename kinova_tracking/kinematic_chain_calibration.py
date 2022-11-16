@@ -350,7 +350,7 @@ class KinematicChainCalibration:
 
         Parameters
         ----------
-        x_step_2: MX
+
             the MX which contains the solution found during the initialization
         Returns
         -------
@@ -363,7 +363,8 @@ class KinematicChainCalibration:
 
         # first build the table markers symbolics based on q and p
         table_markers_model_sym = [all_markers_model[i] for i in self.table_markers_idx]
-        table_markers_model_sym = vertcat(table_markers_model_sym[0].to_mx(), table_markers_model_sym[0].to_mx()[:2])
+        # table_markers_model_sym = vertcat(table_markers_model_sym[0].to_mx(), table_markers_model_sym[0].to_mx()[:2])
+        table_markers_model_sym = vertcat(table_markers_model_sym[0].to_mx(), table_markers_model_sym[0].to_mx())
         # second send this to penalty with symbolic experimental array
         obj_closed_loop = self.penalty_table(table_markers_model_sym, self.m_table_sym)
 
@@ -443,10 +444,10 @@ class KinematicChainCalibration:
 
         for f in self.list_frames_param_step:
 
-            objective += obj_func(q_init_all[:,f],
+            objective += obj_func(q_init_all[:, f],
                                  self.p_sym,
                                  self.markers[:, self.model_markers_idx, f].flatten("F"),
-                                 self.markers[:, self.table_markers_idx, f].flatten("F")[:-1],
+                                 self.markers[:, self.table_markers_idx, f].flatten("F")[:],
                                  )
 
         #obj_func = self.objective_param()
@@ -485,7 +486,8 @@ class KinematicChainCalibration:
         # built the objective function by adding penalties one by one
         # first build the table markers symbolics based on q and p
         table_markers_model_sym = [all_markers_model[i] for i in self.table_markers_idx]
-        table_markers_model_sym = vertcat(table_markers_model_sym[0].to_mx(), table_markers_model_sym[0].to_mx()[:2])
+        # table_markers_model_sym = vertcat(table_markers_model_sym[0].to_mx(), table_markers_model_sym[0].to_mx()[:2])
+        table_markers_model_sym = vertcat(table_markers_model_sym[0].to_mx(), table_markers_model_sym[0].to_mx())
         # second send this to penalty with symbolic experimental array
         obj_closed_loop = self.penalty_table(table_markers_model_sym, self.m_table_sym)
 
@@ -544,12 +546,14 @@ class KinematicChainCalibration:
             x_output[self.q_parameter_index, f] = p_init
             self.frame = f
 
+
             objective = obj_func(self.q_sym,
                                  p_init,
                                  self.markers[:, self.model_markers_idx, f].flatten("F"),
-                                 self.markers[:, self.table_markers_idx, f].flatten("F")[:-1],
+                                 self.markers[:, self.table_markers_idx, f].flatten("F")[:],
+
                                  )
-            # constraint = constraint_func(self.q_sym,
+
             #                              p_init,
             #                              self.markers[:, self.table_markers_idx, f].flatten("F")[:-1])
             constraint_func = self.build_constraint_2(q_sym=self.q_sym, p_sym=p_init, f=f)
