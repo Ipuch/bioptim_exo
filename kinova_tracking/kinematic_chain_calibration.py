@@ -6,15 +6,15 @@ import time
 import matplotlib.pyplot as plt
 from scipy import optimize
 import numpy as np
-from casadi import MX, Function, vertcat, nlpsol, if_else, norm_2, sumsqr, fabs
-from cyipopt import minimize_ipopt
+from casadi import MX, Function, vertcat, nlpsol, if_else, norm_2, sumsqr, fabs, qpsol
+
 from casadi import MX, Function, vertcat, nlpsol, if_else, norm_2, sumsqr
 
 import biorbd_casadi as biorbd
 import biorbd as biorbd_eigen
 
 from utils import get_range_q
-import jacobians
+
 
 
 class ObjectivesFunctions(Enum):
@@ -456,7 +456,7 @@ class KinematicChainCalibration:
 
         # Create a NLP solver
         prob = {"f": objective, "x": self.p_sym}
-        opts = {"ipopt": {"max_iter": 5000, "linear_solver": "ma57"}}
+        opts = {"ipopt":{"max_iter": 5000, "linear_solver": "ma57"}}
         solver = nlpsol('solver', 'ipopt', prob, opts)  # no constraint yet
 
         # Solve the NLP
@@ -498,7 +498,7 @@ class KinematicChainCalibration:
 
         obj_rotation = self.penalty_rotation_matrix_cas(self.x_sym)
 
-        obj_q_continuity = self.penalty_q_continuity(self.q_sym, self.x_ik_initial_guess[self.q_kinematic_index , self.frame])
+        obj_q_continuity = self.penalty_q_continuity(self.q_sym, self.x_ik_initial_guess[self.q_kinematic_index, self.frame])
 
         obj_pivot = self.penalty_theta(self.x_sym)
 
@@ -892,7 +892,7 @@ class KinematicChainCalibration:
         self.q = q_all_frames
         x_all_frames = np.zeros((self.nb_total_dofs, self.nb_frames))
         for f in range(self.nb_frames):
-            x_all_frames[self.q_kinematic_index, f] = q_all_frames[:, f]
+            x_all_frames[self.q_kinematic_index, f] = q_all_frames[:, f]  # can't broadcast
             x_all_frames[self.q_parameter_index, f] = param_opt[:]
         self.x_all_frames = x_all_frames
 
