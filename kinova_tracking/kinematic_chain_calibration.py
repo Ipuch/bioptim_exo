@@ -667,7 +667,23 @@ class KinematicChainCalibration:
     #
     #     return Function("g",  [self.q_sym, self.p_sym, self.m_table_sym], [constraint], ["q_sym", "p_sym","markers_table"], ["constraint_function"])
 
-    def build_constraint_2(self,q_sym, p_sym, f):
+    def build_constraint_2(self, q_sym, p_sym, f):
+        """
+        This function build the constraint for closed loop markers ie the Table
+
+        Parameters
+        ----------
+        q_sym : MX
+            q symbolic vector
+        p_sym : MX
+            p symbolic vector
+        f : int
+            the number of the frame
+
+        Returns
+        -------
+         a MX with the distance btwm each marker associated w/ the closed loop ie the Table
+        """
         x_sym = MX.zeros(22)
         x_sym[self.q_kinematic_index] = q_sym
         x_sym[self.q_parameter_index] = p_sym
