@@ -737,7 +737,8 @@ class KinematicChainCalibration:
         )
 
         # initialized q qnd p for the whole algorithm.
-        p_init_global = np.zeros(6)
+
+        p_init_global = np.zeros( self.nb_parameters_dofs)
         q_init_global = self.x_ik_initial_guess[self.q_kinematic_index, :]
 
         print(" #######  Initialisation beginning  ########")
@@ -770,6 +771,7 @@ class KinematicChainCalibration:
         epsilon_markers_n = 10  # arbitrary set
         epsilon_markers_n_minus_1 = 0
         delta_epsilon_markers = epsilon_markers_n - epsilon_markers_n_minus_1
+
         print("#####   Starting the while loop   #####")
 
 
