@@ -1649,6 +1649,13 @@ class KinematicChainCalibration:
     #     self.plot_pivot_penalty()
     #
     def plot_graph_rmse(self):
+        """
+
+        Returns
+        -------
+        This function plot the graph of the total RMSE as well as RMSE for x, y and z direction for open loop markers
+        """
+
         dict_rmse = self.output.values()
         nb_frames = len(dict_rmse.mapping["rmse_x"])
 
