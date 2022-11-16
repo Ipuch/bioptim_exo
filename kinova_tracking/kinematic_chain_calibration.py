@@ -302,14 +302,21 @@ class KinematicChainCalibration:
             diff += i**2
 
     def penalty_q_continuity(self, q_sym: MX, q_init: np.ndarray) -> MX:
-    def penalty_q_continuity(self, q_sym: MX, x_init: np.ndarray) -> MX:
+        """
 
-        # diff = MX.zeros(1)
-        # for i in enumerate(q_sym):
-        #     q_continuity_xp = [x_init[i]]
-        #     q_continuity_model_mx = [i]
-        #     diff += (q_continuity_model_mx - q_continuity_xp) **2
-        # return diff
+        Parameters
+        ----------
+        q_sym : MX
+            the unknown value of q
+        q_init : np.ndarray
+            value of q coming from either the q_ik_initial_guess for the first frame or the previous solution
+
+        Returns
+        -------
+        The cost of the penalty function
+
+        """
+
         return sumsqr(q_sym - q_init)
 
     def penalty_theta(self, x: MX) -> MX:
