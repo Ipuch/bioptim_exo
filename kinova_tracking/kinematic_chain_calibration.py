@@ -1692,10 +1692,15 @@ class KinematicChainCalibration:
         plt.show()
 
     def plot_rotation_matrix_penalty(self):
-        #q_out = self.q
+        """
+
+        Returns
+        -------
+        This function plot the graph of the value in the matrix rotation for the q found
+        """
         rotation_value = []
         for i in range(self.nb_frames):
-            # rot_matrix_list_model, rot_matrix_list_xp = self.penalty_rotation_matrix(q_out[:, i])
+
             # rotation_value.append(rot_matrix_list_model)
             rotation_matrix = self.biorbd_model_eigen.globalJCS(self.x_all_frames[:, i], self.biorbd_model.nbSegment() - 1).rot().to_array()
             rot_matrix_list_model = [
