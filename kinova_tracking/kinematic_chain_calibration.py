@@ -232,16 +232,26 @@ class KinematicChainCalibration:
         # initialize x which is a combination of q and p
         self.x = MX.zeros(self.nb_total_dofs)
 
+    def build_x(self, q, p) -> MX:
+        # todo: check all cases
+        x = MX.zeros(self.nb_total_dofs)
+        x[self.q_kinematic_index] = q
+        x[self.q_parameter_index] = MX(p) if isinstance(p, np.ndarray) else p
+        return x
 
-    # data xp
-    # self.markers
+    def build_x_all_frames(self):
+        x_all_frames = np.zeros((self.nb_total_dofs, self.nb_frames))
+        for i in range(self.nb_frames):
+            x_all_frames[self.q_kinematic_index, i] = self.q_all_frame[:, i]
+            x_all_frames[self.q_parameter_index, i] = self.parameters
+        return x_all_frames
 
-    # examples symboliques
-    #f_mk1 = Function("marker1", [self.q_sym, self.p_sym], [self.biorbd_model.markers(self.x_sym)[0].to_mx()]).expand()
-    # f_mk1(np.zeros(16), np.zeros(6)).toarray()
-    # f_mk1(self.q_sym, np.zeros(6))
-    # f_mk1(self.q_sym, np.zeros(6)) * MX(2)
-    #
+    def _dispatch_x_all(self, x: MX) -> tuple:
+        p = x[-self.nb_parameters_dofs:]
+        q = x[:self.nb_kinematic_dofs * self.nb_frames]
+        q = q.reshape((self.nb_kinematic_dofs, self.nb_frames), order="F")
+        return q, p
+
     # Function = ("markers_residuals", [self.q_sym, self.p_sym], [])
     @staticmethod
     def penalty_table(table_markers_mx: MX, table_markers_xp: np.ndarray) -> MX:
