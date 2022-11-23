@@ -757,6 +757,12 @@ class KinematicChainCalibration:
         ------
             The optimized Generalized coordinates and parameters
         """
+        if method == "1step":
+            return self._solve_1step(threshold)
+        elif method == "2step":
+            return self._solve_2step(threshold)
+        else:
+            raise NotImplementedError("This is not implemented, please use 1step or 2step")
 
         # prepare the size of the output of q (22 x nb frame )
         #self.x_output = MX.zeros((self.biorbd_model.nbQ(), self.nb_frames_ik_step))
