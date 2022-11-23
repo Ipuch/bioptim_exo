@@ -199,13 +199,26 @@ class KinematicChainCalibration:
 
         # symbolic variables
         self.q_sym = MX.sym("q_sym", self.nb_kinematic_dofs)
+        self.q_sym_prev = MX.sym("q_sym_prev", self.nb_kinematic_dofs)
+        self.q_sym_global_vec = MX.sym("q_sym_global", self.nb_kinematic_dofs * self.nb_frames)
+        self.q_sym_global = self.q_sym_global_vec.reshape((self.nb_kinematic_dofs, self.nb_frames))
+
         self.p_sym = MX.sym("p_sym", self.nb_parameters_dofs)
         self.q_frames_sym = MX.sym("q_sym", (self.nb_kinematic_dofs, self.nb_frames_param_step))
 
         # synbolic x with q qnd p variables
         self.x_sym = MX.zeros(self.nb_total_dofs)
-        self.x_sym[self.q_kinematic_index] = self.q_sym
-        self.x_sym[self.q_parameter_index] = self.p_sym
+        self.x_sym_prev = MX.zeros(self.nb_total_dofs)
+        self.x_sym = self.build_x(self.q_sym, self.p_sym)
+        self.x_sym_prev = self.build_x(self.q_sym_prev, self.p_sym)
+        # self.x_sym[self.q_kinematic_index] = self.q_sym
+        # self.x_sym[self.q_parameter_index] = self.p_sym
+
+        self.x_sym2 = MX.sym("x_sym2", self.nb_total_dofs) # todo: without it plz
+        # self.x_sym
+        #self.q_sym_global = MX.sym("q_sym_global", self.nb_total_dofs * self.nb_frames) #
+        # self.q_sym_global = MX.sym("q_sym_global", self.nb_kinematic_dofs * self.nb_frames + self.nb_parameters_dofs)
+
 
         # symbolic xp data
         self.m_model_sym = MX.sym("markers_model", self.nb_markers_model * 3)
