@@ -350,15 +350,15 @@ def prepare_kcc(
 
     # prepare the inverse kinematics of the first step of the algorithm
     # initialize q with zeros
-    q_first_ik = np.zeros((biorbd_model_merge.nbQ(), markers.shape[2]))
+    x_first_ik = np.zeros((biorbd_model_merge.nbQ(), markers.shape[2]))
     # initialize human dofs with previous results of inverse kinematics
-    q_first_ik[:nb_dof_wu_model, :] = q_upper_limb  # human
+    x_first_ik[:nb_dof_wu_model, :] = q_upper_limb  # human
 
     nb_frames = markers.shape[2]
 
     # weight correpond to [ model, rotation, pivot, continuity]
-    weight_ls = np.array([10000, 50000, 500,100])
-    weight_ipopt = np.array([30, 5, 3, 1])
+    #weight_ls = np.array([10000, 50000, 500,100])
+    weight_ipopt = np.array([10000, 5000, 500, 10000])
 
 
 
@@ -374,14 +374,14 @@ def prepare_kcc(
         kinematic_dofs=kinematic_dof,
         weights_param=weight_ipopt,
         weights_ik=weight_ipopt,
-        q_ik_initial_guess=q_first_ik,
+        x_ik_initial_guess=x_first_ik,
         nb_frames_ik_step=nb_frames,
         nb_frames_param_step=nb_frame_param_step,
         randomize_param_step_frames=True,
         use_analytical_jacobians=use_analytical_jacobians,
         segment_id_with_vertical_z=45,
-        param_solver="ipopt",
-        ik_solver="ipopt",
+        method="1step",
+
     )
 
     return biorbd_model_merge, markers, kcc
@@ -424,7 +424,7 @@ def main(
         use_analytical_jacobians=use_analytical_jacobians
     )
 
-    q_all_frames, param_opt, x_all_frames = kcc.solve(threshold=1e-01)
+    q_all_frames, param_opt, x_all_frames = kcc.solve(threshold=1e-01, method="1step")
     output = kcc.solution()
 
     if show_animation:
