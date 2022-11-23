@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Tuple
 from enum import Enum
 import random
 import time
@@ -74,7 +74,7 @@ class KinematicChainCalibration:
             kinematic_dofs: list[str],
             weights_param: Union[list[float], np.ndarray],
             weights_ik: Union[list[float], np.ndarray],
-            q_ik_initial_guess: np.ndarray,
+            x_ik_initial_guess: np.ndarray,
             objectives_functions: ObjectivesFunctions = None,  # [n_dof x n_frames]
             nb_frames_ik_step: int = None,
             nb_frames_param_step: int = None,
@@ -83,6 +83,9 @@ class KinematicChainCalibration:
             segment_id_with_vertical_z: int = None,
             param_solver: str = "leastsquare",
             ik_solver: str = "leastsquare",
+            method: str = "1step",
+            # same_variables: dict = None,
+    #       # coupling = dict("name_of_the_main_dof":"name_of_the_other_dof")
     ):
 
         self.nb_markers = None
@@ -92,6 +95,7 @@ class KinematicChainCalibration:
 
         self.nb_markers = self.biorbd_model.nbMarkers()
         self.nb_frames = markers.shape[2]
+
 
         # check if markers_model are in model
         # otherwise raise error
@@ -131,12 +135,18 @@ class KinematicChainCalibration:
         self.nb_kinematic_dofs = len(kinematic_dofs)
         self.nb_total_dofs = self.nb_kinematic_dofs + self.nb_parameters_dofs
 
+        # self.method
+        self.method = method
+
         # self.objectives_function
         self.param_solver = param_solver
         self.ik_solver = ik_solver
 
-        # check if x_ik_initial_guess has the right size
-        self.x_ik_initial_guess = q_ik_initial_guess
+
+        # check if q_ik_initial_guess has the right size
+        self. x_ik_initial_guess = x_ik_initial_guess
+        self.q_ik_initial_guess = self.x_ik_initial_guess[self.q_kinematic_index, :]
+        self.p_ik_initial_guess = self.x_ik_initial_guess[self.q_parameter_index, 0]
         self.nb_frames_ik_step = nb_frames_ik_step
         self.nb_frames_param_step = nb_frames_param_step
         self.randomize_param_step_frames = randomize_param_step_frames
@@ -147,6 +157,7 @@ class KinematicChainCalibration:
         self.bounds_p_list = [list(self.bounds[0][self.q_parameter_index]),
                               list(self.bounds[1][self.q_parameter_index])]
         self.bound_constraint = np.zeros(6)
+
 
         self.list_frames_param_step = self.frame_selector(self.nb_frames_param_step, self.nb_frames_ik_step)
 
@@ -498,7 +509,7 @@ class KinematicChainCalibration:
 
         obj_rotation = self.penalty_rotation_matrix_cas(self.x_sym)
 
-        obj_q_continuity = self.penalty_q_continuity(self.q_sym, self.x_ik_initial_guess[self.q_kinematic_index, self.frame])
+        obj_q_continuity = self.penalty_q_continuity(self.q_sym, self.q_ik_initial_guess[self.q_kinematic_index, self.frame])
 
         obj_pivot = self.penalty_theta(self.x_sym)
 
@@ -698,7 +709,8 @@ class KinematicChainCalibration:
 
     def solve(
             self,
-            threshold: int = 5e-3,
+            threshold,
+            method,
     ):
         """
         This function returns optimised generalized coordinates and the epsilon difference
