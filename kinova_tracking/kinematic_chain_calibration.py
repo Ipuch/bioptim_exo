@@ -233,13 +233,25 @@ class KinematicChainCalibration:
         self.x = MX.zeros(self.nb_total_dofs)
 
     def build_x(self, q, p) -> MX:
-        # todo: check all cases
+        """
+        This function built a x ( ie q and p ) for one frame
+        Returns
+        -------
+        The MX of x
+        """
+
         x = MX.zeros(self.nb_total_dofs)
         x[self.q_kinematic_index] = q
         x[self.q_parameter_index] = MX(p) if isinstance(p, np.ndarray) else p
         return x
 
     def build_x_all_frames(self):
+        """
+        This function built the final x ( ie q and p ) for all the frame, used in the animation
+        Returns
+        -------
+        The array of solution
+        """
         x_all_frames = np.zeros((self.nb_total_dofs, self.nb_frames))
         for i in range(self.nb_frames):
             x_all_frames[self.q_kinematic_index, i] = self.q_all_frame[:, i]
@@ -247,6 +259,17 @@ class KinematicChainCalibration:
         return x_all_frames
 
     def _dispatch_x_all(self, x: MX) -> tuple:
+        """
+        This function separate the q value and p value for all the frame
+        Parameters
+        ----------
+        x: MX
+            the MX of the solution which is a 1D vector
+
+        Returns
+        -------
+        The array of q value for each frame and the 1D vector of parameters
+        """
         p = x[-self.nb_parameters_dofs:]
         q = x[:self.nb_kinematic_dofs * self.nb_frames]
         q = q.reshape((self.nb_kinematic_dofs, self.nb_frames), order="F")
@@ -594,8 +617,8 @@ class KinematicChainCalibration:
 
             # Create a NLP solver
             prob = {"f": objective, "x": self.q_sym, "g": constraint_func}
-            #opts = {"ipopt": {"max_iter": 300, "linear_solver": "ma57"}}
-            # # tester 1e-1 e-2 e-3
+
+            # can add "hessian_approximation":  "limited-memory" ( or "exact") in opts
             # val = 1e-3
             # tol = val
             # compl_inf_tol = val
@@ -615,6 +638,7 @@ class KinematicChainCalibration:
                 opts = {"ipopt": {"max_iter": 5000, "linear_solver": "ma57"}}
                 solver = nlpsol('solver', 'ipopt', prob, opts)
 
+            # can add "hessian_approximation":  "limited-memory" ( or "exact") in opts
             else:
                 opts = {"ipopt": {"max_iter": 5000, "linear_solver": "ma57"}}
                 solver = nlpsol('solver', 'ipopt', prob, opts)
@@ -668,6 +692,13 @@ class KinematicChainCalibration:
         return q_output, espilon_markers
 
     def objective_ik_1step(self):
+        """
+        This function determine the value of the objective function used in _solve_1step method by adding penalties
+
+        Returns
+        -------
+        The value of the objective function
+        """
 
         # get the position of the markers for the info model
         all_markers_model = self.biorbd_model.markers(self.x_sym)
@@ -695,12 +726,19 @@ class KinematicChainCalibration:
                  + obj_pivot * self.weights_ik[2] \
                  + obj_q_continuity * self.weights_ik[3]
 
-        # return Function("f", [self.x_sym2, self.m_model_sym], [output],   #block here x(0) isn't symbolic
+        return Function("f", [self.q_sym, self.p_sym, self.q_sym_prev, self.m_model_sym], [output],
         #                        ["x_sym", "markers_model"], ["obj_function"])
         return Function("f", [self.q_sym, self.p_sym, self.q_sym_prev, self.m_model_sym], [output],   #block here x(0) isn't symbolic
                                ["q_sym", "p_sym", "q_sym_prev", "markers_model"], ["obj_function"])
 
     def build_constraint_1(self):
+        """
+        This function build the constraint for closed loop markers ie the Table
+
+        Returns
+        -------
+        a MX with the distance btwm each marker associated w/ the closed loop ie the Table
+        """
 
         table_markers1_model = self.biorbd_model.markers(self.x_sym)[self.table_markers_idx[0]].to_mx()
         table_markers2_model = self.biorbd_model.markers(self.x_sym)[self.table_markers_idx[1]].to_mx()
@@ -728,6 +766,7 @@ class KinematicChainCalibration:
         -------
          a MX with the distance btwm each marker associated w/ the closed loop ie the Table
         """
+        # todo call build_x in the parent function.
         x_sym = MX.zeros(22)
         x_sym[self.q_kinematic_index] = q_sym
         x_sym[self.q_parameter_index] = p_sym
@@ -746,28 +785,35 @@ class KinematicChainCalibration:
             method,
     ):
         """
-        This function returns optimised generalized coordinates and the epsilon difference
+        This function returns the solution using the method chosen by the user
 
         Parameters
         ----------
         threshold : int
             the threshold for the delta epsilon
-
+        method : str
+            the method used to find the optimised generalized coordinates
         Return
         ------
             The optimized Generalized coordinates and parameters
         """
         if method == "1step":
-            return self._solve_1step(threshold)
+            return self._solve_1step()
         elif method == "2step":
             return self._solve_2step(threshold)
         else:
             raise NotImplementedError("This is not implemented, please use 1step or 2step")
 
-    def _solve_1step(
-            self,
-            threshold: int = 5e-3,
-    ):
+    def _solve_1step(self):
+        """
+        This function find the entire solution with only 1 step ie without a while loop unlike 2step
+
+        Returns
+        -------
+        q_all_frame, value of generalised coordinates for all frames,
+        param_opt, the value of the parameters,
+        x_all_frames, the entire solution for all frames
+        """
         print(" | You choose 1_step |")
         start_ik = time.time()
         x_init = np.concatenate((self.q_ik_initial_guess.flatten("F"), self.p_ik_initial_guess))
@@ -799,7 +845,7 @@ class KinematicChainCalibration:
 
             # constraint_list.append(self.build_constraint_1(x_sym=self.x_sym, f=f))
             constraint_list.append(constraint_func(q_sym=self.q_sym_global[:, f], p_sym=self.p_sym)["constraint_func"])
-            # if f == 0:
+
             #     constraint_func1 = self.build_constraint_1(x_sym=self.q_sym_global[22 * f: 22 * (f+1)], f=f)
             # else:
             #     constraint_func2 = self.build_constraint_1(x_sym=self.q_sym_global[22 * f: 22 * (f+1)], f=f)
@@ -836,6 +882,7 @@ class KinematicChainCalibration:
             ubg=self.bound_constraint.repeat(self.nb_frames),
         )
 
+        end_ik = time.time()
         x_output = sol["x"].toarray().squeeze()
         q_all_frame, param_opt = self._dispatch_x_all(x_output)
         self.q_all_frame = q_all_frame
@@ -854,7 +901,7 @@ class KinematicChainCalibration:
         # print("x_all_frames = ", x_all_frames)
         # q_all_frame = x_all_frames[self.q_kinematic_index, :]
         # param_opt = x_all_frames[self.q_parameter_index, 2]
-        end_ik = time.time()
+
         self.time_ik.append(end_ik - start_ik)
         return q_all_frame, param_opt, x_all_frames
 
