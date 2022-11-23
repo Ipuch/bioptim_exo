@@ -667,39 +667,49 @@ class KinematicChainCalibration:
         self.time_ik.append(end_ik-start_ik)
         return q_output, espilon_markers
 
-    # def build_constraint(self):
-    #
-    #     # get the position of the markers for the info model
-    #     all_markers_model = self.biorbd_model.markers(self.x_sym)
-    #
-    #     # built the constraint function by adding closed loop penalties one by one
-    #
-    #     # all_markers_model[14].to_mx()[0].shape
-    #
-    #     # first build the table markers symbolics based on q and p
-    #     table_markers_model_sym = [all_markers_model[i] for i in self.table_markers_idx]
-    #     table_markers_model_sym = vertcat(table_markers_model_sym[0].to_mx(), table_markers_model_sym[0].to_mx()[:2])
-    #     # second send this to penalty with symbolic experimental array
-    #     # 1
-    #     obj_closed_loop_1 = self.penalty_table(table_markers_model_sym[0], self.m_table_sym[0])
-    #     # 2
-    #     obj_closed_loop_2 = self.penalty_table(table_markers_model_sym[1], self.m_table_sym[1])
-    #     # 3
-    #     obj_closed_loop_3 = self.penalty_table(table_markers_model_sym[2], self.m_table_sym[2])
-    #     # 4
-    #     obj_closed_loop_4 = self.penalty_table(table_markers_model_sym[3], self.m_table_sym[3])
-    #     # 5
-    #     obj_closed_loop_5 = self.penalty_table(table_markers_model_sym[4], self.m_table_sym[4])
-    #
-    #
-    #     constraint = vertcat(obj_closed_loop_1,
-    #                           obj_closed_loop_2,
-    #                           obj_closed_loop_3,
-    #                           obj_closed_loop_4,
-    #                           obj_closed_loop_5,
-    #                         )
-    #
-    #     return Function("g",  [self.q_sym, self.p_sym, self.m_table_sym], [constraint], ["q_sym", "p_sym","markers_table"], ["constraint_function"])
+    def objective_ik_1step(self):
+
+        # get the position of the markers for the info model
+        all_markers_model = self.biorbd_model.markers(self.x_sym)
+        # all_markers_model = self.biorbd_model.markers(self.x_sym2)
+
+        # first build the other markers symbolics based on q and p
+        model_markers_model_sym = vertcat(*[all_markers_model[i].to_mx() for i in self.model_markers_idx])
+        # second send this to penalty with symbolic experimental array
+        obj_open_loop = self.penalty_open_loop_marker(model_markers_model_sym, self.m_model_sym)
+
+        # obj_rotation = self.penalty_rotation_matrix_cas(self.x_sym2)
+        obj_rotation = self.penalty_rotation_matrix_cas(self.x_sym)
+
+        # obj_pivot = self.penalty_theta(self.x_sym2)
+        obj_pivot = self.penalty_theta(self.x_sym)
+
+        # x_sym global is MX (22x nb frames) x_ik_initial guess is array (22x nb frames)
+        # obj_q_continuity = self.penalty_q_continuity(self.q_sym_global[:, self.frame],
+        #                                              self.q_ik_initial_guess[:, self.frame] if self.frame == 0 else self.q_sym_global[:, self.frame-1])
+
+        obj_q_continuity = self.penalty_q_continuity(self.q_sym, self.q_sym_prev)
+
+        output = obj_open_loop * self.weights_ik[0] \
+                 + obj_rotation * self.weights_ik[1] \
+                 + obj_pivot * self.weights_ik[2] \
+                 + obj_q_continuity * self.weights_ik[3]
+
+        # return Function("f", [self.x_sym2, self.m_model_sym], [output],   #block here x(0) isn't symbolic
+        #                        ["x_sym", "markers_model"], ["obj_function"])
+        return Function("f", [self.q_sym, self.p_sym, self.q_sym_prev, self.m_model_sym], [output],   #block here x(0) isn't symbolic
+                               ["q_sym", "p_sym", "q_sym_prev", "markers_model"], ["obj_function"])
+
+    def build_constraint_1(self):
+
+        table_markers1_model = self.biorbd_model.markers(self.x_sym)[self.table_markers_idx[0]].to_mx()
+        table_markers2_model = self.biorbd_model.markers(self.x_sym)[self.table_markers_idx[1]].to_mx()
+        table_markers_table = vertcat(table_markers1_model, table_markers2_model)
+        table_markers_xp = self.markers[:, self.table_markers_idx, self.frame].flatten("F")
+        diff = table_markers_table - table_markers_xp
+
+        return Function("g", [self.q_sym, self.p_sym], [diff],
+                        ["q_sym", "p_sym"], ["constraint_func"])
 
     def build_constraint_2(self, q_sym, p_sym, f):
         """
