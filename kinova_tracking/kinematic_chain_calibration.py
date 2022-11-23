@@ -764,11 +764,99 @@ class KinematicChainCalibration:
         else:
             raise NotImplementedError("This is not implemented, please use 1step or 2step")
 
-        # prepare the size of the output of q (22 x nb frame )
-        #self.x_output = MX.zeros((self.biorbd_model.nbQ(), self.nb_frames_ik_step))
+    def _solve_1step(
+            self,
+            threshold: int = 5e-3,
+    ):
+        print(" | You choose 1_step |")
+        start_ik = time.time()
+        x_init = np.concatenate((self.q_ik_initial_guess.flatten("F"), self.p_ik_initial_guess))
 
+        obj_func = self.objective_ik_1step()
+        constraint_func = self.build_constraint_1()
+        objective = 0
+        constraint_list = []
 
-        # TODO: use the bounds built in the init.
+        for f in range(self.nb_frames):
+            self.frame = f
+            # x = self.build_x(q=self.q_sym_global[self.nb_kinematic_dofs * f: self.nb_kinematic_dofs * (f + 1)],
+            #                  p=self.q_sym_global[-6:])
+            # x = self.build_x(q=self.q_sym_global[:, f],
+            #                  p=self.p_sym)
+            # objective += obj_func(x,
+            #                       self.markers[:, self.model_markers_idx, f].flatten("F"),
+            #                       )
+
+            objective += obj_func(
+                self.q_sym_global[:, f],
+                self.p_sym,
+                self.q_sym_global[:, f - 1] if f != 0 else self.q_ik_initial_guess[:, 0],
+                self.markers[:, self.model_markers_idx, f].flatten("F"),
+            )
+
+            # We built the constraint function using build_constraint1 which returns a 6 by 1 vector, we vertcat each of
+            # them as it's the only way to be understood by the solver
+
+            # constraint_list.append(self.build_constraint_1(x_sym=self.x_sym, f=f))
+            constraint_list.append(constraint_func(q_sym=self.q_sym_global[:, f], p_sym=self.p_sym)["constraint_func"])
+            # if f == 0:
+            #     constraint_func1 = self.build_constraint_1(x_sym=self.q_sym_global[22 * f: 22 * (f+1)], f=f)
+            # else:
+            #     constraint_func2 = self.build_constraint_1(x_sym=self.q_sym_global[22 * f: 22 * (f+1)], f=f)
+            # if f != 0:
+            #     constraint_func = vertcat(constraint_func1, constraint_func2)
+            #     constraint_func1 = constraint_func
+        constraint_func = vertcat(*constraint_list)
+
+        # a = vertcat(self.q_sym_global[:, 0], self.q_sym_global[:, 1])
+        # for i in range(2, self.nb_frames, 1):
+        #     a = vertcat(a, self.q_sym_global[:, i])
+        # x = vertcat(a, self.p_sym)
+        # a = MX.sym("a", 96)
+        # for i in range(6):
+        #     for g in range(16):
+        #         a[16 * i + g, ] = self.q_sym_global[g, i]
+
+        # Create a NLP solver
+        prob = {"f": objective,
+                # "x": vertcat(self.q_sym_global.reshape((self.nb_kinematic_dofs * self.nb_frames, 1)), self.p_sym),
+                "x": vertcat(self.q_sym_global_vec, self.p_sym),
+                # "x": a,
+                "g": constraint_func}
+
+        opts = {"ipopt": {"max_iter": 5000, "linear_solver": "ma57"}}
+        solver = nlpsol('solver', 'ipopt', prob, opts)
+
+        # Solve the NLP
+        sol = solver(
+            x0=x_init,
+            lbx=np.concatenate((self.bounds_q_list[0].__mul__(self.nb_frames), self.bounds_p_list[0])),
+            ubx=np.concatenate((self.bounds_q_list[1].__mul__(self.nb_frames), self.bounds_p_list[1])),
+            lbg=self.bound_constraint.repeat(self.nb_frames),
+            ubg=self.bound_constraint.repeat(self.nb_frames),
+        )
+
+        x_output = sol["x"].toarray().squeeze()
+        q_all_frame, param_opt = self._dispatch_x_all(x_output)
+        self.q_all_frame = q_all_frame
+        self.parameters = param_opt
+        x_all_frames = self.build_x_all_frames()
+        self.x_all_frames = x_all_frames
+        # x_output = np.delete(x_output, [-6, -5, -4, -3, -2, -1])
+        # # q_all_frame = x_output.reshape(self.nb_kinematic_dofs, self.nb_frames)
+        # q_all_frame = np.zeros((self.nb_kinematic_dofs, self.nb_frames))
+        # x_all_frames = np.zeros((self.nb_total_dofs, self.nb_frames))
+        # for i in range(self.nb_frames):
+        #     q_all_frame[:, i] = x_output[self.nb_kinematic_dofs * i : self.nb_kinematic_dofs * (i+1)]
+        #     x_all_frames[self.q_kinematic_index, i] = q_all_frame[:, i]
+        #     x_all_frames[self.q_parameter_index, i] = param_opt
+
+        # print("x_all_frames = ", x_all_frames)
+        # q_all_frame = x_all_frames[self.q_kinematic_index, :]
+        # param_opt = x_all_frames[self.q_parameter_index, 2]
+        end_ik = time.time()
+        self.time_ik.append(end_ik - start_ik)
+        return q_all_frame, param_opt, x_all_frames
         # get the bounds of the model for all dofs
         bounds = [
             (mini, maxi) for mini, maxi in zip(get_range_q(self.biorbd_model)[0], get_range_q(self.biorbd_model)[1])
