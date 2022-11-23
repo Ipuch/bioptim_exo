@@ -857,13 +857,31 @@ class KinematicChainCalibration:
         end_ik = time.time()
         self.time_ik.append(end_ik - start_ik)
         return q_all_frame, param_opt, x_all_frames
+
+    def _solve_2step(
+            self,
+            threshold: int = 5e-3,
+    ):
+        """
+        This function returns optimised generalized coordinates and the epsilon difference
+
+        Parameters
+        ----------
+        threshold : int
+            the threshold for the delta epsilon
+
+        Return
+        ------
+            The optimized Generalized coordinates and parameters
+        """
+        print(" | You choose 2_step |")
         # get the bounds of the model for all dofs
         bounds = [
             (mini, maxi) for mini, maxi in zip(get_range_q(self.biorbd_model)[0], get_range_q(self.biorbd_model)[1])
         ]
 
         # find kinematic dof with initial guess at zeros
-        idx_zeros = np.where(np.sum(self.x_ik_initial_guess, axis=1) == 0)[0]
+        idx_zeros = np.where(np.sum(self.q_ik_initial_guess, axis=1) == 0)[0]
         kinematic_idx_zeros = [idx for idx in idx_zeros if idx in self.q_kinematic_index]
 
         # initialize q_ik with in the half-way between bounds
@@ -871,14 +889,14 @@ class KinematicChainCalibration:
         kinova_q0 = np.array([(b[0] + b[1]) / 2 for b in bounds_kinematic_idx_zeros])
 
         # initialized q trajectories for each frames for dofs without a priori knowledge of the q (kinova arm here)
-        self.x_ik_initial_guess[kinematic_idx_zeros, :] = np.repeat(
+        self.q_ik_initial_guess[kinematic_idx_zeros, :] = np.repeat(
             kinova_q0[:, np.newaxis], self.nb_frames_ik_step, axis=1
         )
 
         # initialized q qnd p for the whole algorithm.
 
         p_init_global = np.zeros( self.nb_parameters_dofs)
-        q_init_global = self.x_ik_initial_guess[self.q_kinematic_index, :]
+        q_init_global = self.q_ik_initial_guess[self.q_kinematic_index, :]
 
         print(" #######  Initialisation beginning  ########")
 
