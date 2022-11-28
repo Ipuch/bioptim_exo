@@ -337,6 +337,8 @@ def prepare_kcc(
     parameters = [i for i in name_dof if "part7" in i]
     kinova_dof = [i for i in name_dof if "part" in i and not "7" in i]
 
+    #todo the dict of the same variable here
+    #same_variable={"the main dof": , " the old dof ": }
     # kinematic_dof = [i for i in name_dof if "part7" not in i]
     # kinematic_dof.append(name_dof[11])
     # kinematic_dof.append(name_dof[14])
@@ -381,6 +383,7 @@ def prepare_kcc(
         use_analytical_jacobians=use_analytical_jacobians,
         segment_id_with_vertical_z=45,
         method="1step",
+        #same_variable=same_variable
 
     )
 
