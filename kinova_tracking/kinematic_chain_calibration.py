@@ -611,12 +611,15 @@ class KinematicChainCalibration:
 
                                  )
 
-            #                              p_init,
-            #                              self.markers[:, self.table_markers_idx, f].flatten("F")[:-1])
+            #constraint_func = self.build_constraint_2(q_sym=self.q_sym, p_sym=p_init, f=f)
+            constraint_func = self.build_constraint_1()
             constraint_func = self.build_constraint_2(q_sym=self.q_sym, p_sym=p_init, f=f)
 
             # Create a NLP solver
-            prob = {"f": objective, "x": self.q_sym, "g": constraint_func}
+            prob = {"f": objective,
+                    "x": self.q_sym,
+                    "g": constraint_func(q_sym=self.q_sym, p_sym=p_init)
+            }
 
             # can add "hessian_approximation":  "limited-memory" ( or "exact") in opts
             # val = 1e-3
@@ -749,35 +752,40 @@ class KinematicChainCalibration:
         return Function("g", [self.q_sym, self.p_sym], [diff],
                         ["q_sym", "p_sym"], ["constraint_func"])
 
-    def build_constraint_2(self, q_sym, p_sym, f):
+    # old method but it's work
         """
         This function build the constraint for closed loop markers ie the Table
 
-        Parameters
-        ----------
-        q_sym : MX
-            q symbolic vector
-        p_sym : MX
-            p symbolic vector
-        f : int
-            the number of the frame
-
-        Returns
-        -------
-         a MX with the distance btwm each marker associated w/ the closed loop ie the Table
-        """
-        # todo call build_x in the parent function.
-        x_sym = MX.zeros(22)
-        x_sym[self.q_kinematic_index] = q_sym
-        x_sym[self.q_parameter_index] = p_sym
-        table_markers1_model = self.biorbd_model.markers(x_sym)[self.table_markers_idx[0]].to_mx()
-        table_markers2_model = self.biorbd_model.markers(x_sym)[self.table_markers_idx[1]].to_mx()
-        table_markers_table = vertcat(table_markers1_model, table_markers2_model)
-        table_markers_xp = self.markers[:, self.table_markers_idx, f].flatten("F")
-        diff = table_markers_table - table_markers_xp    # MX (6x1)
-
-        return diff
-
+    # def build_constraint_2(self, q_sym, p_sym, f):
+    #     """
+    #     This function build the constraint for closed loop markers ie the Table
+    #
+    #     Parameters
+    #     ----------
+    #     q_sym : MX
+    #         q symbolic vector
+    #     p_sym : MX
+    #         p symbolic vector
+    #     f : int
+    #         the number of the frame
+    #
+    #     Returns
+    #     -------
+    #      a MX with the distance btwm each marker associated w/ the closed loop ie the Table
+    #     """
+    #     # todo call build_x in the parent function.
+    #     x_sym = MX.zeros(22)
+    #     x_sym[self.q_kinematic_index] = q_sym
+    #     x_sym[self.q_parameter_index] = p_sym
+    #
+    #
+    #     table_markers1_model = self.biorbd_model.markers(x_sym)[self.table_markers_idx[0]].to_mx()
+    #     table_markers2_model = self.biorbd_model.markers(x_sym)[self.table_markers_idx[1]].to_mx()
+    #     table_markers_table = vertcat(table_markers1_model, table_markers2_model)
+    #     table_markers_xp = self.markers[:, self.table_markers_idx, f].flatten("F")
+    #     diff = table_markers_table - table_markers_xp    # MX (6x1)
+    #
+    #     return diff
 
     def solve(
             self,
@@ -792,7 +800,9 @@ class KinematicChainCalibration:
         threshold : int
             the threshold for the delta epsilon
         method : str
-            the method used to find the optimised generalized coordinates
+            the method used to find the optimised generalized coordinates:
+            - "1step":
+            - "2step":
         Return
         ------
             The optimized Generalized coordinates and parameters
@@ -1934,7 +1944,7 @@ class KinematicChainCalibration:
         plt.legend()
         plt.show()
 
-    def pivot(self):
+    def plot_pivot(self):
         q_out = self.q
         #pivot_value = []
         # for i in range(self.nb_frames):
@@ -1957,10 +1967,10 @@ class KinematicChainCalibration:
         plt.plot([k for k in range(self.nb_frames)], [(7 * np.pi / 10) for i in range(self.nb_frames)], color="g")
         ax.set_ylabel("value")
         ax.set_xlabel("frame")
-        ax.set_title("pivot value")
+        ax.set_title("plot_pivot value")
         plt.show()
 
-        print("index where pivot value is not 0 =", index_not_zero)
+        print("index where plot_pivot value is not 0 =", index_not_zero)
 
     def plot_param_value(self):
         bound_param = self.bounds_p_list
