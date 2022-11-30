@@ -113,7 +113,7 @@ def objective_function_param(
 
 def penalty_table_markers(markers_names: list[str], vect_pos_markers: np.ndarray, table_markers: np.ndarray):
     """
-    The penalty function which put the pivot joint vertical
+    The penalty function which put the plot_pivot joint vertical
 
     Parameters
     ----------
@@ -293,7 +293,7 @@ def ik_step_batch(
     for m, value in enumerate(markers_model):
         vect_pos_markers[m * 3 : (m + 1) * 3] = value.to_array()
 
-    # Put the pivot joint vertical
+    # Put the plot_pivot joint vertical
     table_model, table_xp = penalty_table_markers(markers_names, vect_pos_markers, table_markers)
 
     # Minimize difference between thorax markers from model and from experimental data
@@ -378,7 +378,7 @@ def ik_step_least_square(
     for m, value in enumerate(markers_model):
         vect_pos_markers[m * 3 : (m + 1) * 3] = value.to_array()
 
-    # Put the pivot joint vertical
+    # Put the plot_pivot joint vertical
     table_model, table_xp = penalty_table_markers(markers_names, vect_pos_markers, table_markers)
 
     # Minimize difference between thorax markers from model and from experimental data

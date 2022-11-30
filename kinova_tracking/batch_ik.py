@@ -105,7 +105,7 @@ for file in file_list:
         use_analytical_jacobians=False,
     )
 
-    q_step_2, epsilon = kcc.step_2(bounds=get_range_q(new_model),q_output=q_output)
+    q_step_2, epsilon = kcc.inverse_kinematics(bounds=get_range_q(new_model), q_output=q_output)
 
     b = bioviz.Viz(loaded_model=new_model, show_muscles=False, show_floor=False)
     b.load_experimental_markers(markers)

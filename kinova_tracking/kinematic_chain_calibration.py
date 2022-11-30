@@ -1,13 +1,20 @@
-from typing import Union
+from typing import Union, Tuple
 from enum import Enum
-
-import numpy as np
-
-import biorbd
-
-from scipy import optimize
-from utils import get_range_q
 import random
+import time
+
+import matplotlib.pyplot as plt
+from scipy import optimize
+import numpy as np
+from casadi import MX, Function, vertcat, nlpsol, if_else, norm_2, sumsqr, fabs, qpsol
+
+from casadi import MX, Function, vertcat, nlpsol, if_else, norm_2, sumsqr
+
+import biorbd_casadi as biorbd
+import biorbd as biorbd_eigen
+
+from utils import get_range_q
+
 
 
 class ObjectivesFunctions(Enum):
@@ -23,20 +30,20 @@ class KinematicChainCalibration:
     biord_model : biorbd.Model
         The biorbd Model
     markers_model : list[str]
-        Name of each markers
-    markers : np.ndarray
+        Name of each marker
+    marker : np.ndarray
         matrix of zeros [3 x Nb markers , x nb frame]
     closed_loop_markers : list[str]
-        markers with heavier weight
+        Name of markers associated to the table
     tracked_markers : list[str]
-        Name of each markers
+        Name of associated to the model
     parameter_dofs : list[str]
         name dof for which parameters are constant on each frame
     kinematic_dofs : list
         name dof which parameters aren't constant on each frame
-    weights :np.ndarray
+    weights_param :np.ndarray
         weight associated with cost functions
-    q_ik_initial_guess : array
+    x_ik_initial_guess : array
         initialize q
     nb_frames_ik_step : int
         number frame for Inverse Kinematics steps
@@ -45,7 +52,9 @@ class KinematicChainCalibration:
     randomize_param_step_frames : bool
         randomly choose the frames among the trial sent
     use_analytical_jacobians : bool
-        Use analytical jqcobians instead of numerical ones
+        Use analytical jacobians instead of numerical ones
+    segment_id_with_vertical_z : int
+        the segment of the Kinova arm which is fit with the table
 
     Examples
     ---------
@@ -55,27 +64,40 @@ class KinematicChainCalibration:
     """
 
     def __init__(
-        self,
-        biorbd_model: biorbd.Model,
-        markers_model: list[str],
-        markers: np.array,  # [3 x nb_markers, x nb_frames]
-        closed_loop_markers: list[str],
-        tracked_markers: list[str],
-        parameter_dofs: list[str],
-        kinematic_dofs: list[str],
-        weights: Union[list[float], np.ndarray],
-        q_ik_initial_guess: np.ndarray,
-        objectives_functions: ObjectivesFunctions = None,  # [n_dof x n_frames]
-        nb_frames_ik_step: int = None,
-        nb_frames_param_step: int = None,
-        randomize_param_step_frames: bool = True,
-        use_analytical_jacobians: bool = False,
+            self,
+            biorbd_model: biorbd.Model,
+            markers_model: list[str],
+            markers: np.array,  # [3 x nb_markers x nb_frames]
+            closed_loop_markers: list[str],
+            tracked_markers: list[str],
+            parameter_dofs: list[str],
+            kinematic_dofs: list[str],
+            weights_param: Union[list[float], np.ndarray],
+            weights_ik: Union[list[float], np.ndarray],
+            x_ik_initial_guess: np.ndarray,
+            objectives_functions: ObjectivesFunctions = None,  # [n_dof x n_frames]
+            nb_frames_ik_step: int = None,
+            nb_frames_param_step: int = None,
+            randomize_param_step_frames: bool = True,
+            use_analytical_jacobians: bool = True,
+            segment_id_with_vertical_z: int = None,
+            param_solver: str = "leastsquare",
+            ik_solver: str = "leastsquare",
+            method: str = "1step",
+            same_variables: dict = None,
     ):
-        self.biorbd_model = biorbd_model
+
+        self.nb_markers = None
+        self.biorbd_model = biorbd.Model(biorbd_model.path().absolutePath().to_string())
+        self.biorbd_model_eigen = biorbd_eigen.Model(biorbd_model.path().absolutePath().to_string())
         self.model_dofs = [dof.to_string() for dof in biorbd_model.nameDof()]
 
+        self.nb_markers = self.biorbd_model.nbMarkers()
+        self.nb_frames = markers.shape[2]
+
+
         # check if markers_model are in model
-        # otherwise raise
+        # otherwise raise error
         for marker in markers_model:
             if marker not in [i.to_string() for i in biorbd_model.markerNames()]:
                 raise ValueError(f"The following marker is not in markers_model:{marker}")
@@ -95,65 +117,680 @@ class KinematicChainCalibration:
         self.tracked_markers = tracked_markers
         self.parameter_dofs = parameter_dofs
         self.kinematic_dofs = kinematic_dofs
+        self.same_variables = [same_variables["the main dof"], same_variables["the old dof"]]
+        self.index_same_variables = [same_variables["index main dof"], same_variables["index old dof"]]
+
+        # find the indexes of closed loop markers and tracked markers
+        self.table_markers_idx = [self.markers_model.index(i) for i in self.markers_model if "Table" in i]
+        self.model_markers_idx = [self.tracked_markers.index(i) for i in self.tracked_markers]
+
+        # nb markers
+        self.nb_markers_table = self.table_markers_idx.__len__()
+        self.nb_markers_model = self.model_markers_idx.__len__()
 
         # find the indexes of parameters and kinematic dofs in the model
-        self.parameter_index = [self.model_dofs.index(dof) for dof in self.parameter_dofs]
-        self.kinematic_index = [self.model_dofs.index(dof) for dof in self.kinematic_dofs]
+        self.q_parameter_index = [self.model_dofs.index(dof) for dof in self.parameter_dofs]
+        self.q_kinematic_index = [self.model_dofs.index(dof) for dof in self.kinematic_dofs]
 
         self.nb_parameters_dofs = len(parameter_dofs)
         self.nb_kinematic_dofs = len(kinematic_dofs)
+        self.nb_total_dofs = self.nb_kinematic_dofs + self.nb_parameters_dofs
+
+        # self.method
+        self.method = method
 
         # self.objectives_function
+        self.param_solver = param_solver
+        self.ik_solver = ik_solver
+
 
         # check if q_ik_initial_guess has the right size
-        self.q_ik_initial_guess = q_ik_initial_guess
+        self. x_ik_initial_guess = x_ik_initial_guess
+        self.q_ik_initial_guess = self.x_ik_initial_guess[self.q_kinematic_index, :]
+        self.p_ik_initial_guess = self.x_ik_initial_guess[self.q_parameter_index, 0]
         self.nb_frames_ik_step = nb_frames_ik_step
         self.nb_frames_param_step = nb_frames_param_step
         self.randomize_param_step_frames = randomize_param_step_frames
         self.use_analytical_jacobians = use_analytical_jacobians
+        self.bounds = get_range_q(self.biorbd_model)
+        self.bounds_q_list = [list(self.bounds[0][self.q_kinematic_index]),
+                              list(self.bounds[1][self.q_kinematic_index])]
+        self.bounds_p_list = [list(self.bounds[0][self.q_parameter_index]),
+                              list(self.bounds[1][self.q_parameter_index])]
+        self.bound_constraint = np.zeros(6)
+
 
         self.list_frames_param_step = self.frame_selector(self.nb_frames_param_step, self.nb_frames_ik_step)
 
         # number of weights has to be checked
         # raise Error if not the right number
-        self.weights = weights
+        self.weights_param = weights_param
+        self.weights_ik = weights_ik
 
-        weight_closed_loop = [self.weights[0]] * (len(self.closed_loop_markers) * 3 - 1)
-        # nb marker table * 3 dim - 1 because we don't use value on z for Table:Table6
+        self.time_param = []
+        self.time_ik = []
 
-        weight_open_loop = [self.weights[1]] * (len([i for i in self.tracked_markers if i not in self.closed_loop_markers]) *3)
-        # This is for all markers except those for table
+        self.list_sol = []
+        self.q = np.zeros((self.biorbd_model.nbQ(), self.nb_frames_ik_step))
+        self.segment_id_with_vertical_z = segment_id_with_vertical_z
+        self.output = dict()
 
-        # weight_rot_matrix = [100] * len(rot_matrix_list_xp)
-        weight_theta_13 = [self.weights[2]]
-        weight_continuity = [self.weights[3]] * (self.q_ik_initial_guess.shape[0] - len(self.parameter_dofs))
-        # We need the nb of dofs but without parameters
+        # symbolic variables
+        self.q_sym = MX.sym("q_sym", self.nb_kinematic_dofs)
+        self.q_sym_prev = MX.sym("q_sym_prev", self.nb_kinematic_dofs)
+        self.q_sym_global_vec = MX.sym("q_sym_global", self.nb_kinematic_dofs * self.nb_frames)
 
-        self.weight_list = weight_closed_loop + weight_open_loop + weight_continuity + weight_theta_13
+        # don't work yet
+        # self.q_sym_global_vec = MX.sym("q_sym_global", self.nb_kinematic_dofs * self.nb_frames)
+        # for x in range(self.index_same_variables[0], self.nb_frames*self.nb_kinematic_dofs, self.index_same_variables[0]):
+        #     self.q_sym_global_vec[x+1] = self.q_sym_global_vec[x]
 
-    # if nb_frames_ik_step> markers.shape[2]:
-    # raise error
-    # self.nb_frame_ik_step = markers.shape[2] if nb_frame_ik_step is None else nb_frames_ik_step
-    #
+        self.q_sym_global = self.q_sym_global_vec.reshape((self.nb_kinematic_dofs, self.nb_frames))
 
-    # def solve(self, tolerance, use_analytical_jacobians:bool=True, objectives_functions: ObjectivesFunctions)
+        self.p_sym = MX.sym("p_sym", self.nb_parameters_dofs)
 
-    def solve(
-        self,
-        threshold: int = 5e-5,
-    ):
+        # symbolic x with q qnd p variables
+        self.x_sym = MX.zeros(self.nb_total_dofs)
+        self.x_sym_prev = MX.zeros(self.nb_total_dofs)
+        self.x_sym = self.build_x(self.q_sym, self.p_sym)
+        self.x_sym_prev = self.build_x(self.q_sym_prev, self.p_sym)
+
+
+        # symbolic xp data
+        self.m_model_sym = MX.sym("markers_model", self.nb_markers_model * 3)
+        self.m_table_sym = MX.sym("markers_table", 6)  # xyz and xyz
+
+        self.frame = 0
+
+        # initialize x which is a combination of q and p
+        self.x = MX.zeros(self.nb_total_dofs)
+
+    def build_x(self, q, p) -> MX:
         """
+        This function built a x ( ie q and p ) for one frame
+        Returns
+        -------
+        The MX of x
+        """
+
+        x = MX.zeros(self.nb_total_dofs)
+        x[self.q_kinematic_index] = q
+        x[self.q_parameter_index] = MX(p) if isinstance(p, np.ndarray) else p
+        return x
+
+    def build_x_all_frames(self):
+        """
+        This function built the final x ( ie q and p ) for all the frame, used in the animation
+        Returns
+        -------
+        The array of solution
+        """
+        x_all_frames = np.zeros((self.nb_total_dofs, self.nb_frames))
+        for i in range(self.nb_frames):
+            x_all_frames[self.q_kinematic_index, i] = self.q_all_frame[:, i]
+            x_all_frames[self.q_parameter_index, i] = self.parameters
+        return x_all_frames
+
+    def _dispatch_x_all(self, x: MX) -> tuple:
+        """
+        This function separate the q value and p value for all the frame
+        Parameters
+        ----------
+        x: MX
+            the MX of the solution which is a 1D vector
+
+        Returns
+        -------
+        The array of q value for each frame and the 1D vector of parameters
+        """
+        p = x[-self.nb_parameters_dofs:]
+        q = x[:self.nb_kinematic_dofs * self.nb_frames]
+        q = q.reshape((self.nb_kinematic_dofs, self.nb_frames), order="F")
+        return q, p
+
+    @staticmethod
+    def penalty_table(table_markers_mx: MX, table_markers_xp: np.ndarray) -> MX:
+        """
+        Calculate the penalty cost for table's markers
+
+        Parameters
+        ----------
+        table_markers_mx : MX
+            The position of each marker of the informatic model
+
+        table_markers_xp : MX
+            The position of the markers associated with the table, coming from experiment
+
+        Returns
+        -------
+        MX
+        The cost of the penalty function
+
+        """
+
+        return sumsqr(table_markers_mx - table_markers_xp)
+
+    @staticmethod
+    def penalty_open_loop_marker(model_markers_mx: MX, model_markers_xp: np.ndarray) -> MX:
+        """
+        Calculate the penalty cost for wu's markers
+
+        Parameters
+        ----------
+        model_markers_mx : MX
+            The position of each marker of the informatic model
+
+        model_markers_xp : MX
+            The position of the markers associated with wu model , coming from experiment
+
+        Returns
+        -------
+        The cost of the penalty function
+
+        """
+
+        return sumsqr(model_markers_mx - model_markers_xp)
+
+    def penalty_rotation_matrix_cas(self, x: MX) -> MX:
+        """
+        Calculate the penalty cost for rotation matrix
+
+        Parameters
+        ----------
+        x : MX
+            the entire vector with q and p
+
+        Returns
+        -------
+        The cost of the penalty function
+
+        """
+        rotation_matrix = self.biorbd_model.globalJCS(x, self.biorbd_model.nbSegment() - 1).rot().to_mx()
+        rot_matrix_list_model = [
+            rotation_matrix[2, 0],
+            rotation_matrix[2, 1],
+            rotation_matrix[0, 2],
+            rotation_matrix[1, 2],
+            (rotation_matrix[2, 2] - 1),
+        ]
+
+        return sumsqr(vertcat(*rot_matrix_list_model))
+
+    def penalty_q_continuity(self, q_sym: MX, q_init: np.ndarray) -> MX:
+        """
+
+        Parameters
+        ----------
+        q_sym : MX
+            the unknown value of q
+        q_init : np.ndarray
+            value of q coming from either the q_ik_initial_guess for the first frame or the previous solution
+
+        Returns
+        -------
+        The cost of the penalty function
+
+        """
+
+        return sumsqr(q_sym - q_init)
+
+    def penalty_theta(self, x: MX) -> MX:
+        """
+        Calculate the penalty cost for theta angle
+
+        Parameters
+        ----------
+        x : MX
+            the entire vector with q and p
+
+        Returns
+        -------
+        The cost of the penalty function
+
+        """
+
+        theta_part1_3 = x[-2] + x[-1]
+        theta_part1_3_lim = 7 * np.pi / 10
+
+        return if_else(
+            theta_part1_3 > theta_part1_3_lim,  # cond
+            (theta_part1_3-theta_part1_3_lim) ** 2,  # if true
+            0  # if false
+        )
+
+    def objective_param(self):
+        """
+        Calculate the objective function used to determine parameters, build differently from objective_ik
+
         Parameters
         ----------
 
-        Return
-        ------
-            The optimized Generalized coordinates
+        Returns
+        -------
+        the value of the objective function for the set of parameters
+        """
+        # get the position of the markers for the info model
+        all_markers_model = self.biorbd_model.markers(self.x_sym)
+
+        # built the objective function by adding penalties one by one
+
+        # first build the table markers symbolics based on q and p
+        table_markers_model_sym = [all_markers_model[i] for i in self.table_markers_idx]
+        # table_markers_model_sym = vertcat(table_markers_model_sym[0].to_mx(), table_markers_model_sym[0].to_mx()[:2])
+        table_markers_model_sym = vertcat(table_markers_model_sym[0].to_mx(), table_markers_model_sym[0].to_mx())
+        # second send this to penalty with symbolic experimental array
+        obj_closed_loop = self.penalty_table(table_markers_model_sym, self.m_table_sym)
+
+        # first build the other markers symbolics based on q and p
+        model_markers_model_sym = vertcat(*[all_markers_model[i].to_mx() for i in self.model_markers_idx])
+        # second send this to penalty with symbolic experimental array
+        obj_open_loop = self.penalty_open_loop_marker(model_markers_model_sym, self.m_model_sym)
+
+        obj_rotation = self.penalty_rotation_matrix_cas(self.x_sym)
+
+        obj_pivot = self.penalty_theta(self.x_sym)
+
+        output = obj_open_loop * self.weights_param[0]\
+                 + obj_rotation * self.weights_param[1]\
+                 + obj_pivot * self.weights_param[2]\
+
+        return Function("f", [self.q_sym, self.p_sym, self.m_model_sym, self.m_table_sym], [output],
+                        ["q_sym", "p_sym", "markers_model", "markers_table"], ["obj_function"])
+
+    def parameters_optimization(self,
+                                q_init_all: np.ndarray,
+                                p_init: np.ndarray,
+                                ):
+        """
+        This method return the value of optimal parameters
+
+        Parameters
+        ----------
+        q_init_all:  np.ndarray
+            the MX which contains the solution found during the initialization
+        p_init: np.ndarray
+            the value of parameters used at the starting point
+
+        Returns
+        -------
+        the value of optimal parameters
         """
 
-        # prepare the size of the output of q
-        q_output = np.zeros((self.biorbd_model.nbQ(), self.nb_frames_ik_step))
+        obj_func = self.objective_param()
+        objective = 0
+        start_param = time.time()
 
+        for f in self.list_frames_param_step:
+
+            objective += obj_func(q_init_all[:, f],
+                                 self.p_sym,
+                                 self.markers[:, self.model_markers_idx, f].flatten("F"),
+                                 self.markers[:, self.table_markers_idx, f].flatten("F")[:],
+                                 )
+
+        # Create a NLP solver
+        prob = {"f": objective, "x": self.p_sym}
+        opts = {"ipopt":{"max_iter": 5000, "linear_solver": "ma57"}}
+        solver = nlpsol('solver', 'ipopt', prob, opts)  # no constraint yet
+
+        # Solve the NLP
+        sol = solver(
+            x0=p_init,
+            lbx=self.bounds_p_list[0],
+            ubx=self.bounds_p_list[1],
+        )
+        param_opt = sol["x"].full().flatten()
+
+        end_param = time.time()
+        self.time_param.append(end_param-start_param)
+        return param_opt
+
+    def objective_ik(self) -> Function:
+        """
+        Calculate the objective function used to determine generalised coordinates, build differently from objective_param
+
+        Returns
+        -------
+        The Casadi objective function for the ik
+        """
+
+        # get the position of the markers for the info model
+        all_markers_model = self.biorbd_model.markers(self.x_sym)
+
+        # built the objective function by adding penalties one by one
+        # first build the table markers symbolics based on q and p
+        table_markers_model_sym = [all_markers_model[i] for i in self.table_markers_idx]
+        # table_markers_model_sym = vertcat(table_markers_model_sym[0].to_mx(), table_markers_model_sym[0].to_mx()[:2])
+        table_markers_model_sym = vertcat(table_markers_model_sym[0].to_mx(), table_markers_model_sym[0].to_mx())
+        # second send this to penalty with symbolic experimental array
+        obj_closed_loop = self.penalty_table(table_markers_model_sym, self.m_table_sym)
+
+        # first build the other markers symbolics based on q and p
+        model_markers_model_sym = vertcat(*[all_markers_model[i].to_mx() for i in self.model_markers_idx])
+        # second send this to penalty with symbolic experimental array
+        obj_open_loop = self.penalty_open_loop_marker(model_markers_model_sym, self.m_model_sym)
+
+        obj_rotation = self.penalty_rotation_matrix_cas(self.x_sym)
+
+        obj_q_continuity = self.penalty_q_continuity(self.q_sym, self.q_ik_initial_guess[self.q_kinematic_index, self.frame])
+
+        obj_pivot = self.penalty_theta(self.x_sym)
+
+        output = obj_open_loop * self.weights_ik[0]\
+                + obj_rotation * self.weights_ik[1]\
+                + obj_pivot * self.weights_ik[2]\
+                + obj_q_continuity * self.weights_ik[3]
+
+        return Function("f", [self.q_sym, self.p_sym, self.m_model_sym, self.m_table_sym], [output], ["q_sym", "p_sym", "markers_model", "markers_table"], ["obj_function"])
+
+    def inverse_kinematics(self,
+                           q_init: np.ndarray,
+                           p_init: np.ndarray,
+                           ):
+        """
+        This method complete the index of kinematic value for all frames with the optimal values found
+        Parameters
+        ----------
+        q_init: np.ndarray
+            array of value use as initial guess, each column represents one frame, expected to be changed by the end of this step
+        p_init: np.ndarray
+            array of value use as initial guess, NOT expected to change by the end of this step
+
+        Returns
+        -------
+        the MX which represent the total x vector for each frame with optimal generalized coordinates and the epsilon
+        value btwm each marker
+        """
+        q_output = np.zeros((self.nb_kinematic_dofs, self.nb_frames_ik_step))
+        x_output = np.zeros((self.nb_kinematic_dofs + self.nb_parameters_dofs, self.nb_frames_ik_step))
+
+        obj_func = self.objective_ik()
+        start_ik = time.time()
+
+        # enter the frame loop
+        for f in range(self.nb_frames_ik_step):
+            x_output[self.q_parameter_index, f] = p_init
+            self.frame = f
+
+
+            objective = obj_func(self.q_sym,
+                                 p_init,
+                                 self.markers[:, self.model_markers_idx, f].flatten("F"),
+                                 self.markers[:, self.table_markers_idx, f].flatten("F")[:],
+
+                                 )
+
+            #constraint_func = self.build_constraint_2(q_sym=self.q_sym, p_sym=p_init, f=f)
+            constraint_func = self.build_constraint_1()
+
+            # Create a NLP solver
+            prob = {"f": objective,
+                    "x": self.q_sym,
+                    "g": constraint_func(q_sym=self.q_sym, p_sym=p_init)
+            }
+
+            # can add "hessian_approximation":  "limited-memory" ( or "exact") in opts
+            if f == 0:
+                opts = {"ipopt": {"max_iter": 5000, "linear_solver": "ma57"}}
+                solver = nlpsol('solver', 'ipopt', prob, opts)
+
+            # can add "hessian_approximation":  "limited-memory" ( or "exact") in opts
+            else:
+                opts = {"ipopt": {"max_iter": 5000, "linear_solver": "ma57"}}
+                solver = nlpsol('solver', 'ipopt', prob, opts)
+
+            # Solve the NLP
+            sol = solver(
+                x0=q_init[:, f] if f == 0 else q_output[:, f - 1],
+                lbx=self.bounds_q_list[0],
+                ubx=self.bounds_q_list[1],
+                lbg=self.bound_constraint,
+                ubg=self.bound_constraint,
+            )
+
+            if solver.stats()['success'] == False:
+
+                print("#########################################################")
+                print("#########################################################")
+                print("#########################################################")
+                print("#########################################################")
+                print("--------------   IT DID NOT CONVERGE   ------------------")
+                print("#########################################################")
+                print("#########################################################")
+                print("#########################################################")
+                print("#########################################################")
+
+            q_output[:, f] = sol["x"].toarray().squeeze()
+            x_output[self.q_kinematic_index, f] = sol["x"].toarray().squeeze()
+
+            markers_model = self.biorbd_model_eigen.markers(x_output[:, f])
+            markers_to_compare = self.markers[:, :, f]
+            espilon_markers = 0
+
+            # sum of squared norm of difference of markers
+            c = 0
+            for j in range(self.nb_markers):
+                mark = np.linalg.norm(markers_model[j].to_array()- markers_to_compare[:, j]) ** 2
+                espilon_markers += mark
+                c += 1
+
+        end_ik = time.time()
+        self.time_ik.append(end_ik-start_ik)
+        return q_output, espilon_markers
+
+    def objective_ik_1step(self):
+        """
+        This function determine the value of the objective function used in _solve_1step method by adding penalties
+
+        Returns
+        -------
+        The value of the objective function
+        """
+
+        # get the position of the markers for the info model
+        all_markers_model = self.biorbd_model.markers(self.x_sym)
+        # all_markers_model = self.biorbd_model.markers(self.x_sym2)
+
+        # first build the other markers symbolics based on q and p
+        model_markers_model_sym = vertcat(*[all_markers_model[i].to_mx() for i in self.model_markers_idx])
+        # second send this to penalty with symbolic experimental array
+        obj_open_loop = self.penalty_open_loop_marker(model_markers_model_sym, self.m_model_sym)
+
+        # obj_rotation = self.penalty_rotation_matrix_cas(self.x_sym2)
+        obj_rotation = self.penalty_rotation_matrix_cas(self.x_sym)
+
+        # obj_pivot = self.penalty_theta(self.x_sym2)
+        obj_pivot = self.penalty_theta(self.x_sym)
+
+        obj_q_continuity = self.penalty_q_continuity(self.q_sym, self.q_sym_prev)
+        # if self.frame == 0:
+        #     output = obj_open_loop * self.weights_ik[0] \
+        #              + obj_rotation * self.weights_ik[1] \
+        #              + obj_pivot * self.weights_ik[2] \
+        #
+        # else:
+        #     output = obj_open_loop * self.weights_ik[0] \
+        #              + obj_rotation * self.weights_ik[1] \
+        #              + obj_pivot * self.weights_ik[2] \
+        #              + obj_q_continuity * self.weights_ik[3]
+
+        output = obj_open_loop * self.weights_ik[0] \
+                 + obj_rotation * self.weights_ik[1] \
+                 + obj_pivot * self.weights_ik[2] \
+                 + obj_q_continuity * self.weights_ik[3]
+
+        return Function("f", [self.q_sym, self.p_sym, self.q_sym_prev, self.m_model_sym], [output],
+                               ["q_sym", "p_sym", "q_sym_prev", "markers_model"], ["obj_function"])
+
+    def build_constraint_1(self):
+        """
+        This function build the constraint for closed loop markers ie the Table
+
+        Returns
+        -------
+        a MX with the distance btwm each marker associated w/ the closed loop ie the Table
+        """
+
+        table_markers1_model = self.biorbd_model.markers(self.x_sym)[self.table_markers_idx[0]].to_mx()
+        table_markers2_model = self.biorbd_model.markers(self.x_sym)[self.table_markers_idx[1]].to_mx()
+        table_markers_table = vertcat(table_markers1_model, table_markers2_model)
+        table_markers_xp = self.markers[:, self.table_markers_idx, self.frame].flatten("F")
+        diff = table_markers_table - table_markers_xp
+
+        return Function("g", [self.q_sym, self.p_sym], [diff],
+                        ["q_sym", "p_sym"], ["constraint_func"])
+
+    # old method but it's work
+
+    # def build_constraint_2(self, q_sym, p_sym, f):
+    #     """
+    #     This function build the constraint for closed loop markers ie the Table
+    #
+    #     Parameters
+    #     ----------
+    #     q_sym : MX
+    #         q symbolic vector
+    #     p_sym : MX
+    #         p symbolic vector
+    #     f : int
+    #         the number of the frame
+    #
+    #     Returns
+    #     -------
+    #      a MX with the distance btwm each marker associated w/ the closed loop ie the Table
+    #     """
+    #     x_sym = MX.zeros(22)
+    #     x_sym[self.q_kinematic_index] = q_sym
+    #     x_sym[self.q_parameter_index] = p_sym
+    #
+    #
+    #     table_markers1_model = self.biorbd_model.markers(x_sym)[self.table_markers_idx[0]].to_mx()
+    #     table_markers2_model = self.biorbd_model.markers(x_sym)[self.table_markers_idx[1]].to_mx()
+    #     table_markers_table = vertcat(table_markers1_model, table_markers2_model)
+    #     table_markers_xp = self.markers[:, self.table_markers_idx, f].flatten("F")
+    #     diff = table_markers_table - table_markers_xp    # MX (6x1)
+    #
+    #     return diff
+
+    def solve(
+            self,
+            threshold,
+            method,
+    ):
+        """
+        This function returns the solution using the method chosen by the user
+
+        Parameters
+        ----------
+        threshold : int
+            the threshold for the delta epsilon
+        method : str
+            the method used to find the optimised generalized coordinates:
+            - "1step": the global solution ( for all the frame ) is found without loop, parameters and generalized
+            coordinates values are determined together
+            - "2step": the global solution is build frame after frame where the parameters value (the same for each frame)
+            are firstly found and generalized coordinates after that.
+
+        Return
+        ------
+            The optimized Generalized coordinates and parameters
+        """
+        if method == "1step":
+            return self._solve_1step()
+        elif method == "2step":
+            return self._solve_2step(threshold)
+        else:
+            raise NotImplementedError("This is not implemented, please use 1step or 2step")
+
+    def _solve_1step(self):
+        """
+        This function find the entire solution with only 1 step ie without a while loop unlike 2step
+
+        Returns
+        -------
+        q_all_frame, value of generalised coordinates for all frames,
+        param_opt, the value of the parameters,
+        x_all_frames, the entire solution for all frames
+        """
+        print(" | You choose 1_step |")
+        start_ik = time.time()
+        x_init = np.concatenate((self.q_ik_initial_guess.flatten("F"), self.p_ik_initial_guess))
+
+        obj_func = self.objective_ik_1step()
+        constraint_func = self.build_constraint_1()
+        objective = 0
+        constraint_list = []
+
+        for f in range(self.nb_frames):
+            self.frame = f
+            objective += obj_func(
+                self.q_sym_global[:, f],
+                self.p_sym,
+                self.q_sym_global[:, f - 1] if f != 0 else self.q_ik_initial_guess[:, 0],
+                self.markers[:, self.model_markers_idx, f].flatten("F"),
+            )
+
+            constraint_list.append(constraint_func(q_sym=self.q_sym_global[:, f], p_sym=self.p_sym)["constraint_func"])
+
+        constraint_func = vertcat(*constraint_list)
+
+        # Create a NLP solver
+        prob = {"f": objective,
+                "x": vertcat(self.q_sym_global_vec, self.p_sym),
+                "g": constraint_func}
+
+        opts = {"ipopt": {"max_iter": 5000, "linear_solver": "ma57"}}
+        solver = nlpsol('solver', 'ipopt', prob, opts)
+
+        # Solve the NLP
+        sol = solver(
+            x0=x_init,
+            lbx=np.concatenate((self.bounds_q_list[0].__mul__(self.nb_frames), self.bounds_p_list[0])),
+            ubx=np.concatenate((self.bounds_q_list[1].__mul__(self.nb_frames), self.bounds_p_list[1])),
+            lbg=self.bound_constraint.repeat(self.nb_frames),
+            ubg=self.bound_constraint.repeat(self.nb_frames),
+        )
+
+        end_ik = time.time()
+        x_output = sol["x"].toarray().squeeze()
+        q_all_frame, param_opt = self._dispatch_x_all(x_output)
+        self.q_all_frame = q_all_frame
+        self.parameters = param_opt
+        x_all_frames = self.build_x_all_frames()
+        self.x_all_frames = x_all_frames
+        # x_output = np.delete(x_output, [-6, -5, -4, -3, -2, -1])
+        # # q_all_frame = x_output.reshape(self.nb_kinematic_dofs, self.nb_frames)
+        # q_all_frame = np.zeros((self.nb_kinematic_dofs, self.nb_frames))
+        # x_all_frames = np.zeros((self.nb_total_dofs, self.nb_frames))
+        # for i in range(self.nb_frames):
+        #     q_all_frame[:, i] = x_output[self.nb_kinematic_dofs * i : self.nb_kinematic_dofs * (i+1)]
+        #     x_all_frames[self.q_kinematic_index, i] = q_all_frame[:, i]
+        #     x_all_frames[self.q_parameter_index, i] = param_opt
+
+        # print("x_all_frames = ", x_all_frames)
+        # q_all_frame = x_all_frames[self.q_kinematic_index, :]
+        # param_opt = x_all_frames[self.q_parameter_index, 2]
+
+        self.time_ik.append(end_ik - start_ik)
+        return q_all_frame, param_opt, x_all_frames
+
+    def _solve_2step(
+            self,
+            threshold: int = 5e-3,
+    ):
+        """
+        This function returns optimised generalized coordinates and the epsilon difference
+
+        Parameters
+        ----------
+        threshold : int
+            the threshold for the delta epsilon
+
+        Return
+        ------
+            The optimized Generalized coordinates and parameters
+        """
+        print(" | You choose 2_step |")
         # get the bounds of the model for all dofs
         bounds = [
             (mini, maxi) for mini, maxi in zip(get_range_q(self.biorbd_model)[0], get_range_q(self.biorbd_model)[1])
@@ -161,9 +798,9 @@ class KinematicChainCalibration:
 
         # find kinematic dof with initial guess at zeros
         idx_zeros = np.where(np.sum(self.q_ik_initial_guess, axis=1) == 0)[0]
-        kinematic_idx_zeros = [idx for idx in idx_zeros if idx in self.kinematic_index]
+        kinematic_idx_zeros = [idx for idx in idx_zeros if idx in self.q_kinematic_index]
 
-        # inititialize q_ik with in the half-way between bounds
+        # initialize q_ik with in the half-way between bounds
         bounds_kinematic_idx_zeros = [b for i, b in enumerate(bounds) if i in kinematic_idx_zeros]
         kinova_q0 = np.array([(b[0] + b[1]) / 2 for b in bounds_kinematic_idx_zeros])
 
@@ -172,72 +809,64 @@ class KinematicChainCalibration:
             kinova_q0[:, np.newaxis], self.nb_frames_ik_step, axis=1
         )
 
-        # initialized parameters values
-        p = np.zeros(self.nb_parameters_dofs)
+        # initialized q qnd p for the whole algorithm.
+
+        p_init_global = np.zeros( self.nb_parameters_dofs)
+        q_init_global = self.q_ik_initial_guess[self.q_kinematic_index, :]
+
+        print(" #######  Initialisation beginning  ########")
+
 
         # First IK step - INITIALIZATION
-        q_step_2, epsilon = self.step_2(
-            p=p,
-            bounds=get_range_q(self.biorbd_model),
-            q_output=q_output,
-        )
 
-        q0 = self.q_ik_initial_guess[:, 0]
+        q_all_frames = self.inverse_kinematics(
+            q_init=q_init_global,
+            p_init=p_init_global,
+        )[0]
 
-        q_output = np.zeros((self.biorbd_model.nbQ(), self.markers.shape[2]))
+        print(" #######  Initialisation ending ########")
 
-        bounds = [
-            (mini, maxi) for mini, maxi in zip(get_range_q(self.biorbd_model)[0], get_range_q(self.biorbd_model)[1])
-        ]
-
-        p = q_step_2[self.parameter_index, 0]
+        p_init = p_init_global
 
         iteration = 0
-        epsilon_markers_n = 10
+        epsilon_markers_n = 10  # arbitrary set
         epsilon_markers_n_minus_1 = 0
         delta_epsilon_markers = epsilon_markers_n - epsilon_markers_n_minus_1
 
-        while abs(delta_epsilon_markers) > threshold:
-            q_first_ik_not_all_frames = q_step_2[:, self.list_frames_param_step]
+        print("#####   Starting the while loop   #####")
 
-            markers_xp_data_not_all_frames = self.markers[:, :, self.list_frames_param_step]
-
-            print("threshold", threshold, "delta", abs(delta_epsilon_markers))
+        while fabs(delta_epsilon_markers) > threshold:
 
             epsilon_markers_n_minus_1 = epsilon_markers_n
-            # step 1 - param opt
-            param_opt = optimize.minimize(
-                fun=self.objective_function_param,
-                args=(q_first_ik_not_all_frames, q0, markers_xp_data_not_all_frames),
-                x0=p,
-                bounds=bounds[10:16],
-                method="trust-constr",
-                jac="3-point",
-                tol=1e-5,
-            )
-            print(param_opt.x)
 
-            self.q_ik_initial_guess[self.parameter_index, :] = np.array([param_opt.x] * self.nb_frames_ik_step).T
-            p = param_opt.x
-            q_output[self.parameter_index, :] = np.array([param_opt.x] * q_output.shape[1]).T
+            param_opt = self.parameters_optimization(
+                q_init_all=q_all_frames,
+                p_init=p_init,
+            )
+            print(" param opt =", param_opt)
+
 
             # step 2 - ik step
-            # todo : verify the metric of the step 2 please make a RMSE
-            q_out, epsilon_markers_n = self.step_2(
-                p=p,
-                bounds=get_range_q(self.biorbd_model),
-                q_output=q_output,
+            q_all_frames, epsilon_markers_n = self.inverse_kinematics(
+                q_init=q_all_frames,
+                p_init=param_opt,
             )
-
             delta_epsilon_markers = epsilon_markers_n - epsilon_markers_n_minus_1
             print("delta_epsilon_markers:", delta_epsilon_markers)
-            print("epsilon_markers_n:", epsilon_markers_n)
-            print("epsilon_markers_n_minus_1:", epsilon_markers_n_minus_1)
             iteration += 1
             print("iteration:", iteration)
-            self.q_ik_initial_guess = q_output
 
-        return q_out, p
+        print("#####   Leaving the while loop   #####")
+
+        self.parameters = param_opt
+        self.q = q_all_frames
+        x_all_frames = np.zeros((self.nb_total_dofs, self.nb_frames))
+        for f in range(self.nb_frames):
+            x_all_frames[self.q_kinematic_index, f] = q_all_frames[:, f]  # can't broadcast
+            x_all_frames[self.q_parameter_index, f] = param_opt[:]
+        self.x_all_frames = x_all_frames
+
+        return q_all_frames, param_opt, x_all_frames
 
     def frame_selector(self, frames_needed: int, frames: int):
         """
@@ -255,371 +884,203 @@ class KinematicChainCalibration:
         list_frames: list[int]
             The list of frames use for calibration
         """
-        list_frames = random.sample(range(frames), frames_needed) if not all else [i for i in range(frames)]
+        list_frames = random.sample(range(frames), frames_needed)  # if not all else [i for i in range(frames)]
 
         list_frames.sort()
 
         return list_frames
 
-    def penalty_table_markers(self, vect_pos_markers: np.ndarray, table_markers: np.ndarray):
+    def solution(self):
+
         """
-        The penalty function which put the pivot joint vertical
+         This function returns a dictionnary which contains the global RMS and the RMS for each axes
 
-        Parameters
-        ----------
-        vect_pos_markers: np.ndarray
-            The generalized coordinates from the model
-        table_markers: np.ndarray
-            The markers position from experimental data
+         Parameters
+         ----------
 
-        Return
-        ------
-        The value of the penalty function
-        """
-        # todo: hardcoded names, put it as an argument of the method
-        table5_xyz = vect_pos_markers[
-            self.markers_model.index("Table:Table5") * 3 : self.markers_model.index("Table:Table5") * 3 + 3
-        ][:]
-        table_xp = table_markers[:, 0].tolist()
-        table6_xy = vect_pos_markers[
-            self.markers_model.index("Table:Table6") * 3 : self.markers_model.index("Table:Table6") * 3 + 3
-        ][:2]
-        table_xp += table_markers[:2, 1].tolist()
-        table = table5_xyz.tolist() + table6_xy.tolist()
+         Return
+         ------
+         the dictionnary with RMS
+         """
 
-        return table, table_xp
+        residuals_xyz_model = np.zeros((3, self.nb_markers_model, self.nb_frames))
+        residuals_xyz_table = np.zeros((3, self.nb_markers_table, self.nb_frames))
 
-    def theta_pivot_penalty(self, q: np.ndarray):
-        """
-        Penalty function, prevent part 1 and 3 to cross
+        # for each frame
+        for f in range(self.nb_frames):
 
-        Parameters
-        ----------
-        q: np.ndarray
-            Generalized coordinates for all dof, unique for all frames
+            xi = self.x_all_frames[:, f]
+            # get the marker's coordinates of the frame coming from xp
+            markers_model = self.biorbd_model_eigen.markers(xi)
 
-        Return
-        ------
-        The value of the penalty function
-        """
-        # todo : remove the hard coded, put index as an argument of this method
-        theta_part1_3 = q[-2] + q[-1]
-
-        theta_part1_3_lim = 7 * np.pi / 10
-
-        if theta_part1_3 > theta_part1_3_lim:
-            diff_model_pivot = [theta_part1_3]
-            diff_xp_pivot = [theta_part1_3_lim]
-        else:
-            theta_cost = 0
-            diff_model_pivot = [theta_cost]
-            diff_xp_pivot = [theta_cost]
-
-        return diff_model_pivot, diff_xp_pivot
-
-    def penalty_open_loop_markers(self, vect_pos_markers: np.ndarray, open_loop_markers: np.ndarray):
-        """
-        The penalty function which minimize the difference between the open loop markers position from experimental data
-        and from the model
-
-        Parameters
-        ----------
-        vect_pos_markers: np.ndarray
-            The generalized coordinates from the model
-        open_loop_markers: np.ndarray
-            The open loop markers position form experimental data
-
-        Return
-        ------
-        The value of the penalty function
-        """
-        thorax_list_model = []
-        thorax_list_xp = []
-        for j, name in enumerate(self.markers_model):
-            if name != "Table:Table5" and name != "Table:Table6":
-                # todo: next trainee, remove the hardcoded makers name and specify it as a new attribute of the class
-                mark = vect_pos_markers[self.markers_model.index(name) * 3 : self.markers_model.index(name) * 3 + 3][
-                    :
-                ].tolist()
-                open_loop = open_loop_markers[:, self.markers_model.index(name)].tolist()
-                thorax_list_model += mark
-                thorax_list_xp += open_loop
-
-        return thorax_list_model, thorax_list_xp
-
-    def penalty_rotation_matrix(self, x_with_p: np.ndarray):
-        """
-        The penalty function which force the model to stay horizontal
-
-        Parameters
-        ----------
-        biorbd_model: biorbd.Model
-            The biorbd model
-        x_with_p: np.ndarray
-            Generalized coordinates for all dof, unique for all frames
-
-        Return
-        ------
-        The value of the penalty function
-        """
-        rotation_matrix = self.biorbd_model.globalJCS(x_with_p, self.biorbd_model.nbSegment() - 1).to_array()
-
-        rot_matrix_list_model = [
-            rotation_matrix[2, 0],
-            rotation_matrix[2, 1],
-            rotation_matrix[0, 2],
-            rotation_matrix[1, 2],
-            (1 - rotation_matrix[2, 2]),
-        ]
-        rot_matrix_list_xp = [0] * len(rot_matrix_list_model)
-
-        return rot_matrix_list_model, rot_matrix_list_xp
-
-    def penalty_q_open_loop(self, x, q_init):
-        """
-        Minimize the q of open_loop
-
-        Parameters
-        ----------
-        x: np.ndarray
-            Generalized coordinates for all dof except those between ulna and piece 7, unique for all frames
-        q_init: np.ndarray
-            The initial values of generalized coordinates fo the actual frame
-
-        Return
-        ------
-        The value of the penalty function
-        """
-        #
-        q_continuity_diff_model = []
-        q_continuity_diff_xp = []
-        for i, value in enumerate(x):
-            q_continuity_diff_xp += [q_init[i]]
-            q_continuity_diff_model += [value]
-
-        return q_continuity_diff_model, q_continuity_diff_xp
-
-    def objective_function_param(self, p0: np.ndarray, x: np.ndarray, x0: np.ndarray, markers_calibration: np.ndarray):
-        """
-        Objective function
-
-        Parameters
-        ----------
-        p0: np.ndarray
-            (6x1) Generalized coordinates between ulna and piece 7, unique for all frames
-        x: np.ndarray
-            Generalized coordinates for all frames all dof
-        x0: np.ndarray
-            Generalized coordinates for the first frame
-        markers_calibration: np.ndarray
-            (3 x n_markers x n_frames) marker values for calibration frames
-        list_frames: list[int]
-            The list of frames on which we will do the calibration
-        markers_names: list[str]
-            The list of markers names
-
-        Return
-        ------
-        The value of the objective function
-        """
-        index_table_markers = [i for i, value in enumerate(self.markers_model) if "Table" in value]
-        index_wu_markers = [i for i, value in enumerate(self.markers_model) if "Table" not in value]
-
-        # be filled in the loop
-        table5_xyz_all_frames = 0
-        table6_xy_all_frames = 0
-        mark_out_all_frames = 0
-        rotation_matrix_all_frames = 0
-
-        Q = np.zeros(x.shape[0])
-
-        Q[self.parameter_index] = p0
-
-        for f, frame in enumerate(self.list_frames_param_step):
-            thorax_markers = markers_calibration[:, index_wu_markers[0] : index_wu_markers[-1] + 1, f]
-            table_markers = markers_calibration[:, index_wu_markers[-1] + 1 :, f]
-
-            Q[self.kinematic_index] = x[self.kinematic_index, f]
-
-            markers_model = self.biorbd_model.markers(Q)
-
+            # create a vector corresponding to model coordinates
             vect_pos_markers = np.zeros(3 * len(markers_model))
-
             for m, value in enumerate(markers_model):
-                vect_pos_markers[m * 3 : (m + 1) * 3] = value.to_array()
+                vect_pos_markers[m * 3: (m + 1) * 3] = value.to_array()
 
-            table_model, table_xp = self.penalty_table_markers(vect_pos_markers, table_markers)
+            # get coordinates for model and xp markers of the thorax , without the table
+            marker_mod = vect_pos_markers[:(3 * self.nb_markers_model)]
+            marker_xp = self.markers[:, self.model_markers_idx, f].flatten("F")
 
-            table5_xyz = np.linalg.norm(np.array(table_model[:3]) - np.array(table_xp[:3])) ** 2
-            table5_xyz_all_frames += table5_xyz
+            marker_mod = np.asarray(marker_mod)
+            marker_xp = np.asarray(marker_xp)
 
-            table6_xy = np.linalg.norm(np.array(table_model[3:]) - np.array(table_xp[3:])) ** 2
-            table6_xy_all_frames += table6_xy
+            # get coordinates of the table's markers coming from xp and model
 
-            thorax_list_model, thorax_list_xp = self.penalty_open_loop_markers(vect_pos_markers, thorax_markers)
+            table_mod = vect_pos_markers[(3 * self.nb_markers_model):]
+            table_xp = self.markers[:, self.table_markers_idx, f].flatten("F")
 
-            mark_out = 0
-            for j in range(len(thorax_markers[0, :])):
-                mark = np.linalg.norm(np.array(thorax_list_model[j : j + 3]) - np.array(thorax_list_xp[j : j + 3])) ** 2
-                mark_out += mark
-            mark_out_all_frames += mark_out
+            table_mod = np.asarray(table_mod)
+            table_xp = np.asarray(table_xp)
 
-            rot_matrix_list_model, rot_matrix_list_xp = self.penalty_rotation_matrix(Q)
+            array_residual_model = (marker_mod - marker_xp)
+            array_residual_table = (table_mod - table_xp)
+            residuals_xyz_model[:, :, f] = array_residual_model.reshape(3, self.nb_markers_model, order='F')
+            residuals_xyz_table[:, :, f] = array_residual_table.reshape(3, self.nb_markers_table, order='F')
 
-            rotation_matrix = 0
-            for i in rot_matrix_list_model:
-                rotation_matrix += i**2
+        residuals_norm_model = np.linalg.norm(residuals_xyz_model, axis=0)
+        rmse_tot_model = np.sqrt(np.square(residuals_norm_model).mean(axis=0))
+        rmse_x_model = np.sqrt(np.square(residuals_xyz_model[0, :, :]).mean(axis=0))
+        rmse_y_model = np.sqrt(np.square(residuals_xyz_model[1, :, :]).mean(axis=0))
+        rmse_z_model = np.sqrt(np.square(residuals_xyz_model[2, :, :]).mean(axis=0))
 
-            rotation_matrix_all_frames += rotation_matrix
+        residuals_norm_table = np.linalg.norm(residuals_xyz_table, axis=0)
+        rmse_tot_table = np.sqrt(np.square(residuals_norm_table).mean(axis=0))
+        rmse_x_table = np.sqrt(np.square(residuals_xyz_table[0, :, :]).mean(axis=0))
+        rmse_y_table = np.sqrt(np.square(residuals_xyz_table[1, :, :]).mean(axis=0))
+        rmse_z_table = np.sqrt(np.square(residuals_xyz_table[2, :, :]).mean(axis=0))
 
-            q_continuity_diff_model, q_continuity_diff_xp = self.penalty_q_open_loop(Q, x0)
-            # Minimize the q of open loop
-            q_continuity = np.sum((np.array(q_continuity_diff_model) - np.array(q_continuity_diff_xp)) ** 2)
+        self.output = dict(
+            rmse_x=rmse_x_model,
+            rmse_y=rmse_y_model,
+            rmse_z=rmse_z_model,
+            rmse_tot=rmse_tot_model,
+            rmse_x_table=rmse_x_table,
+            rmse_y_table=rmse_y_table,
+            rmse_z_table=rmse_z_table,
+            rmse_tot_table=rmse_tot_table,
 
-            pivot_diff_model, pivot_diff_xp = self.theta_pivot_penalty(Q)
-            pivot = (pivot_diff_model[0] - pivot_diff_xp[0]) ** 2
-
-            x0 = Q
-        return (
-            self.weights[0] * (table5_xyz_all_frames + table6_xy_all_frames)
-            + self.weights[1] * mark_out_all_frames
-            + 100 * rotation_matrix_all_frames
-            + self.weights[2] * pivot
-            + self.weights[3] * q_continuity
         )
 
-    def ik_step(
-        self,
-        x: np.ndarray,
-        p: np.ndarray,
-        table_markers: np.ndarray,
-        thorax_markers: np.ndarray,
-        q_init: np.ndarray,
-    ):
+        return self.output
+
+    def plot_graph_rmse(self):
         """
-        Objective function
 
-        Parameters
-        ----------
-        x: np.ndarray
-            Generalized coordinates for all dof except those between ulna and piece 7, unique for all frames
-        p: np.ndarray
-            Generalized coordinates between ulna and piece 7
-        table_markers: np.ndarray
-            (3 x n_markers_on_table x n_frames) marker values for all frames
-        thorax_markers: np.ndarray
-            (3 x n_markers_on_wu_model x n_frames) marker values for all frames
-        markers_names: list(str)
-            The list of markers names
-        q_init: np.ndarray
-            The initial values of generalized coordinates fo the actual frame
-
-        Return
-        ------
-        The value of the objective function
+        Returns
+        -------
+        This function plot the graph of the total RMSE as well as RMSE for x, y and z direction for open loop markers
         """
-        if p is not None:
-            new_x = np.zeros(self.biorbd_model.nbQ()) # we add p to x because the optimization is on p so we can't
-            # give all x to mininimize
-            new_x[self.kinematic_index] = x
-            new_x[self.parameter_index] = p
-        else:
-            new_x = x
 
-        markers_model = self.biorbd_model.markers(new_x)
+        dict_rmse = self.output.values()
+        nb_frames = len(dict_rmse.mapping["rmse_x"])
 
-        vect_pos_markers = np.zeros(3 * len(markers_model))
+        plt.grid(True)
+        plt.title("Armpit")
+        plt.plot([p for p in range(nb_frames)], dict_rmse.mapping["rmse_x"], "b", label="RMS_x")
+        plt.plot([p for p in range(nb_frames)], dict_rmse.mapping["rmse_y"], "y", label="RMS_y")
+        plt.plot([p for p in range(nb_frames)], dict_rmse.mapping["rmse_z"], "g", label="RMS_z")
+        plt.plot([p for p in range(nb_frames)], dict_rmse.mapping["rmse_tot"], "r", label="RMS_tot")
+        plt.xlabel('Frame')
+        plt.ylabel('Valeurs (m)')
+        plt.legend()
+        plt.show()
 
-        for m, value in enumerate(markers_model):
-            vect_pos_markers[m * 3 : (m + 1) * 3] = value.to_array()
+    def plot_graph_rmse_table(self):
+        """
 
-        # Put the pivot joint vertical
-        table_model, table_xp = self.penalty_table_markers(vect_pos_markers, table_markers)
+        Returns
+        -------
+        This function plot the graph of the total RMSE as well as RMSE for x, y and z direction for closed loop markers
+        """
+        dict_rmse = self.output.values()
+        nb_frames = len(dict_rmse.mapping["rmse_x_table"])
 
-        # Minimize difference between open loop markers from model and from experimental data
-        thorax_list_model, thorax_list_xp = self.penalty_open_loop_markers(vect_pos_markers, thorax_markers)
+        plt.grid(True)
+        plt.title("Armpit")
+        plt.plot([p for p in range(nb_frames)], dict_rmse.mapping["rmse_x_table"], "b", label="RMS_x_table")
+        plt.plot([p for p in range(nb_frames)], dict_rmse.mapping["rmse_y_table"], "y", label="RMS_y_table")
+        plt.plot([p for p in range(nb_frames)], dict_rmse.mapping["rmse_z_table"], "g", label="RMS_z_table")
+        plt.plot([p for p in range(nb_frames)], dict_rmse.mapping["rmse_tot_table"], "r", label="RMS_tot_table")
+        plt.xlabel('Frame')
+        plt.ylabel('Valeurs (m)')
+        plt.legend()
+        plt.show()
 
-        # Force the model horizontality
-        # rot_matrix_list_model, rot_matrix_list_xp = penalty_rotation_matrix(self.biorbd_model, x_with_p)
+    def plot_rotation_matrix_penalty(self):
+        """
 
-        # Minimize the q of open loop
-        q_continuity_diff_model, q_continuity_diff_xp = self.penalty_q_open_loop(x, q_init)
+        Returns
+        -------
+        This function plot the graph of the value in the matrix rotation for the q found
+        """
+        rotation_value = []
+        for i in range(self.nb_frames):
 
-        # Force part 1 and 3 to not cross
-        pivot_diff_model, pivot_diff_xp = self.theta_pivot_penalty(new_x)
+            rotation_matrix = self.biorbd_model_eigen.globalJCS(self.x_all_frames[:, i], self.biorbd_model.nbSegment() - 1).rot().to_array()
+            rot_matrix_list_model = [
+                rotation_matrix[2, 0],
+                rotation_matrix[2, 1],
+                rotation_matrix[0, 2],
+                rotation_matrix[1, 2],
+                (rotation_matrix[2, 2] - 1),
+            ]
+            rotation_value.append(rot_matrix_list_model)
+        plt.figure("rotation_value")
 
-        # We add our vector to the main lists
-        diff_model = table_model + thorax_list_model + q_continuity_diff_model + pivot_diff_model
-        diff_xp = table_xp + thorax_list_xp + q_continuity_diff_xp + pivot_diff_xp
+        Rot_20_list = [rotation_value[g][0] for g in range(self.nb_frames)]
+        Rot_21_list = [rotation_value[g][1] for g in range(self.nb_frames)]
+        Rot_02_list = [rotation_value[g][2] for g in range(self.nb_frames)]
+        Rot_12_list = [rotation_value[g][3] for g in range(self.nb_frames)]
+        Rot_22_list = [rotation_value[g][4] for g in range(self.nb_frames)]
 
-        # We converted our list into array in order to be used by least_square
-        diff_tab_model = np.array(diff_model)
-        diff_tab_xp = np.array(diff_xp)
+        plt.scatter([j for j in range(self.nb_frames)], Rot_20_list, marker="x", color="b", label="Rot_20")
+        plt.scatter([j for j in range(self.nb_frames)], Rot_21_list, marker="o", color="g", label="Rot_21")
+        plt.scatter([j for j in range(self.nb_frames)], Rot_02_list, marker="x", color="y", label="Rot_02")
+        plt.scatter([j for j in range(self.nb_frames)], Rot_12_list, marker="o", color="m", label="Rot_12")
+        plt.scatter([j for j in range(self.nb_frames)], Rot_22_list, marker="x", color="r", label="Rot_22")
 
-        # We created the difference vector
-        diff = diff_tab_xp - diff_tab_model
+        plt.xlabel(" frame")
+        plt.ylabel("value in the rotation matrix")
+        plt.legend()
+        plt.show()
 
-        # todo: move the weight in init
-        # We created a vector which contains the weight of each penalty
-        # weight_table = [100000] * len(table_xp)
-        # weight_thorax = [10000] * len(thorax_list_xp)
-        # # weight_rot_matrix = [100] * len(rot_matrix_list_xp)
-        # weight_theta_13 = [50000]
-        # weight_continuity = [500] * x.shape[0]
-        #
-        # weight_list = weight_table + weight_thorax + weight_continuity + weight_theta_13
+    def plot_pivot(self):
+        pivot_value_list = []
+        for f in range(self.nb_frames):
+            if self.x_all_frames[-2, f] + self.x_all_frames[-1, f] > 7 * np.pi /10 :
+                pivot_value_list.append(self.x_all_frames[-2, f] + self.x_all_frames[-1, f])
+            else:
+                pivot_value_list.append(0)
+        index_not_zero = []
+        for h in pivot_value_list:
+            if h != 0:
+                index_not_zero.append(pivot_value_list.index(h))
 
-        return diff * self.weight_list
+        fig, ax = plt.subplots()
+        ax.bar([k for k in range(self.nb_frames)], pivot_value_list)
+        plt.plot([k for k in range(self.nb_frames)], [(7 * np.pi / 10) for i in range(self.nb_frames)], color="g")
+        ax.set_ylabel("value")
+        ax.set_xlabel("frame")
+        ax.set_title("plot_pivot value")
+        plt.show()
 
-    def step_2(
-        self,
-        p: np.ndarray = None,
-        bounds: np.ndarray = None,
-        q_output: np.ndarray = None,
-    ):
-        # todo: docstring
+        print("index where plot_pivot value is not 0 =", index_not_zero)
 
-        index_table_markers = [i for i, value in enumerate(self.markers_model) if "Table" in value]
-        index_wu_markers = [i for i, value in enumerate(self.markers_model) if "Table" not in value]
+    def plot_param_value(self):
+        bound_param = self.bounds_p_list
+        param_value = self.parameters
+        for i in range(self.nb_parameters_dofs):
+            if param_value[i] == bound_param[0][i] or param_value[i] == bound_param[1][0]:
+                print("parameters number %r reach a bound value " %i )
+        plt.figure("param value")
+        plt.plot([k for k in range(self.nb_parameters_dofs)],[bound_param[0][u] for u in range(self.nb_parameters_dofs)],label="lower bound")
+        plt.plot([k for k in range(self.nb_parameters_dofs)],[bound_param[1][u] for u in range(self.nb_parameters_dofs)],label="upper bound")
+        plt.plot([k for k in range(self.nb_parameters_dofs)],param_value,label="parameters values")
+        plt.xlabel(" number of parameter")
+        plt.ylabel("value of parameter")
+        plt.legend()
+        plt.show()
+        print("parameters values = ", param_value)
 
-        # build the bounds for step 2
-        bounds_without_p_min = bounds[0][self.kinematic_index]
-        bounds_without_p_max = bounds[1][self.kinematic_index]
 
-        bounds_without_p = (bounds_without_p_min, bounds_without_p_max)
-
-        for f in range(self.nb_frames_ik_step):
-            # todo : comment here
-
-            x0 = self.q_ik_initial_guess[self.kinematic_index, 0] if f == 0 else q_output[self.kinematic_index, f - 1]
-
-            IK_i = optimize.least_squares(
-                fun=self.ik_step,
-                args=(
-                    p,
-                    self.markers[:, index_table_markers, f],
-                    self.markers[:, index_wu_markers, f],
-                    x0,
-                ),
-                x0=x0,  # x0 q sans p
-                bounds=bounds_without_p,
-                method="trf",
-                jac="3-point",
-                xtol=1e-5,
-            )
-
-            q_output[self.kinematic_index, f] = IK_i.x
-
-            markers_model = self.biorbd_model.markers(q_output[:, f])
-            markers_to_compare = self.markers[:, :, f]
-            espilon_markers = 0
-
-            # sum of squared norm of difference
-            # todo: next trainee, verify the metric
-            for j in range(index_table_markers[0]):
-                mark = np.linalg.norm(markers_model[j].to_array()[:] - markers_to_compare[:, j]) ** 2
-                espilon_markers += mark
-
-        print("step 2 done")
-
-        return q_output, espilon_markers

@@ -25,6 +25,8 @@ class TasksKinova(Enum):
     TEETH = Path(__file__).parent.__str__() + "/F3_dents_01.c3d"
     DRAW = Path(__file__).parent.__str__() + "/F3_dessiner_02.c3d"
     HEAD = Path(__file__).parent.__str__() + "/F3_tete_01.c3d"
-
+    HEAD_debug = Path(__file__).parent.__str__() + "/tete_debug.c3d"
+    Drink_debug_45f = Path(__file__).parent.__str__() + "/boire_45f.c3d"
+    Drink_debug_100f = Path(__file__).parent.__str__() + "/boire_100f.c3d"
 
 
