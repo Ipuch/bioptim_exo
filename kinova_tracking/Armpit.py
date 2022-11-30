@@ -354,9 +354,9 @@ def prepare_kcc(
 
     nb_frames = markers.shape[2]
 
-    # weight correpond to [ model, rotation, pivot, continuity]
+    # weight correpond to [ model, rotation, plot_pivot, continuity]
     weight_ls = np.array([10000, 50000, 500,100])
-    weight_ipopt = np.array([30, 5, 3, 1])
+    weight_ipopt = np.array([10000, 5000, 500, 10000])
 
 
 
@@ -372,11 +372,12 @@ def prepare_kcc(
         kinematic_dofs=kinematic_dof,
         weights_param=weight_ipopt,
         weights_ik=weight_ipopt,
-        q_ik_initial_guess=q_first_ik,
+        x_ik_initial_guess=q_first_ik,
         nb_frames_ik_step=nb_frames,
         nb_frames_param_step=nb_frame_param_step,
         randomize_param_step_frames=True,
         segment_id_with_vertical_z=45,
+        method="1step",
     )
 
     return biorbd_model_merge, markers, kcc
@@ -417,7 +418,7 @@ def main(
         nb_frame_param_step= nb_frame_param_step,
     )
 
-    q_all_frames, param_opt, x_all_frames = kcc.solve(threshold=1e-01)
+    q_all_frames, param_opt, x_all_frames = kcc.solve(threshold=1e-01, method="1step")
     output = kcc.solution()
 
     if show_animation:
@@ -433,7 +434,7 @@ def main(
     kcc.plot_graph_rmse()
     kcc.plot_graph_rmse_table()
     kcc.plot_rotation_matrix_penalty()
-    kcc.pivot()
+    kcc.plot_pivot()
     kcc.plot_param_value()
 
 
@@ -456,7 +457,7 @@ def main(
 
 if __name__ == "__main__":
     main(
-        task=TasksKinova.DRINK,
+        task=TasksKinova.ARMPIT,
         show_animation=True,
         export_model=False,
         nb_frame_param_step=5,

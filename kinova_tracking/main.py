@@ -16,7 +16,6 @@ from data.enums import TasksKinova
 from kinematic_chain_calibration import KinematicChainCalibration
 
 
-
 def move_marker(
     marker_to_move: int,
     c3d_point: np.ndarray,
@@ -262,7 +261,6 @@ def load_c3d_file(task: TasksKinova) -> Tuple:
 def prepare_kcc(
     task: TasksKinova,
     nb_frame_param_step: int ,
-    use_analytical_jacobians : bool,
 ) -> Tuple[np.ndarray, np.ndarray, dict]:
     """
     this function is the main script executed in function of the Task and parameters
@@ -338,7 +336,8 @@ def prepare_kcc(
     kinova_dof = [i for i in name_dof if "part" in i and not "7" in i]
 
     #todo the dict of the same variable here
-    #same_variable={"the main dof": , " the old dof ": }
+    same_variable={"the main dof": kinematic_dof[14], "index main dof": 14,
+                   "the old dof": kinematic_dof[15], "index old dof": 15}  # {main=part 2, old = part 1}
     # kinematic_dof = [i for i in name_dof if "part7" not in i]
     # kinematic_dof.append(name_dof[11])
     # kinematic_dof.append(name_dof[14])
@@ -380,11 +379,9 @@ def prepare_kcc(
         nb_frames_ik_step=nb_frames,
         nb_frames_param_step=nb_frame_param_step,
         randomize_param_step_frames=True,
-        use_analytical_jacobians=use_analytical_jacobians,
         segment_id_with_vertical_z=45,
         method="1step",
-        #same_variable=same_variable
-
+        same_variables=same_variable,
     )
 
     return biorbd_model_merge, markers, kcc
@@ -395,7 +392,6 @@ def main(
     show_animation: bool,
     export_model: bool,
     nb_frame_param_step: int,
-    use_analytical_jacobians: bool,
 ):
     """
         this function is the main script executed in function of the Task and parameters
@@ -424,7 +420,6 @@ def main(
     biorbd_model_merge, markers, kcc = prepare_kcc(
         task=task,
         nb_frame_param_step= nb_frame_param_step,
-        use_analytical_jacobians=use_analytical_jacobians
     )
 
     q_all_frames, param_opt, x_all_frames = kcc.solve(threshold=1e-01, method="1step")
@@ -446,14 +441,7 @@ def main(
     kcc.plot_pivot()
     kcc.plot_param_value()
 
-    if show_animation:
-        b = bioviz.Viz(loaded_model=biorbd_model_merge, show_muscles=False, show_floor=False)
-        b.load_experimental_markers(markers)
-        # b.load_movement(np.array(q0, q0).T)
-        b.load_movement(x_all_frames)
-        b.exec()
 
-        print(" animation done")
 
     # show times
     print("time for each param optimization = ", kcc.time_param)
@@ -473,11 +461,10 @@ def main(
 
 if __name__ == "__main__":
     main(
-        task=TasksKinova.HEAD,
+        task=TasksKinova.HEAD_debug,
         show_animation=True,
         export_model=False,
         nb_frame_param_step=5,
-        use_analytical_jacobians=True,
     )
 
 
