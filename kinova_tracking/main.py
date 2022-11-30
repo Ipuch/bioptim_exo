@@ -358,7 +358,7 @@ def prepare_kcc(
 
     nb_frames = markers.shape[2]
 
-    # weight correpond to [ model, rotation, pivot, continuity]
+    # weight correpond to [ model, rotation, plot_pivot, continuity]
     #weight_ls = np.array([10000, 50000, 500,100])
     weight_ipopt = np.array([10000, 5000, 500, 10000])
 
@@ -443,7 +443,7 @@ def main(
     kcc.plot_graph_rmse()
     kcc.plot_graph_rmse_table()
     kcc.plot_rotation_matrix_penalty()
-    kcc.pivot()
+    kcc.plot_pivot()
     kcc.plot_param_value()
 
     if show_animation:
