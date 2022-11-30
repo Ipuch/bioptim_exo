@@ -206,7 +206,7 @@ class KinematicChainCalibration:
         self.p_sym = MX.sym("p_sym", self.nb_parameters_dofs)
         self.q_frames_sym = MX.sym("q_sym", (self.nb_kinematic_dofs, self.nb_frames_param_step))
 
-        # synbolic x with q qnd p variables
+        # symbolic x with q qnd p variables
         self.x_sym = MX.zeros(self.nb_total_dofs)
         self.x_sym_prev = MX.zeros(self.nb_total_dofs)
         self.x_sym = self.build_x(self.q_sym, self.p_sym)
@@ -801,8 +801,11 @@ class KinematicChainCalibration:
             the threshold for the delta epsilon
         method : str
             the method used to find the optimised generalized coordinates:
-            - "1step":
-            - "2step":
+            - "1step": the global solution ( for all the frame ) is found without loop, parameters and generalized
+            coordinates values are determined together
+            - "2step": the global solution is build frame after frame where the parameters value (the same for each frame)
+            are firstly found and generalized coordinates after that.
+
         Return
         ------
             The optimized Generalized coordinates and parameters
