@@ -4,15 +4,15 @@ from bioptim import (
     DynamicsFcn,
     ObjectiveList,
     ObjectiveFcn,
-    QAndQDotBounds,
     OdeSolver,
     Dynamics,
-    InitialGuess,
-    Bounds,
+    InitialGuessList,
+    BoundsList,
     Solver,
     CostType,
     InterpolationType,
     Node,
+    BiorbdModel,
 )
 
 import os
@@ -35,8 +35,8 @@ def prepare_ocp(
     use_sx: bool = False,
     n_threads: int = 16,
     phase_time: float = 1,
-) -> object:
-    biorbd_model = biorbd.Model(biorbd_model_path)
+) -> OptimalControlProgram:
+    biorbd_model = BiorbdModel(biorbd_model_path)
 
     # Add objective functions
     objective_functions = ObjectiveList()
@@ -58,26 +58,34 @@ def prepare_ocp(
     dynamics = Dynamics(DynamicsFcn.TORQUE_DRIVEN)
 
     # initial guesses
-    x_init = InitialGuess(x_init_ref, interpolation=InterpolationType.EACH_FRAME)
-    u_init = InitialGuess(u_init_ref, interpolation=InterpolationType.EACH_FRAME)
+    x_init = InitialGuessList()
+    x_init.add("q", x_init_ref[:biorbd_model.nb_q, :], interpolation=InterpolationType.EACH_FRAME)
+    x_init.add("qdot", x_init_ref[biorbd_model.nb_q : biorbd_model.nb_q + biorbd_model.nb_qdot, :], interpolation=InterpolationType.EACH_FRAME)
+
+    u_init = InitialGuessList()
+    u_init.add("tau", u_init_ref, interpolation=InterpolationType.EACH_FRAME)
 
     # Define control path constraint
-    x_bounds = QAndQDotBounds(biorbd_model)
-    x_bounds[:10, 0] = x_init_ref[:10, 0]
-    x_bounds[:10, -1] = x_init_ref[:10, -1]
-    x_bounds[10:, 0] = [0] * biorbd_model.nbQdot()
+    x_bounds = BoundsList()
+    x_bounds["q"] = biorbd_model.bounds_from_ranges("q")
+    x_bounds["q"][:, 0] = x_init_ref[:10, 0]
+    x_bounds["q"][:, -1] = x_init_ref[:10, -1]
+    x_bounds["qdot"] = biorbd_model.bounds_from_ranges("qdot")
+    x_bounds["qdot"][:, 0] = [0] * biorbd_model.nb_qdot
+
     # x_bounds.min[10:, 0] = [-np.pi/4] * biorbd_model.nbQdot()
     # x_bounds.max[10:, 0] = [np.pi/4] * biorbd_model.nbQdot()
-    x_bounds.min[10:, -1] = [-np.pi / 2] * biorbd_model.nbQdot()
-    x_bounds.max[10:, -1] = [np.pi / 2] * biorbd_model.nbQdot()
+    x_bounds["q"].min[:, -1] = [-np.pi / 2] * biorbd_model.nb_qdot
+    x_bounds["q"].max[:, -1] = [np.pi / 2] * biorbd_model.nb_qdot
 
-    n_tau = biorbd_model.nbGeneralizedTorque()
+    n_tau = biorbd_model.nb_tau
     tau_min, tau_max = -100, 100
-    u_bounds = Bounds([tau_min] * n_tau, [tau_max] * n_tau)
-    u_bounds.min[:2, :], u_bounds.max[:2, :] = -30, 30
-    u_bounds.min[2:5, :], u_bounds.max[2:5, :] = -50, 50
-    u_bounds.min[5:8, :], u_bounds.max[5:8, :] = -70, 70
-    u_bounds.min[8:, :], u_bounds.max[8:, :] = -40, 40
+    u_bounds = BoundsList()
+    u_bounds["tau"] = [tau_min] * n_tau, [tau_max] * n_tau
+    u_bounds["tau"].min[:2, :], u_bounds["tau"].max[:2, :] = -30, 30
+    u_bounds["tau"].min[2:5, :], u_bounds["tau"].max[2:5, :] = -50, 50
+    u_bounds["tau"].min[5:8, :], u_bounds["tau"].max[5:8, :] = -70, 70
+    u_bounds["tau"].min[8:, :], u_bounds["tau"].max[8:, :] = -40, 40
 
     return OptimalControlProgram(
         biorbd_model,
@@ -92,6 +100,7 @@ def prepare_ocp(
         ode_solver=ode_solver,
         n_threads=n_threads,
         use_sx=use_sx,
+        assume_phase_dynamics=True,
     )
 
 
@@ -101,7 +110,7 @@ def main(task: Tasks = None):
     """
 
     # Define the problem
-    n_shooting_points = 400
+    n_shooting_points = 50
     nb_iteration = 10000
 
     c3d_path = task.value
@@ -160,7 +169,10 @@ def main(task: Tasks = None):
     my_ocp.add_plot_penalty(CostType.ALL)
 
     # --- Solve the program --- #
-    solver = Solver.IPOPT(show_online_optim=True, show_options=dict(show_bounds=True))
+    solver = Solver.IPOPT(
+        # show_online_optim=True,
+        # show_options=dict(show_bounds=True),
+    )
     solver.set_linear_solver("ma57")
     solver.set_maximum_iterations(nb_iteration)
     sol = my_ocp.solve(solver)
