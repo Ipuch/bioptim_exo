@@ -42,7 +42,7 @@ def prepare_ocp(
     use_sx: bool = False,
     n_threads: int = 16,
     phase_time: float = 1,
-) -> object:
+) -> OptimalControlProgram:
     biorbd_model = biorbd.Model(biorbd_model_path)
     nb_q = biorbd_model.nbQ()
 

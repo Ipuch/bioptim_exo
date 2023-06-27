@@ -7,8 +7,10 @@ class Models(Enum):
     Selection of Model
     """
     KINOVA_DEPRECATED = Path(__file__).parent.__str__() + "/KINOVA_arm_deprecated.bioMod"
-    KINOVA_LEFT = Path(__file__).parent.__str__() + "/KINOVA_arm_reverse_left.bioMod"
-    KINOVA_RIGHT = Path(__file__).parent.__str__() + "/KINOVA_arm_reverse_right.bioMod"
+
+    KINOVA_RIGHT = Path(__file__).parent.__str__() + "/KINOVA_arm_right.bioMod"
+    KINOVA_LEFT_REVERSED = Path(__file__).parent.__str__() + "/KINOVA_arm_reverse_left.bioMod"
+    KINOVA_RIGHT_REVERSED = Path(__file__).parent.__str__() + "/KINOVA_arm_reverse_right.bioMod"
 
     WU = Path(__file__).parent.__str__() + "/wu_converted_definitif.bioMod"
 
