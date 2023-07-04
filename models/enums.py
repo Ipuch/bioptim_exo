@@ -9,6 +9,7 @@ class Models(Enum):
     KINOVA_DEPRECATED = Path(__file__).parent.__str__() + "/KINOVA_arm_deprecated.bioMod"
 
     KINOVA_RIGHT = Path(__file__).parent.__str__() + "/KINOVA_arm_right.bioMod"
+    KINOVA_RIGHT_SLIDE = Path(__file__).parent.__str__() + "/KINOVA_arm_right_plus_slide.bioMod"
     KINOVA_LEFT_REVERSED = Path(__file__).parent.__str__() + "/KINOVA_arm_reverse_left.bioMod"
     KINOVA_RIGHT_REVERSED = Path(__file__).parent.__str__() + "/KINOVA_arm_reverse_right.bioMod"
 
