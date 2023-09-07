@@ -54,7 +54,7 @@ def prepare_ocp(
     )
 
     # Dynamics
-    dynamics = Dynamics(DynamicsFcn.TORQUE_DRIVEN)
+    dynamics = Dynamics(DynamicsFcn.TORQUE_DRIVEN, expand=False)
 
     # initial guesses
     x_init = InitialGuessList()
@@ -126,6 +126,8 @@ def main(task: Tasks = None):
     utils.add_header(model_template_path, new_biomod_file, thorax_values)
 
     biorbd_model = biorbd.Model(new_biomod_file)
+    bioptim_model = BiorbdModel(new_biomod_file)
+
     marker_ref = [m.to_string() for m in biorbd_model.markerNames()]
 
     # get key events
@@ -139,6 +141,7 @@ def main(task: Tasks = None):
         start_frame = event.get_frame(0)
         end_frame = event.get_frame(1)
         phase_time = event.get_time(1) - event.get_time(0)
+
     target = data.get_marker_ref(
         number_shooting_points=[n_shooting_points],
         phase_time=[phase_time],
@@ -174,7 +177,7 @@ def main(task: Tasks = None):
 
     # --- Solve the program --- #
     solver = Solver.IPOPT(show_online_optim=True, show_options=dict(show_bounds=True))
-    solver.set_linear_solver("ma57")
+    solver.set_linear_solver("mumps")
     solver.set_maximum_iterations(nb_iteration)
     sol = my_ocp.solve(solver)
     # sol.print_cost()
@@ -194,7 +197,7 @@ def main(task: Tasks = None):
 
 if __name__ == "__main__":
     main(Tasks.TEETH)
-    main(Tasks.DRINK)
-    main(Tasks.HEAD)
-    main(Tasks.ARMPIT)
-    main(Tasks.EAT)
+    # main(Tasks.DRINK)
+    # main(Tasks.HEAD)
+    # main(Tasks.ARMPIT)
+    # main(Tasks.EAT)

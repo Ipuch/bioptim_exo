@@ -372,6 +372,16 @@ gravity	0 0 -9.81
             0    0    0    1
     endsegment
 
+    marker flexion_axis0
+        parent ulna_elbow_flexion
+        position 0 0 0.1
+    endmarker
+
+    marker flexion_axis1
+        parent ulna_elbow_flexion
+        position 0 0 -0.1
+    endmarker
+
     //True segment where are applied inertial values.
     // Segment
     segment ulna
@@ -387,6 +397,11 @@ gravity	0 0 -9.81
         meshfile geometry/ulna.vtp
         meshscale 1.0024252138595608 1.0024252138595608 1.0024252138595608
     endsegment
+
+    marker ulna_longitudinal_frame
+        parent ulna
+        position -0.0 -0.24 -0.5
+     endmarker
 
     // Markers
     marker    ULNA

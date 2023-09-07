@@ -13,6 +13,7 @@ from bioptim import (
     InterpolationType,
     Node,
     BiorbdModel,
+    MultiBiorbdModel,
 )
 
 import numpy as np
@@ -24,7 +25,8 @@ import tracking.load_experimental_data as load_experimental_data
 
 
 def prepare_ocp(
-    biorbd_model_path: str,
+    upper_limb_biorbd_model_path: str,
+    kinova_model_path: str,
     n_shooting: int,
     x_init_ref: np.array,
     u_init_ref: np.array,
@@ -34,7 +36,11 @@ def prepare_ocp(
     n_threads: int = 16,
     phase_time: float = 1,
 ) -> OptimalControlProgram:
-    biorbd_model = BiorbdModel(biorbd_model_path)
+
+    biorbd_model = MultiBiorbdModel(
+        bio_model=(upper_limb_biorbd_model_path),
+        extra_bio_models=(kinova_model_path),
+    )
 
     # Add objective functions
     objective_functions = ObjectiveList()
@@ -52,6 +58,8 @@ def prepare_ocp(
     )
 
     # Dynamics
+    # todo: custom dynamics
+    # declare extra control_var for the q of kinova only.
     dynamics = Dynamics(DynamicsFcn.TORQUE_DRIVEN, expand=False)
 
     # initial guesses
@@ -147,7 +155,7 @@ def main(task: Tasks = None):
 
     # optimal control program
     my_ocp = prepare_ocp(
-        biorbd_model_path=model.model_path,
+        upper_limb_biorbd_model_path=model.model_path,
         x_init_ref=x_init_ref,
         u_init_ref=u_init_ref,
         target=target[0],

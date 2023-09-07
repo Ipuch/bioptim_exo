@@ -1,16 +1,36 @@
 import ezc3d
 from pyomeca import Markers
 import numpy as np
+from .enums import Tasks
+
+
+class LoadTask:
+    def __init__(self,
+                 task: Tasks,
+                 model: "Models",
+                 ):
+        self.task = task
+        self.c3d_path = task.value
+        self.data_path = self.c3d_path.removesuffix(self.c3d_path.split("/")[-1])
+        file_path = (
+                self.data_path + model.name + "_" + self.c3d_path.split("/")[-1].removesuffix(
+            ".c3d")
+        )
+        self.q_file_path = file_path + "_q.txt"
+        self.qdot_file_path = file_path + "_qdot.txt"
 
 
 class LoadEvent:
     def __init__(self,
-                 c3d_path: str,
+                 task: Tasks,
                  marker_list: list[str],
                  ):
-        self.c3d_path = c3d_path
-        self.c3d = ezc3d.c3d(c3d_path)
+        self.task = task
+        self.c3d_path = task.value
+        self.c3d = ezc3d.c3d(self.c3d_path)
         self.marker_list = marker_list
+        self.start_event_idx = 1 if self.task == Tasks.EAT else 0
+        self.end_event_idx = 2 if self.task == Tasks.EAT else 1
 
     def get_time(self, idx: int) -> np.ndarray:
         """
@@ -93,6 +113,17 @@ class LoadEvent:
 
         return event_values
 
+    def start_frame(self):
+        return self.get_frame(self.start_event_idx)
 
+    def end_frame(self):
+        return self.get_frame(self.end_event_idx)
 
+    def get_start_end_time(self):
+        """ Returns the start and end of the task """
+        return self.get_time(self.start_event_idx), self.get_time(self.end_event_idx)
 
+    def phase_time(self) -> np.ndarray:
+        """ Returns the duration of the task """
+        start, end = self.get_start_end_time()
+        return np.float64(end - start)
