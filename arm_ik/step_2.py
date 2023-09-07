@@ -72,6 +72,14 @@ def penalty_position_cas(model, x: MX, position_ref) -> MX:
     return sumsqr(vertcat(*position_list_model))
 
 
+def penalty_not_too_far_from_previous_pose_case(model, x: MX, previous_pose) -> MX:
+    """
+    Calculate the penalty cost for position with respect to the previous pose
+    """
+
+    return sumsqr(x - previous_pose)
+
+
 def create_frame_from_three_points(p1, p2, p3) -> np.ndarray:
     """
     Create a homogenous transform from three points. middle of p1 and p2 is the origin of the frame
@@ -93,6 +101,7 @@ def create_frame_from_three_points(p1, p2, p3) -> np.ndarray:
 
     return np.hstack((x0.reshape(4, 1), y0.reshape(4, 1), z0.reshape(4, 1), t1.reshape(4, 1)))
 
+
 def main():
     model_path_kinova = Models.KINOVA_RIGHT_SLIDE.value
     model_path_upperlimb = Models.WU_INVERSE_KINEMATICS.value
@@ -109,7 +118,7 @@ def main():
                              1.8, 0.0,  # elbow and radioulnar joints
                              ])
     # repeat q_upper_limb for 100 frames
-    n_frames = 2
+    n_frames = 20
     all_rt = np.zeros((4, 4, n_frames))
 
     q_upper_limb = np.tile(q_upper_limb, (n_frames, 1)).T
@@ -120,11 +129,11 @@ def main():
     ulna_idx = segment_index(model_mx_upperlimb, "ulna_reset_axis")
 
     q_sym = MX.sym("q", model_eigen_kinova.nbQ(), 1)
-    q_up = [20] * model_eigen_kinova.nbQ()
-    q_low = [-20] * model_eigen_kinova.nbQ()
+    # q_up = [20] * model_eigen_kinova.nbQ()
+    # q_low = [-20] * model_eigen_kinova.nbQ()
 
-    # q_up = get_range_q(model_eigen_kinova)[1]
-    # q_low = get_range_q(model_eigen_kinova)[0]
+    q_up = get_range_q(model_eigen_kinova)[1]
+    q_low = get_range_q(model_eigen_kinova)[0]
 
     # initialize q_opt
     q_opt = np.zeros((model_eigen_kinova.nbQ(), n_frames))
@@ -154,7 +163,7 @@ def main():
         position = rt[:3, 3]
 
         if i == 0:
-            q_init = [0.1] * model_eigen_kinova.nbQ()
+            q_init = [0] * model_eigen_kinova.nbQ()
         else:
             q_init = q_opt[:, i - 1]
 
@@ -162,6 +171,7 @@ def main():
         objective = 0
         objective += penalty_rotation_matrix_cas(model_mx_kinova, q_sym, rotation)
         objective += 100 * penalty_position_cas(model_mx_kinova, q_sym, position)
+        objective += 20 * penalty_not_too_far_from_previous_pose_case(model_mx_kinova, q_sym, q_init)
         # penality for the z axis of the support
 
         # constraints
@@ -169,16 +179,16 @@ def main():
         lbg = []
         ubg = []
 
-        # origin_kinova = np.array([0.0, 0.0])
-        # radius_three_bar = np.linalg.norm([-0.08842, -0.02369]) + 2 * 0.120 - np.linalg.norm(origin_kinova)
-        # # it should stay in the circle defined by the radius of the three bar mechanism
-        # constraints += [q_sym[0] ** 2 + q_sym[1] ** 2 - radius_three_bar ** 2]
-        # lbg += [-np.inf]
-        # ubg += [0]
-        # # it should not go under the table
-        # constraints += [model_mx_kinova.globalJCS(q_sym, model_mx_kinova.nbSegment() - 1).trans().to_mx()[2]]
-        # lbg += [0]
-        # ubg += [np.inf]
+        origin_kinova = np.array([0.0, 0.0])
+        radius_three_bar = np.linalg.norm([-0.08842, -0.02369]) + 2 * 0.120 - np.linalg.norm(origin_kinova)
+        # it should stay in the circle defined by the radius of the three bar mechanism
+        constraints += [q_sym[0] ** 2 + q_sym[1] ** 2 - radius_three_bar ** 2]
+        lbg += [-np.inf]
+        ubg += [0]
+        # it should not go under the table
+        constraints += [model_mx_kinova.globalJCS(q_sym, model_mx_kinova.nbSegment() - 1).trans().to_mx()[2]]
+        lbg += [0]
+        ubg += [np.inf]
 
         # Create a NLP solver
         prob = {"f": objective, "x": q_sym, "g": vertcat(*constraints)}
@@ -222,7 +232,7 @@ def main():
         # Update the markers
         vtkObject.update_frame(rt=all_rt[:, :, i])
         viz.set_q(q_tot[:, i])
-        # i = (i+1) % n_frames
+        i = (i+1) % n_frames
 
     # viz.exec()
 

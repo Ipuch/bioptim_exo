@@ -119,8 +119,31 @@ endsegment
         position -0.030 0.40 0 // position -0.035 0.35 0
     endmarker
 
-
     marker      md0
         parent part7
         position 0.01 0.01 0.01
     endmarker
+
+     marker      contact_dot_1
+        parent part7
+        position 0.01 0.1 -0.01
+    endmarker
+
+
+    marker      contact_dot_2
+        parent part7
+        position 0.01 0.01 -0.01
+    endmarker
+
+   ligament    linear_spring
+        Type    linearspring
+        stiffness	6380
+        origin	part4
+        insertion	part5
+        OriginPosition    0.06 0 0.035
+        InsertionPosition    -0.075 0.02 0
+//        ligamentslacklength    0.125
+        ligamentslacklength    0.0
+//        dampingfactor	0
+//        maxshorteningspeed	10
+    endligament

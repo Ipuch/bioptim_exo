@@ -156,8 +156,8 @@ gravity	0 0 -9.81
             0 0 0.0003900
         // The moment of inertia for clavicle and scapula are from Quental (2012) A multibody biomechanical model of the upper limb including the shoulder girdle
         com    -0.016256208808519496 0.010856739819502741 0.084325257320595551
-        //  meshfile geometry/clavicle.vtp
-        // meshscale 1.2779536031224792 1.2779536031224792 1.2779536031224792
+        meshfile geometry/clavicle.vtp
+        meshscale 1.2779536031224792 1.2779536031224792 1.2779536031224792
     endsegment
 
     // Markers
@@ -463,7 +463,7 @@ gravity	0 0 -9.81
 
      marker ulna_longitudinal_frame
         parent ulna
-        position -0.0 -0.24 -0.5
+        position -0.0 -0.24 0.05
      endmarker
 
     // Markers
