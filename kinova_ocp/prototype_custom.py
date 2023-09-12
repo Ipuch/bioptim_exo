@@ -1,11 +1,12 @@
 import biorbd_casadi as biorbd
+from biorbd import get_range_q
 from bioptim import (
     OptimalControlProgram,
     DynamicsFcn,
     ObjectiveList,
     ObjectiveFcn,
     OdeSolver,
-    Dynamics,
+    DynamicsList,
     InitialGuessList,
     BoundsList,
     Solver,
@@ -15,7 +16,7 @@ from bioptim import (
     BiorbdModel,
     MultiBiorbdModel,
 )
-
+from custom_dynamics import custom_configure, torque_driven
 import numpy as np
 from data.enums import Tasks
 import data.load_events as load_events
@@ -57,10 +58,12 @@ def prepare_ocp(
         ObjectiveFcn.Mayer.TRACK_MARKERS, weight=1000, marker_index=[10, 12, 13, 14, 15], target=target, node=Node.ALL
     )
 
+    # inverse kinematics objectives
+    # todo: add inverse kinematics objectives
+
     # Dynamics
-    # todo: custom dynamics
-    # declare extra control_var for the q of kinova only.
-    dynamics = Dynamics(DynamicsFcn.TORQUE_DRIVEN, expand=False)
+    dynamics = DynamicsList()
+    dynamics.add(custom_configure, dynamic_function=torque_driven, expand=False)
 
     # initial guesses
     x_init = InitialGuessList()
@@ -70,6 +73,11 @@ def prepare_ocp(
 
     u_init = InitialGuessList()
     u_init.add("tau", u_init_ref, interpolation=InterpolationType.EACH_FRAME)
+    u_init.add(
+        "q_k",
+        [0] * biorbd_model.extra_models[0].nb_q,
+        interpolation=InterpolationType.CONSTANT,
+    )
 
     # Define control path constraint
     x_bounds = BoundsList()
@@ -91,6 +99,9 @@ def prepare_ocp(
     u_bounds["tau"].min[2:5, :], u_bounds["tau"].max[2:5, :] = -50, 50
     u_bounds["tau"].min[5:8, :], u_bounds["tau"].max[5:8, :] = -70, 70
     u_bounds["tau"].min[8:, :], u_bounds["tau"].max[8:, :] = -40, 40
+
+    kinova_q_ranges = get_range_q(biorbd_model.extra_models[0])
+    u_bounds["q_k"] = kinova_q_ranges[0], kinova_q_ranges[1]
 
     return OptimalControlProgram(
         biorbd_model,
@@ -162,7 +173,7 @@ def main(task: Tasks = None):
         n_shooting=n_shooting_points,
         use_sx=False,
         n_threads=4,
-        phase_time=1.05, # to handle numerical error
+        phase_time=1.05,  # to handle numerical error
     )
 
     # add figures of constraints and objectives
