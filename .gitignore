@@ -36,3 +36,5 @@ sandbox/
 lib/__pycache__/
 
 arm_ik/__pycache__/
+
+kinova_ocp/__pycache__/

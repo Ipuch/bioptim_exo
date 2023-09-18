@@ -2,7 +2,6 @@ import biorbd_casadi as biorbd
 from biorbd import get_range_q
 from bioptim import (
     OptimalControlProgram,
-    DynamicsFcn,
     ObjectiveList,
     ObjectiveFcn,
     OdeSolver,
@@ -23,6 +22,8 @@ import data.load_events as load_events
 from models.enums import Models
 from models.biorbd_model import NewModel
 import tracking.load_experimental_data as load_experimental_data
+from extra_viz import custom_animate
+from custom_ik_objectives import superimpose_markers
 
 
 def prepare_ocp(
@@ -39,8 +40,8 @@ def prepare_ocp(
 ) -> OptimalControlProgram:
 
     biorbd_model = MultiBiorbdModel(
-        bio_model=(upper_limb_biorbd_model_path),
-        extra_bio_models=(kinova_model_path),
+        bio_model=(upper_limb_biorbd_model_path,),
+        extra_bio_models=(kinova_model_path,),
     )
 
     # Add objective functions
@@ -55,11 +56,22 @@ def prepare_ocp(
     objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="qdot", weight=5000)
     objective_functions.add(ObjectiveFcn.Lagrange.MINIMIZE_STATE, key="q", index=[0, 1, 2, 3, 4], weight=10000)
     objective_functions.add(
-        ObjectiveFcn.Mayer.TRACK_MARKERS, weight=1000, marker_index=[10, 12, 13, 14, 15], target=target, node=Node.ALL
+        ObjectiveFcn.Mayer.TRACK_MARKERS, weight=1000, marker_index=[10, 12, 13, 14, 15], target=target, node=Node.ALL,
     )
 
     # inverse kinematics objectives
     # todo: add inverse kinematics objectives
+    objective_functions.add(
+        ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="q_k", weight=100, derivative=True)
+    objective_functions.add(
+        superimpose_markers,
+        custom_type=ObjectiveFcn.Mayer,
+        weight=1000,
+        first_model_marker="flexion_axis0",
+        second_model_marker="md0",
+        node=Node.ALL,
+        quadratic=True,
+    )
 
     # Dynamics
     dynamics = DynamicsList()
@@ -100,8 +112,8 @@ def prepare_ocp(
     u_bounds["tau"].min[5:8, :], u_bounds["tau"].max[5:8, :] = -70, 70
     u_bounds["tau"].min[8:, :], u_bounds["tau"].max[8:, :] = -40, 40
 
-    kinova_q_ranges = get_range_q(biorbd_model.extra_models[0])
-    u_bounds["q_k"] = kinova_q_ranges[0], kinova_q_ranges[1]
+    kinova_q_ranges = biorbd_model.extra_models[0].ranges_from_model("q")
+    u_bounds["q_k"] = [b.min() for b in kinova_q_ranges], [b.max() for b in kinova_q_ranges]
 
     return OptimalControlProgram(
         biorbd_model,
@@ -126,13 +138,16 @@ def main(task: Tasks = None):
     """
 
     # Define the problem
-    n_shooting_points = 100
+    n_shooting_points = 10
     nb_iteration = 3000
 
     task_files = load_events.LoadTask(task=task, model=Models.WU_INVERSE_KINEMATICS_XYZ_OFFSET)
 
     model = NewModel(model=Models.WU_WITHOUT_FLOATING_BASE_OFFSET_VARIABLES)
-    model.add_header(model_template=Models.WU_WITHOUT_FLOATING_BASE_OFFSET_TEMPLATE, q_file_path=task_files.q_file_path)
+    model.add_header(
+        model_template=Models.WU_WITHOUT_FLOATING_BASE_OFFSET_TEMPLATE,
+        q_file_path=task_files.q_file_path
+    )
 
     biorbd_model = biorbd.Model(model.model_path)
     bioptim_model = BiorbdModel(model.model_path)
@@ -167,6 +182,7 @@ def main(task: Tasks = None):
     # optimal control program
     my_ocp = prepare_ocp(
         upper_limb_biorbd_model_path=model.model_path,
+        kinova_model_path=Models.KINOVA_RIGHT_SLIDE.value,
         x_init_ref=x_init_ref,
         u_init_ref=u_init_ref,
         target=target[0],
@@ -189,7 +205,16 @@ def main(task: Tasks = None):
     # --- Plot --- #
     # sol.graphs(show_bounds=True)
 
-    sol.animate(n_frames=100)
+    # n_frames_animate = 100
+
+    custom_animate(
+        model_kinova_path=Models.KINOVA_RIGHT_SLIDE.value,
+        model_path_upperlimb=model.model_path,
+        q_k= sol.controls["q_k"],
+        q_upper_limb=sol.states["q"],
+    )
+
+    # viz.exec()
 
 
 if __name__ == "__main__":

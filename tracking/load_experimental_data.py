@@ -54,7 +54,10 @@ class C3dData:
         # GET THE MARKERS POSITION (X, Y, Z) AT EACH POINT
         markers = np.zeros((3, len(marker_names), len(points[0, 0, :])))
 
-        for i, name in enumerate(marker_names):
+        # list of common markers
+        common_markers = [x for x in labels_markers if x in marker_names]
+
+        for i, name in enumerate(common_markers):
             markers[:, i, :] = points[:3, labels_markers.index(name), :] * 1e-3
         return markers
 

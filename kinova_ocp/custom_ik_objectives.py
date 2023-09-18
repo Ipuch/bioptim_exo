@@ -1,4 +1,7 @@
 from casadi import sumsqr, vertcat, MX, norm_1, horzcat, transpose, cross
+from bioptim.limits.penalty import PenaltyFunctionAbstract
+from bioptim.limits.penalty_option import PenaltyOption
+from bioptim.limits.penalty_controller import PenaltyController
 
 
 def penalty_rotation_matrix_cas(model, x: MX, rotation_matrix_ref) -> MX:
@@ -35,30 +38,47 @@ def penalty_rotation_matrix_cas(model, x: MX, rotation_matrix_ref) -> MX:
     return sumsqr(vertcat(*rot_matrix_list_model))
 
 
-def penalty_position_cas(model, x: MX, position_ref) -> MX:
+def superimpose_markers(
+        controller: PenaltyController,
+        first_model_marker: str | int,
+        second_model_marker: str | int,
+        axes: tuple | list = None,
+):
     """
-    Calculate the penalty cost for position
+    Minimize the distance between two markers
+    By default this function is quadratic, meaning that it minimizes distance between them.
 
     Parameters
     ----------
-    x : MX
-        the entire vector with q and p
-
-    Returns
-    -------
-    The cost of the penalty function
-
+    controller: PenaltyController
+        The penalty node elements
+    first_model_marker: str | int
+        The name or index of one of the two markers
+    second_model_marker: str | int
+        The name or index of one of the two markers
+    axes: tuple | list
+        The axes to project on. Default is all axes
     """
-    rotation_matrix = model.globalJCS(x, model.nbSegment() - 1).trans().to_mx()
 
-    # we want to compare the position of the last part with the reference
-    position_list_model = [
-        rotation_matrix[0] - position_ref[0],
-        rotation_matrix[1] - position_ref[1],
-        rotation_matrix[2] - position_ref[2],
-    ]
+    first_marker_idx = (
+        controller.model.marker_index(first_model_marker)
+    )
+    second_marker_idx = (
+        controller.model.extra_models[0].marker_index(second_model_marker)
+    )
+    PenaltyFunctionAbstract._check_idx(
+        "marker", [first_marker_idx, second_marker_idx], controller.model.nb_markers
+    )
 
-    return sumsqr(vertcat(*position_list_model))
+    diff_markers = controller.model.marker(
+        controller.states["q"].mx, first_marker_idx
+    ) - controller.model.extra_models[0].marker(controller.controls["q_k"].mx, second_marker_idx)
+
+    return controller.mx_to_cx(
+        f"diff_markers",
+        diff_markers,
+        controller.states["q"], controller.controls["q_k"],
+    )
 
 
 def penalty_not_too_far_from_previous_pose_case(model, x: MX, previous_pose) -> MX:

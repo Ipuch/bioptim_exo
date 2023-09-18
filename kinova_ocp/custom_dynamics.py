@@ -37,28 +37,33 @@ def custom_configure(ocp: OptimalControlProgram, nlp: NonLinearProgram):
     ConfigureProblem.configure_tau(ocp, nlp, as_states=False, as_controls=True)
 
     name = "q_k"
-    name_q_k = [f"{name}_{n}" for n in nlp.model.extra_models[0].name_dof]
+    name_q_k = [f"_{n}" for n in nlp.model.extra_models[0].name_dof]
     ConfigureProblem.configure_new_variable(
-        ConfigureProblem.configure_new_variable(
-            name, name_q_k, ocp, nlp, as_states=False, as_controls=True, fatigue=False, axes_idx=None
-        )
+        name, name_q_k, ocp, nlp, as_states=False, as_controls=True, fatigue=None, axes_idx=None
     )
 
-    ConfigureProblem.configure_dynamics_function(ocp, nlp, DynamicsFunctions.torque_driven)
+    ConfigureProblem.configure_dynamics_function(ocp, nlp, DynamicsFunctions.torque_driven,
+                                                 with_passive_torque=False,
+                                                 with_contact=False,
+                                                 with_ligament=False,
+                                                 with_friction=False,
+                                                 rigidbody_dynamics=RigidBodyDynamics.ODE,
+                                                 fatigue=None)
 
 
 def torque_driven(
+        time: MX.sym,
         states: MX.sym,
         controls: MX.sym,
         parameters: MX.sym,
         stochastic_variables: MX.sym,
         nlp,
-        with_contact: bool,
-        with_passive_torque: bool,
-        with_ligament: bool,
-        with_friction: bool,
-        rigidbody_dynamics: RigidBodyDynamics,
-        fatigue: FatigueList,
+        with_contact: bool = False,
+        with_passive_torque: bool = False,
+        with_ligament: bool = False,
+        with_friction: bool = False,
+        rigidbody_dynamics: RigidBodyDynamics = RigidBodyDynamics.ODE,
+        fatigue: FatigueList = None,
 ) -> DynamicsEvaluation:
     """
     Forward dynamics driven by joint torques, optional external forces can be declared.
