@@ -10,6 +10,8 @@ class Models(Enum):
 
     KINOVA_RIGHT = Path(__file__).parent.__str__() + "/KINOVA_arm_right.bioMod"
     KINOVA_RIGHT_SLIDE = Path(__file__).parent.__str__() + "/KINOVA_arm_right_plus_slide.bioMod"
+    KINOVA_RIGHT_SLIDE_POLAR_BASE = Path(__file__).parent.__str__() + "/KINOVA_arm_right_plus_slide_polar_base.bioMod"
+
     KINOVA_LEFT_REVERSED = Path(__file__).parent.__str__() + "/KINOVA_arm_reverse_left.bioMod"
     KINOVA_RIGHT_REVERSED = Path(__file__).parent.__str__() + "/KINOVA_arm_reverse_right.bioMod"
 

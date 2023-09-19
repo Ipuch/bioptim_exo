@@ -22,7 +22,6 @@ import data.load_events as load_events
 from models.enums import Models
 from models.biorbd_model import NewModel
 import tracking.load_experimental_data as load_experimental_data
-from extra_viz import custom_animate
 from custom_ik_objectives import superimpose_markers
 
 
@@ -61,13 +60,31 @@ def prepare_ocp(
 
     # inverse kinematics objectives
     # todo: add inverse kinematics objectives
+    # regularization
+    objective_functions.add(
+        ObjectiveFcn.Mayer.MINIMIZE_CONTROL,
+        key="q_k",
+        weight=1e-3,
+        target=np.repeat(np.array([0, 0, 0, 0, -2, 0, 0])[:, np.newaxis], axis=1, repeats=n_shooting),
+        node=Node.ALL_SHOOTING,
+        quadratic=True
+    )
     objective_functions.add(
         ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="q_k", weight=100, derivative=True)
     objective_functions.add(
         superimpose_markers,
         custom_type=ObjectiveFcn.Mayer,
         weight=1000,
-        first_model_marker="flexion_axis0",
+        first_model_marker=["flexion_axis0", "flexion_axis1"],
+        second_model_marker="md0",
+        node=Node.ALL,
+        quadratic=True,
+    )
+    objective_functions.add(
+        super,
+        custom_type=ObjectiveFcn.Mayer,
+        weight=1000,
+        first_model_marker=["flexion_axis0", "flexion_axis1"],
         second_model_marker="md0",
         node=Node.ALL,
         quadratic=True,
@@ -196,9 +213,9 @@ def main(task: Tasks = None):
     my_ocp.add_plot_penalty(CostType.ALL)
 
     # --- Solve the program --- #
-    solver = Solver.IPOPT(show_online_optim=False, show_options=dict(show_bounds=True))
+    solver = Solver.IPOPT(show_online_optim=True, show_options=dict(show_bounds=True))
     solver.set_linear_solver("mumps")
-    solver.set_maximum_iterations(nb_iteration)
+    solver.set_maximum_iterations(50)
     sol = my_ocp.solve(solver)
     # sol.print_cost()
 
@@ -207,14 +224,13 @@ def main(task: Tasks = None):
 
     # n_frames_animate = 100
 
+    from extra_viz import custom_animate
     custom_animate(
-        model_kinova_path=Models.KINOVA_RIGHT_SLIDE.value,
+        model_kinova_path=Models.KINOVA_RIGHT_SLIDE_POLAR_BASE.value,
         model_path_upperlimb=model.model_path,
         q_k= sol.controls["q_k"],
         q_upper_limb=sol.states["q"],
     )
-
-    # viz.exec()
 
 
 if __name__ == "__main__":

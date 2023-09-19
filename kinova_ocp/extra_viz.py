@@ -80,7 +80,7 @@ def custom_animate(model_kinova_path, model_path_upperlimb, q_k, q_upper_limb, a
     output_path = str(parent_path / "merged.bioMod")
     merge_biomod(model_kinova_path, model_path_upperlimb, output_path)
     q_tot = np.concatenate((q_k, q_upper_limb), axis=0)
-    n_frames = q_tot.shape[1]
+    n_frames = q_tot.shape[1] - 1
 
     viz = Viz(output_path, show_floor=False, show_global_ref_frame=False, show_muscles=False)
     if all_rt is not None:
@@ -89,6 +89,7 @@ def custom_animate(model_kinova_path, model_path_upperlimb, q_k, q_upper_limb, a
     i = 1
     while viz.vtk_window.is_active:
         # Update the markers
+        print(i)
         if all_rt is not None:
             vtkObject.update_frame(rt=all_rt[:, :, i])
         viz.set_q(q_tot[:, i])

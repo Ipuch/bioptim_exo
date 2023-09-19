@@ -5,13 +5,27 @@ gravity 0 0 -9.81
 segment ground
 endsegment
 
-segment part4
+segment polar_base
     parent    ground
-    translations xy
+    rtinmatrix 0
+    rt 0 0 0 xyz 0 0 0  // origin of kinova set up. X and Y could be changed.
+    parent    ground
     rotations z
-    ranges -1 1
-            -1 1
-            -2*pi 2*pi
+    ranges -2*pi 2*pi
+    mass 0
+    inertia
+        0  0  0
+        0  0  0
+        0  0  0
+    com 0 0 0
+endsegment
+
+segment part4
+    parent    polar_base
+    translations x
+    rotations z
+    ranges 0 0.3315385847607445
+           -2*pi 2*pi
     mass 0.338
     inertia
         0.00078841  0.00002960  0.00002960

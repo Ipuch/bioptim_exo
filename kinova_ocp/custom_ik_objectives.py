@@ -4,7 +4,13 @@ from bioptim.limits.penalty_option import PenaltyOption
 from bioptim.limits.penalty_controller import PenaltyController
 
 
-def penalty_rotation_matrix_cas(model, x: MX, rotation_matrix_ref) -> MX:
+def penalty_rotation_matrix_cas(
+        controller: PenaltyController,
+        track_segment: int,
+        first_model_marker: list[str],
+        second_model_marker: str | int,
+        third_model_marker: str | int,
+):
     """
     Calculate the penalty cost for rotation matrix
 
@@ -18,7 +24,9 @@ def penalty_rotation_matrix_cas(model, x: MX, rotation_matrix_ref) -> MX:
     The cost of the penalty function
 
     """
-    rotation_matrix = model.globalJCS(x, model.nbSegment() - 1).rot().to_mx()
+    # todo to pursue! here
+    rotation_matrix = (controller.model.homo
+                       globalJCS(controller.states["q"].mx, track_segment).rot().to_mx())
     # we want to compare the rotation matrix of the part 7 with the rotation matrix of the reference
 
     R = transpose(rotation_matrix) @ rotation_matrix_ref
@@ -40,7 +48,7 @@ def penalty_rotation_matrix_cas(model, x: MX, rotation_matrix_ref) -> MX:
 
 def superimpose_markers(
         controller: PenaltyController,
-        first_model_marker: str | int,
+        first_model_marker: list[str],
         second_model_marker: str | int,
         axes: tuple | list = None,
 ):
@@ -60,33 +68,27 @@ def superimpose_markers(
         The axes to project on. Default is all axes
     """
 
-    first_marker_idx = (
-        controller.model.marker_index(first_model_marker)
-    )
+    first_marker_idx = tuple([controller.model.marker_index(marker_str) for marker_str in first_model_marker])
+
     second_marker_idx = (
         controller.model.extra_models[0].marker_index(second_model_marker)
     )
     PenaltyFunctionAbstract._check_idx(
-        "marker", [first_marker_idx, second_marker_idx], controller.model.nb_markers
+        "marker", [first_marker_idx[0], second_marker_idx], controller.model.nb_markers
     )
+    mean_first_marker = 1/2 * (
+            controller.model.marker(
+            controller.states["q"].mx, first_marker_idx[0]) + controller.model.marker(
+            controller.states["q"].mx, first_marker_idx[1])
+        )
 
-    diff_markers = controller.model.marker(
-        controller.states["q"].mx, first_marker_idx
-    ) - controller.model.extra_models[0].marker(controller.controls["q_k"].mx, second_marker_idx)
+    diff_markers = mean_first_marker - controller.model.extra_models[0].marker(controller.controls["q_k"].mx, second_marker_idx)
 
     return controller.mx_to_cx(
         f"diff_markers",
         diff_markers,
         controller.states["q"], controller.controls["q_k"],
     )
-
-
-def penalty_not_too_far_from_previous_pose_case(model, x: MX, previous_pose) -> MX:
-    """
-    Calculate the penalty cost for position with respect to the previous pose
-    """
-
-    return sumsqr(x - previous_pose)
 
 
 def create_frame_from_three_points(p1, p2, p3) -> MX:
