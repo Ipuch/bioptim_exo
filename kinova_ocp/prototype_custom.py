@@ -14,6 +14,8 @@ from bioptim import (
     Node,
     BiorbdModel,
     MultiBiorbdModel,
+    PhaseDynamics,
+    ConstraintList,
 )
 from custom_dynamics import custom_configure, torque_driven
 import numpy as np
@@ -22,8 +24,10 @@ import data.load_events as load_events
 from models.enums import Models
 from models.biorbd_model import NewModel
 import tracking.load_experimental_data as load_experimental_data
-from custom_ik_objectives import superimpose_markers
+from custom_ik_objectives import superimpose_markers, superimpose_matrix
 
+
+# Todo: try to get a nice follow of the kinova arm with the forearm of the upper limb.
 
 def prepare_ocp(
     upper_limb_biorbd_model_path: str,
@@ -81,18 +85,20 @@ def prepare_ocp(
         quadratic=True,
     )
     objective_functions.add(
-        super,
+        superimpose_matrix,
         custom_type=ObjectiveFcn.Mayer,
         weight=1000,
-        first_model_marker=["flexion_axis0", "flexion_axis1"],
-        second_model_marker="md0",
+        track_segment=1,
+        first_model_marker="flexion_axis0",
+        second_model_marker="flexion_axis1",
+        third_model_marker="ulna_longitudinal_frame",
         node=Node.ALL,
         quadratic=True,
     )
 
     # Dynamics
     dynamics = DynamicsList()
-    dynamics.add(custom_configure, dynamic_function=torque_driven, expand=False)
+    dynamics.add(custom_configure, dynamic_function=torque_driven, expand_dynamics=True, phase_dynamics=PhaseDynamics.SHARED_DURING_THE_PHASE)
 
     # initial guesses
     x_init = InitialGuessList()
@@ -132,6 +138,10 @@ def prepare_ocp(
     kinova_q_ranges = biorbd_model.extra_models[0].ranges_from_model("q")
     u_bounds["q_k"] = [b.min() for b in kinova_q_ranges], [b.max() for b in kinova_q_ranges]
 
+    # translation limited by design of the kinova arm
+    u_bounds["q_k"].max[1, :] = np.linalg.norm([-0.08842, -0.02369]) + 2 * 0.120
+    u_bounds["q_k"].min[1, :] = np.linalg.norm([-0.08842, -0.02369]) + 2 * 0.120
+
     return OptimalControlProgram(
         biorbd_model,
         dynamics,
@@ -145,7 +155,6 @@ def prepare_ocp(
         ode_solver=ode_solver,
         n_threads=n_threads,
         use_sx=use_sx,
-        assume_phase_dynamics=True,
     )
 
 
@@ -199,7 +208,8 @@ def main(task: Tasks = None):
     # optimal control program
     my_ocp = prepare_ocp(
         upper_limb_biorbd_model_path=model.model_path,
-        kinova_model_path=Models.KINOVA_RIGHT_SLIDE.value,
+        # kinova_model_path=Models.KINOVA_RIGHT_SLIDE.value,  # todo: change into polar_slide
+        kinova_model_path=Models.KINOVA_RIGHT_SLIDE_POLAR_BASE.value,
         x_init_ref=x_init_ref,
         u_init_ref=u_init_ref,
         target=target[0],
@@ -228,7 +238,7 @@ def main(task: Tasks = None):
     custom_animate(
         model_kinova_path=Models.KINOVA_RIGHT_SLIDE_POLAR_BASE.value,
         model_path_upperlimb=model.model_path,
-        q_k= sol.controls["q_k"],
+        q_k=sol.controls["q_k"],
         q_upper_limb=sol.states["q"],
     )
 
