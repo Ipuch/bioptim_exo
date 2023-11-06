@@ -14,7 +14,6 @@ from bioptim import (
     FatigueList,
     DefectType,
 )
-from external_forces import transport_spatial_force
 
 
 def custom_configure(ocp: OptimalControlProgram, nlp: NonLinearProgram):
@@ -42,6 +41,7 @@ def custom_configure(ocp: OptimalControlProgram, nlp: NonLinearProgram):
         name, name_q_k, ocp, nlp, as_states=False, as_controls=True, fatigue=None, axes_idx=None
     )
 
+    # ConfigureProblem.configure_dynamics_function(ocp, nlp, torque_driven,
     ConfigureProblem.configure_dynamics_function(ocp, nlp, DynamicsFunctions.torque_driven,
                                                  with_passive_torque=False,
                                                  with_contact=False,
@@ -102,7 +102,7 @@ def torque_driven(
 
     dq = DynamicsFunctions.compute_qdot(nlp, q, qdot)
 
-    tau = DynamicsFunctions.__get_fatigable_tau(nlp, states, controls, fatigue)
+    tau = DynamicsFunctions.get(nlp.controls["tau"], states)
     tau = tau + nlp.model.passive_joint_torque(q, qdot) if with_passive_torque else tau
     tau = tau + nlp.model.ligament_joint_torque(q, qdot) if with_ligament else tau
     tau = tau + nlp.model.friction_coefficients @ qdot if with_friction else tau
@@ -146,8 +146,8 @@ def torque_driven(
 
 def compute_kinova_terminal_forces(model, q_k):
     # markers positions in global and jacobians
-    J1 = model.markersJacobian(q_k)[-2].to_array()
-    J2 = model.markersJacobian(q_k)[-1].to_array()
+    J1 = model.markersJacobian(q_k)[-2].to_mx()
+    J2 = model.markersJacobian(q_k)[-1].to_mx()
 
     markers = model.markers(q_k)
     markers_1 = markers[-2].to_mx()

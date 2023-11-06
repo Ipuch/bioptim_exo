@@ -1,0 +1,160 @@
+version 4
+variables
+	$KinovaLocationX -0.2985296942052707
+	$KinovaLocationY 0.057412643953780054
+	$KinovaLocationZ 0.05921525359892509
+endvariables
+
+gravity 0 0 -9.81
+
+segment ground
+endsegment
+
+segment polar_base
+    parent    ground
+    rtinmatrix 0
+     // origin of kinova set up. X and Y could be changed.
+    rt 0 0 0 xyz $KinovaLocationX $KinovaLocationY $KinovaLocationZ
+    parent    ground
+    rotations z
+    ranges -2*pi 2*pi
+    mass 0
+    inertia
+        0  0  0
+        0  0  0
+        0  0  0
+    com 0 0 0
+endsegment
+
+segment part4
+    parent    polar_base
+    translations x
+    rotations z
+    ranges 0 0.3315385847607445
+           -2*pi 2*pi
+    mass 0.338
+    inertia
+        0.00078841  0.00002960  0.00002960
+        0.00002960  0.00084184  0
+        0.00002960           0  0.00025806
+    com 0.03208716 0  0.07885968
+    meshfile geometry\Piece4_reduced.stl
+    meshcolor 0.2 0.2 0.2
+endsegment
+
+
+segment part5
+    parent    part4
+    rtinmatrix 0
+    rt pi/2     0     0 xyz 0.01354 0 0.14202
+    rotations z
+    ranges -pi pi
+    mass  0.51119
+    inertia
+        0.00012693  -0.00001377  -0.00000427
+        -0.00001377  0.00699861  -0.00000036
+        -0.00000427 -0.00000036 0.00700635
+    com 0.09771349   0.01067939  0.00003686
+    meshfile geometry/Piece5_right_reduced.stl
+    meshcolor 0.2 0.2 0.2
+endsegment
+
+segment part6
+    parent    part5
+	rtinmatrix 0
+    rt  -pi/6    0     0 xyz 0.25360 0 -0.01602
+    rotations z
+    ranges 	-pi -pi/4
+    mass 0.08658
+    inertia
+        0.00010362 0.00000247 0.00005709
+        0.00000247 0.00015371 0.00000945
+        0.00005709 0.00000945 0.00006956
+    com  0.05369029 0.00776230 -0.03169498
+    meshfile geometry\Piece6_right_reduced.stl
+    meshcolor 0.2 0.2 0.2
+endsegment
+
+segment part7
+    parent    part6
+	rtinmatrix 0
+    rt 0    2*pi/3     0 xyz 0.03241 0 -0.09737
+    rotations z
+    ranges 	 -pi/6 pi/6
+    mass 0.51119
+    inertia
+        0.00012720  0.00004075 0.00002027
+        0.00004075  0.00699905 0.00000272
+        0.00002027  0.00000272 0.00700564
+    com  -0.15598555  0.00004919  0.01509296
+    meshfile geometry\Piece7_right_reduced.stl
+    meshcolor 0.2 0.2 0.2
+endsegment
+
+segment sliding_phantom
+    parent    part7
+	rtinmatrix 0
+    rt 0    pi     pi/2 xyz 0.002 0 -0.05
+    translations x
+    ranges 	 -0.05 0.05
+    mass 0
+    inertia
+        0  0 0
+        0  0 0
+        0  0 0
+    com  0  0 0
+endsegment
+
+// comment a section as in c++ with /* ... */
+/*
+// Contact
+    contact    Contact_pt1
+        parent    part1
+        position  -0.120 0 0
+        axis    xyz
+    endcontact
+    // Contact
+    contact    Contact_pt2
+        parent    part1
+        position  -0.120 0 0.1
+        axis    xy
+    endcontact
+
+// Marker
+    marker    Contact_mk1
+        parent    part1
+        position  -0.120 0 0
+    endmarker
+        marker    Contact_mk2
+        parent    part1
+        position  -0.120 0 0.1
+    endmarker
+*/
+    //targetd
+    marker     grd_contact1
+        parent ground
+        position 0  0  0
+    endmarker
+
+    marker     grd_contact2
+        parent ground
+        position 0  0  0.1
+    endmarker
+
+//targetp_init
+    marker      mg1
+        parent ground
+        position -0.027  0.40 0.10
+    endmarker
+
+//targetp_fin
+    marker      mg2
+        parent ground
+        position -0.030 0.40 0 // position -0.035 0.35 0
+    endmarker
+
+
+    marker      md0
+        parent part7
+        position 0.01 0.01 0.01
+    endmarker

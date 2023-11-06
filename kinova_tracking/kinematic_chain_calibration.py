@@ -223,7 +223,7 @@ class KinematicChainCalibration:
         This function built the final x ( ie q and p ) for all the frame, used in the animation
         Returns
         -------
-        The array of solution
+        The array of solutions
         """
         x_all_frames = np.zeros((self.nb_total_dofs, self.nb_frames))
         for i in range(self.nb_frames):
@@ -237,7 +237,7 @@ class KinematicChainCalibration:
         Parameters
         ----------
         x: MX
-            the MX of the solution which is a 1D vector
+            the MX of the solutions which is a 1D vector
 
         Returns
         -------
@@ -324,7 +324,7 @@ class KinematicChainCalibration:
         q_sym : MX
             the unknown value of q
         q_init : np.ndarray
-            value of q coming from either the q_ik_initial_guess for the first frame or the previous solution
+            value of q coming from either the q_ik_initial_guess for the first frame or the previous solutions
 
         Returns
         -------
@@ -407,7 +407,7 @@ class KinematicChainCalibration:
         Parameters
         ----------
         q_init_all:  np.ndarray
-            the MX which contains the solution found during the initialization
+            the MX which contains the solutions found during the initialization
         p_init: np.ndarray
             the value of parameters used at the starting point
 
@@ -678,7 +678,7 @@ class KinematicChainCalibration:
             method,
     ):
         """
-        This function returns the solution using the method chosen by the user
+        This function returns the solutions using the method chosen by the user
 
         Parameters
         ----------
@@ -686,9 +686,9 @@ class KinematicChainCalibration:
             the threshold for the delta epsilon
         method : str
             the method used to find the optimised generalized coordinates:
-            - "1step": the global solution ( for all the frame ) is found without loop, parameters and generalized
+            - "1step": the global solutions ( for all the frame ) is found without loop, parameters and generalized
             coordinates values are determined together
-            - "2step": the global solution is build frame after frame where the parameters value (the same for each frame)
+            - "2step": the global solutions is build frame after frame where the parameters value (the same for each frame)
             are firstly found and generalized coordinates after that.
 
         Return
@@ -704,13 +704,13 @@ class KinematicChainCalibration:
 
     def _solve_1step(self):
         """
-        This function find the entire solution with only 1 step ie without a while loop unlike 2step
+        This function find the entire solutions with only 1 step ie without a while loop unlike 2step
 
         Returns
         -------
         q_all_frame, value of generalised coordinates for all frames,
         param_opt, the value of the parameters,
-        x_all_frames, the entire solution for all frames
+        x_all_frames, the entire solutions for all frames
         """
         print(" | You choose 1_step |")
         start_ik = time.time()

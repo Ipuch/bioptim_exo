@@ -11,6 +11,8 @@ class Models(Enum):
     KINOVA_RIGHT = Path(__file__).parent.__str__() + "/KINOVA_arm_right.bioMod"
     KINOVA_RIGHT_SLIDE = Path(__file__).parent.__str__() + "/KINOVA_arm_right_plus_slide.bioMod"
     KINOVA_RIGHT_SLIDE_POLAR_BASE = Path(__file__).parent.__str__() + "/KINOVA_arm_right_plus_slide_polar_base.bioMod"
+    KINOVA_RIGHT_SLIDE_POLAR_BASE_TEMPLATE = Path(__file__).parent.__str__() + "/KINOVA_arm_right_plus_slide_polar_base_template.bioMod"
+    KINOVA_RIGHT_SLIDE_POLAR_BASE_WITH_VARIABLES = Path(__file__).parent.__str__() + "/KINOVA_arm_right_plus_slide_polar_base_with_variables.bioMod"
 
     KINOVA_LEFT_REVERSED = Path(__file__).parent.__str__() + "/KINOVA_arm_reverse_left.bioMod"
     KINOVA_RIGHT_REVERSED = Path(__file__).parent.__str__() + "/KINOVA_arm_reverse_right.bioMod"
@@ -18,8 +20,12 @@ class Models(Enum):
     WU = Path(__file__).parent.__str__() + "/wu_converted_definitif.bioMod"
 
     WU_INVERSE_KINEMATICS = Path(__file__).parent.__str__() + "/wu_converted_definitif_inverse_kinematics.bioMod"
+    WU_INVERSE_KINEMATICS_ORIGINAL = Path(__file__).parent.__str__() + "/wu_converted_definitif_inverse_kinematics_original.bioMod"
+
     WU_INVERSE_KINEMATICS_XYZ = Path(__file__).parent.__str__() + "/wu_converted_definitif_inverse_kinematics_XYZ.bioMod"
     WU_INVERSE_KINEMATICS_XYZ_OFFSET = Path(__file__).parent.__str__() + "/wu_converted_definitif_inverse_kinematics_XYZ_offset.bioMod"
+    WU_INVERSE_KINEMATICS_XYZ_OFFSET_WITH_EXTRA_MARKERS = Path(
+        __file__).parent.__str__() + "/wu_converted_definitif_inverse_kinematics_XYZ_offset_with_extra_markers.bioMod"
 
     WU_WITHOUT_FLOATING_BASE = Path(__file__).parent.__str__() + "/wu_converted_definitif_without_floating_base.bioMod"
 

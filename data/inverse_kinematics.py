@@ -32,12 +32,15 @@ except ModuleNotFoundError:
 from models.enums import Models
 
 # Load a predefined model
-model = Models.WU_INVERSE_KINEMATICS
+# model = Models.WU_INVERSE_KINEMATICS
+model = Models.WU_INVERSE_KINEMATICS_XYZ_OFFSET
 model_path_without_kinova = model.value
 model_without_kinova = biorbd.Model(model_path_without_kinova)
+# second_model = Models.WU_INVERSE_KINEMATICS_XYZ_OFFSET
 
 file_path = Path("")
-file_list = list(file_path.glob("F0*.c3d"))  # We get the file names with a .c3d extension
+# file_list = list(file_path.glob("F0*.c3d"))  # We get the file names with a .c3d extension
+file_list = list(file_path.glob("F3*.c3d"))  # We get the file names with a .c3d extension
 # todo: replace by data.enums Tasks
 
 for file in file_list:
@@ -56,6 +59,13 @@ for file in file_list:
 
     # create the list of marker from the .biomod file
     marker_names = [model_without_kinova.markerNames()[i].to_string() for i in range(len(model_without_kinova.markerNames()))]
+
+    if 'flexion_axis0' in marker_names:
+        marker_names.remove('flexion_axis0')
+    if 'flexion_axis1' in marker_names:
+        marker_names.remove('flexion_axis1')
+    if 'ulna_longitudinal_frame' in marker_names:
+        marker_names.remove('ulna_longitudinal_frame')
 
     # retrieve markers from c3d file and load them with ezc3d
     Xmarkers = Markers.from_c3d(file, usecols=marker_names)
@@ -93,7 +103,7 @@ for file in file_list:
     # list_dof = [11, 12, 13]
     list_dof = [i for i in range(16)]
     # q_recons = apply_offset(model_without_kinova, q_recons, list_dof, 2 * np.pi)
-    plot_dof(q_recons_old, q_recons, model_without_kinova)
+    # plot_dof(q_recons_old, q_recons, model_without_kinova)
 
     np.savetxt(model.name + "_" + os.path.splitext(file)[0] + "_q.txt", q_recons)
     np.savetxt(model.name + "_" + os.path.splitext(file)[0] + "_qdot.txt", qdot_recons)

@@ -4,6 +4,7 @@ from pathlib import Path
 from bioptim import OptimalControlProgram
 import numpy as np
 
+
 def custom_load(file):
     with open(file, 'rb') as f:
         data = pickle.load(f)
@@ -16,7 +17,6 @@ def custom_load(file):
         )
 
         return sol
-
 
 
 def from_bo_to_pickle(file):

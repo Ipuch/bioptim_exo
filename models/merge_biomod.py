@@ -4,6 +4,7 @@ This script merge to text files into one. They are defined by .bioMod files.
 """
 import os
 
+
 def merge_biomod(file1, file2, output_file):
     """
     Merge two biomod files into one.
@@ -44,9 +45,40 @@ def merge_biomod(file1, file2, output_file):
     if file1_content[0] != file2_content[0]:
         raise RuntimeError(f"Files {file1} and {file2} are not the same version")
 
+    # Read and merge "variables" blocks
+    variables = {}
+    idx1 = 1
+    if "variables\n" in file1_content[idx1:]:
+        while "variables\n" not in file1_content[idx1]:
+            idx1 += 1
+        idx1 += 1
+        while "endvariables\n" not in file1_content[idx1]:
+            var_name, var_value = file1_content[idx1].split()
+            variables[var_name] = var_value
+            idx1 += 1
+
+    idx2 = 1
+    if "variables\n" in file2_content[idx2:]:
+        while "variables\n" not in file2_content[idx2]:
+            idx2 += 1
+        idx2 += 1
+        while "endvariables\n" not in file2_content[idx2]:
+            var_name, var_value = file2_content[idx2].split()
+            variables[var_name] = var_value
+            idx2 += 1
+
     # Merge the files, file1 on top of file2 in the output file
     with open(output_file, "w") as f:
-        f.writelines(file1_content)
-        f.writelines(file2_content[1:])
+        # Write version
+        f.writelines(file1_content[:1])
+        # Write merged variables block
+        if variables:
+            f.write("variables\n")
+            for var_name, var_value in variables.items():
+                # add an identation before
+                f.write(f"\t{var_name} {var_value}\n")
+            f.write("endvariables\n")
+        # Write the rest of the content
+        f.writelines(file1_content[idx1 + 1:])
+        f.writelines(file2_content[idx2 + 1:])
     print(f"Files {file1} and {file2} merged into {output_file}")
-

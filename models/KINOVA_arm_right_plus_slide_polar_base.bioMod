@@ -8,7 +8,7 @@ endsegment
 segment polar_base
     parent    ground
     rtinmatrix 0
-    rt 0 0 0 xyz 0 0 0  // origin of kinova set up. X and Y could be changed.
+    rt 0 0 0 xyz -0.45 0.1 0  // origin of kinova set up. X and Y could be changed.
     parent    ground
     rotations z
     ranges -2*pi 2*pi

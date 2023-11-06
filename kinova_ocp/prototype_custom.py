@@ -19,10 +19,10 @@ from bioptim import (
 )
 from custom_dynamics import custom_configure, torque_driven
 import numpy as np
-from data.enums import Tasks
+from data.enums import Tasks, TasksKinova
 import data.load_events as load_events
 from models.enums import Models
-from models.biorbd_model import NewModel
+from models.biorbd_model import NewModel, KinovaModel
 import tracking.load_experimental_data as load_experimental_data
 from custom_ik_objectives import superimpose_markers, superimpose_matrix
 
@@ -65,14 +65,16 @@ def prepare_ocp(
     # inverse kinematics objectives
     # todo: add inverse kinematics objectives
     # regularization
+    # objective_functions.add(
+    #     ObjectiveFcn.Mayer.MINIMIZE_CONTROL,
+    #     key="q_k",
+    #     weight=1e-3,
+    #     target=np.repeat(np.array([0, 0, 0, 0, -2, 0, 0])[:, np.newaxis], axis=1, repeats=n_shooting),
+    #     node=Node.ALL_SHOOTING,
+    #     quadratic=True
+    # )
     objective_functions.add(
-        ObjectiveFcn.Mayer.MINIMIZE_CONTROL,
-        key="q_k",
-        weight=1e-3,
-        target=np.repeat(np.array([0, 0, 0, 0, -2, 0, 0])[:, np.newaxis], axis=1, repeats=n_shooting),
-        node=Node.ALL_SHOOTING,
-        quadratic=True
-    )
+        ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="q_k", weight=100, index=1)
     objective_functions.add(
         ObjectiveFcn.Lagrange.MINIMIZE_CONTROL, key="q_k", weight=100, derivative=True)
     objective_functions.add(
@@ -138,9 +140,16 @@ def prepare_ocp(
     kinova_q_ranges = biorbd_model.extra_models[0].ranges_from_model("q")
     u_bounds["q_k"] = [b.min() for b in kinova_q_ranges], [b.max() for b in kinova_q_ranges]
 
-    # translation limited by design of the kinova arm
-    u_bounds["q_k"].max[1, :] = np.linalg.norm([-0.08842, -0.02369]) + 2 * 0.120
-    u_bounds["q_k"].min[1, :] = np.linalg.norm([-0.08842, -0.02369]) + 2 * 0.120
+    # # translation limited by design of the kinova arm
+    # u_bounds["q_k"].max[1, :] = np.linalg.norm([-0.08842, -0.02369]) + 2 * 0.120
+    # u_bounds["q_k"].min[1, :] = np.linalg.norm([-0.08842, -0.02369]) + 2 * 0.120
+
+    # should try to guide the polar coordinates...
+    # u_bounds["q_k"].max[0, :] = 1
+    # u_bounds["q_k"].min[0, :] = -1
+
+    u_bounds["q_k"].max[1, :] = 1
+    u_bounds["q_k"].min[1, :] = -1
 
     return OptimalControlProgram(
         biorbd_model,
@@ -164,7 +173,7 @@ def main(task: Tasks = None):
     """
 
     # Define the problem
-    n_shooting_points = 10
+    n_shooting_points = 40
     nb_iteration = 3000
 
     task_files = load_events.LoadTask(task=task, model=Models.WU_INVERSE_KINEMATICS_XYZ_OFFSET)
@@ -172,7 +181,7 @@ def main(task: Tasks = None):
     model = NewModel(model=Models.WU_WITHOUT_FLOATING_BASE_OFFSET_VARIABLES)
     model.add_header(
         model_template=Models.WU_WITHOUT_FLOATING_BASE_OFFSET_TEMPLATE,
-        q_file_path=task_files.q_file_path
+        q_file_path=task_files.q_file_path,
     )
 
     biorbd_model = biorbd.Model(model.model_path)
@@ -205,10 +214,19 @@ def main(task: Tasks = None):
     x_init_ref = np.concatenate([q_ref[0][6:, :], qdot_ref[0][6:, :]])  # without floating base
     u_init_ref = tau_ref[0][6:, :]
 
+    kinova_model = KinovaModel(model=Models.KINOVA_RIGHT_SLIDE_POLAR_BASE_WITH_VARIABLES)
+    marker_attachment_name = "Table:Table5"
+    index_marker_attachment = data.c3d_data.c3d["parameters"]["POINT"]["LABELS"]["value"].index(marker_attachment_name)
+    attachment_point_location = np.mean(data.c3d_data.c3d["data"]["points"][:, index_marker_attachment, :], axis=1)[0:3]
+    kinova_model.add_header(
+        model_template=Models.KINOVA_RIGHT_SLIDE_POLAR_BASE_TEMPLATE,
+        attachment_point_location=attachment_point_location / 1000,  # convert in meters
+        offset=np.array([0, 0., 0.]),
+                           )
+
     # optimal control program
     my_ocp = prepare_ocp(
         upper_limb_biorbd_model_path=model.model_path,
-        # kinova_model_path=Models.KINOVA_RIGHT_SLIDE.value,  # todo: change into polar_slide
         kinova_model_path=Models.KINOVA_RIGHT_SLIDE_POLAR_BASE.value,
         x_init_ref=x_init_ref,
         u_init_ref=u_init_ref,
@@ -225,7 +243,8 @@ def main(task: Tasks = None):
     # --- Solve the program --- #
     solver = Solver.IPOPT(show_online_optim=True, show_options=dict(show_bounds=True))
     solver.set_linear_solver("mumps")
-    solver.set_maximum_iterations(50)
+    # solver.set_maximum_iterations(nb_iteration)
+    solver.set_maximum_iterations(0)
     sol = my_ocp.solve(solver)
     # sol.print_cost()
 
@@ -236,7 +255,7 @@ def main(task: Tasks = None):
 
     from extra_viz import custom_animate
     custom_animate(
-        model_kinova_path=Models.KINOVA_RIGHT_SLIDE_POLAR_BASE.value,
+        model_kinova_path=Models.KINOVA_RIGHT_SLIDE_POLAR_BASE_WITH_VARIABLES.value,
         model_path_upperlimb=model.model_path,
         q_k=sol.controls["q_k"],
         q_upper_limb=sol.states["q"],
@@ -244,7 +263,10 @@ def main(task: Tasks = None):
 
 
 if __name__ == "__main__":
-    main(Tasks.TEETH)
+    main(TasksKinova.DRINK)
+
+    # main(Tasks.DRINK)
+    # main(Tasks.TEETH)
     # main(Tasks.DRINK)
     # main(Tasks.HEAD)
     # main(Tasks.ARMPIT)

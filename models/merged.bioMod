@@ -1,4 +1,9 @@
 version 4
+variables
+	$KinovaLocationX -0.2985296942052707
+	$KinovaLocationY 0.057412643953780054
+	$KinovaLocationZ 0.05921525359892509
+endvariables
 
 gravity 0 0 -9.81
 
@@ -8,7 +13,8 @@ endsegment
 segment polar_base
     parent    ground
     rtinmatrix 0
-    rt 0 0 0 xyz 0 0 0  // origin of kinova set up. X and Y could be changed.
+     // origin of kinova set up. X and Y could be changed.
+    rt 0 0 0 xyz $KinovaLocationX $KinovaLocationY $KinovaLocationZ
     parent    ground
     rotations z
     ranges -2*pi 2*pi
@@ -152,15 +158,6 @@ endsegment
         parent part7
         position 0.01 0.01 0.01
     endmarker
-variables
-	$thoraxRT1 1.4885111171440395
-	$thoraxRT2 -0.07941652775348548
-	$thoraxRT3 -0.23755985873078816
-	$thoraxRT4 -0.5516162864733749
-	$thoraxRT5 0.6371397586206161
-	$thoraxRT6 0.3466059312915346
-endvariables
-
 // File extracted from C:/Users/remi6/Desktop/S5/Wu_shoulder_model/Wu_Shoulder_Model_kinova_definitif.osim
 
 gravity	0 0 -9.81
@@ -172,9 +169,7 @@ gravity	0 0 -9.81
     segment thorax_parent_offset
         parent ground 
         RTinMatrix    0
-        //RT	0.0 0.0 0.0	xyz	0.0 0.0 0.0
-        RT $thoraxRT1 $thoraxRT2 $thoraxRT3 xyz $thoraxRT4 $thoraxRT5 $thoraxRT6
-        // this position correspond to the c3d: "F0_aisselle_05.c3d"
+        RT	0.0 0.0 0.0	xyz	0.0 0.0 0.0
     endsegment
 
     // Segments to define transformation axis.
@@ -187,12 +182,18 @@ gravity	0 0 -9.81
             0.0    1.0    0.0    0
             0.0    0.0    1.0    0
             0    0    0    1
-        //translations xyz
-        //ranges		-20.0	20.0
-	//-2.0	4.0
-	//-5.0	5.0
+        translations xyz
+        rotations xyz
+        ranges		-20.0	20.0
+	-2.0	4.0
+	-5.0	5.0
+	-pi     pi
+	-pi     pi
+	-pi     pi
     endsegment
+
 // The following segment were removed: thorax_rotation_transform, thorax_reset_axis
+
 
     //True segment where are applied inertial values.
     // Segment
@@ -206,17 +207,37 @@ gravity	0 0 -9.81
             0.0    1.1110036620680397    0.0
             0.0    0.0    1.7008287803341005
         com    -0.033440718675358687 0.32700989683991893 0
-        meshfile geometry/thorax.vtp
-        meshscale 1.1146906225119562 1.0219059276247466 1.3192486978972149
+        // meshfile geometry/thorax.vtp
+        // meshscale 1.1146906225119562 1.0219059276247466 1.3192486978972149
     endsegment
 
+    // Markers
+    marker    MAN
+        parent    thorax
+        position    0.042419427613834632 -0.0023252897183505539 0.0099660835588140095
+    endmarker
+
+    marker    XYP
+        parent    thorax
+        position    0.082340062255294305 -0.16583819844340569 0.0031414666224537369
+    endmarker
+
+    marker    C7
+        parent    thorax
+        position    -0.095938308749567075 0.060837752331682482 0.014285418115368542
+    endmarker
+
+    marker    T10
+        parent    thorax
+        position    -0.13903237860548628 -0.19141883195932308 -0.0087898669234391935
+    endmarker
 
 // Information about clavicle segment
     // Segment
     segment clavicle_parent_offset
         parent thorax 
         RTinMatrix    0
-        RT	0.0 -0.3 0.0	xyz	0.0070504181873881225 0.007081808078439495 0.03359466809195258
+        RT	0.0 0.0 0.0	xyz	0.0070504181873881225 0.007081808078439495 0.03359466809195258
     endsegment
 
     // Segments to define transformation axis.
@@ -302,12 +323,12 @@ gravity	0 0 -9.81
         parent    clavicle
         position    0.033445913099119665 -0.010391785839228396 0.0028632585370065855
     endmarker
-
+    /*
     marker    CLAV_AC
         parent    clavicle
         position    0.019644638836381262 -0.0077436347940661454 0.12124945256646524
     endmarker
-	/*
+
     marker    SCAP_Cor
         parent    clavicle
         position    0.0019290725106974466 0.018492327009970166 0.10270227481847716
@@ -370,8 +391,8 @@ gravity	0 0 -9.81
             0 0 0.0204860
         // The moment of inertia for clavicle and scapula are from Quental (2012) A multibody biomechanical model of the upper limb including the shoulder girdle
         com    -0.0793326510181704 -0.040670349563165432 -0.066897010353895586
-        meshfile geometry/scapula.vtp
-        meshscale 1.1018423752523667 1.0428294759786008 1.0291847746753167
+        // meshfile geometry/scapula.vtp
+        // meshscale 1.1018423752523667 1.0428294759786008 1.0291847746753167
     endsegment
 
     // Markers
@@ -401,15 +422,61 @@ gravity	0 0 -9.81
     endmarker
 
 // Information about humerus segment
+    // Segment
+    segment humerus_parent_offset
+        parent scapula 
+        RTinMatrix    0
+        RT	0.0 0.0 0.0	xyz	-0.010522594683660102 -0.03545620218327243 0.009262662972077848
+    endsegment
 
+    // Segments to define transformation axis.
+    // Segment
+    segment humerus_translation
+        parent humerus_parent_offset 
+        RTinMatrix    1
+        RT
+            1.0    0.0    0.0    0
+            0.0    1.0    0.0    0
+            0.0    0.0    1.0    0
+            0    0    0    1
+    endsegment
+    // Segment
+    segment humerus_shoulder_plane
+        parent humerus_translation 
+        RTinMatrix    1
+        RT
+            0.0001    -0.20137499    0.979514218    0
+            0.99999999    -7.7814e-05    -0.000118089    0
+            0.0001    0.97951422    0.20137498    0
+            0    0    0    1
+        rotations x
+        ranges		-pi pi
+    endsegment
+    // Segment
+    segment humerus_shoulder_ele
+        parent humerus_shoulder_plane 
+        RTinMatrix    1
+        RT
+            0.961219713    0.0001    -0.275783707    0
+            0.270114913    0.201371382    0.941534652    0
+            0.0556291    -0.97951496    0.193535131    0
+            0    0    0    1
+        rotations y
+        ranges		-pi/2	3.0
+    endsegment
     // Segment
     segment humerus_shoulder_rotation
-        parent scapula
-        RTinMatrix    0
-        RT	-pi 0.0 -1.0	xyz	-0.010522594683660102 -0.03545620218327243 0.009262662972077848 // 1.45 -0.3 1.5
-        rotations xyz
+        parent humerus_shoulder_ele 
+        RTinMatrix    1
+        RT
+            0.017233308    0.275341049    0.961192135    0
+            0.998047048    -0.062466719    0.0    0
+            0.060042519    0.959314972    -0.275879829    0
+            0    0    0    1
+        rotations z
         //ranges		0.0	3.0
-        ranges		0  2*pi  -pi/2  3.0  -pi   2
+        //ranges		-1.9	0.35
+        ranges		-2	pi
     endsegment
 
     // Segment to cancel transformation bases effect.
@@ -436,8 +503,8 @@ gravity	0 0 -9.81
             0.0    0.003797217603708719    0.0
             0.0    0.0    0.013189000303006999
         com    0 -0.17580303285787971 0
-        meshfile geometry/humerus.vtp
-        meshscale 1.0686984526503003 1.0686984526503003 0.86219934872087278
+        // meshfile geometry/humerus.vtp
+        // meshscale 1.0686984526503003 1.0686984526503003 0.86219934872087278
     endsegment
 
     // Markers
@@ -510,8 +577,19 @@ gravity	0 0 -9.81
             -0.006469738    -0.114683666    0.993380994    0
             0    0    0    1
         rotations z
-        ranges		0.0	2.5
+        ranges		0.0	2.268928027593
+        //ranges		-pi	pi
     endsegment
+
+    marker flexion_axis0
+        parent ulna_elbow_flexion
+        position 0 0 0.1
+    endmarker
+
+    marker flexion_axis1
+        parent ulna_elbow_flexion
+        position 0 0 -0.1
+    endmarker
 
     // Segment to cancel transformation bases effect.
     // Segment
@@ -524,16 +602,6 @@ gravity	0 0 -9.81
             0.049400012    0.036600009    0.99810825    0
             0    0    0    1
     endsegment
-
-    marker flexion_axis0
-        parent ulna_elbow_flexion
-        position 0 0 0.1
-    endmarker
-
-    marker flexion_axis1
-        parent ulna_elbow_flexion
-        position 0 0 -0.1
-    endmarker
 
     //True segment where are applied inertial values.
     // Segment
@@ -551,9 +619,9 @@ gravity	0 0 -9.81
         meshscale 1.0024252138595608 1.0024252138595608 1.0024252138595608
     endsegment
 
-    marker ulna_longitudinal_frame
+     marker ulna_longitudinal_frame
         parent ulna
-        position -0.0 -0.24 -0.5
+        position -0.0 -0.24 0.05
      endmarker
 
     // Markers
@@ -606,7 +674,7 @@ gravity	0 0 -9.81
             0.059472709    -0.985360294    0.159775114    0
             0    0    0    1
         rotations y
-        ranges		-1.570796326795	1.570796326795
+        ranges		-pi/2 pi/2
     endsegment
     // Segment
     segment radius_rotation3
