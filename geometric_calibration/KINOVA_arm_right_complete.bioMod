@@ -1,0 +1,277 @@
+version 4
+
+gravity 0 0 -9.81
+
+segment ground
+endsegment
+
+segment part1
+    parent    ground
+    rotations z
+    rtinmatrix 0
+    // rt 0   0   0  xyz -0.38814139 0.51851965 0.025
+    rt 0   0   0  xyz -0.49307369 0.51851965 0.025
+    ranges 	-3*pi/2 3*pi/2
+    mass 0.172
+    inertia
+        0.00001545 0 0
+        0 0.00032826 0
+        0 0 0.00032966
+    com 0.05889216 0 0
+    meshfile geometry\Piece1.STL
+    meshcolor 0.2 0.2 0.2
+endsegment
+
+segment part2
+    parent    part1
+    rtinmatrix 0
+    rt 0   0   0 xyz 0.120 0 0
+    rotations z
+    ranges 	-2*pi/3 2*pi/3 // 0 2*pi/3
+    mass 0.164
+    inertia
+        0.04434446 0.04527663 0
+        0.04527663 0.20118726 0
+        0 0 0.020546857
+    com 0.04769250 -0.00114713 0
+    meshfile geometry\Piece2_right.STL
+    meshcolor 0.2 0.2 0.2
+endsegment
+
+segment part3
+    parent    part2
+    rtinmatrix 0
+    // rt 0   0   -pi/6 xyz 0.08842 0.02369 0
+    rt 0   0   -pi/6 xyz 0.08842 -0.02369 0
+    rotations z
+    ranges 	-2*pi/3 2*pi/3 // 0 2*pi/3
+    mass 0.172
+    inertia
+        0.00001545 0 0
+        0 0.00032826 0
+        0 0 0.00032966
+    com 0.05889216 0 0
+    meshfile geometry\Piece3.STL
+    meshcolor 0.2 0.2 0.2
+endsegment
+
+segment part4
+    parent    part3
+    rt 0   0     0 xyz 0.120 0 0 //pretty sure
+    rotations z
+    // translations xy
+    rotations z
+    // ranges -1 1
+    //        -1 1
+            -2*pi 2*pi
+
+    mass 0.338
+    inertia
+        0.00078841  0.00002960  0.00002960
+        0.00002960  0.00084184  0
+        0.00002960           0  0.00025806
+    com 0.03208716 0  0.07885968
+    meshfile geometry\Piece4_reduced.stl
+    meshcolor 0.2 0.2 0.2
+endsegment
+
+
+segment part5
+    parent    part4
+    rtinmatrix 0
+    rt pi/2     0     0 xyz 0.01354 0 0.14202
+    rotations z
+    ranges -pi pi
+    mass  0.51119
+    inertia
+        0.00012693  -0.00001377  -0.00000427
+        -0.00001377  0.00699861  -0.00000036
+        -0.00000427 -0.00000036 0.00700635
+    com 0.09771349   0.01067939  0.00003686
+    meshfile geometry/Piece5_right_reduced.stl
+    meshcolor 0.2 0.2 0.2
+endsegment
+
+segment part6
+    parent    part5
+	rtinmatrix 0
+    rt  -pi/6    0     0 xyz 0.25360 0 -0.01602
+    rotations z
+    ranges 	-pi -pi/4
+    mass 0.08658
+    inertia
+        0.00010362 0.00000247 0.00005709
+        0.00000247 0.00015371 0.00000945
+        0.00005709 0.00000945 0.00006956
+    com  0.05369029 0.00776230 -0.03169498
+    meshfile geometry\Piece6_right_reduced.stl
+    meshcolor 0.2 0.2 0.2
+endsegment
+
+segment part7
+    parent    part6
+	rtinmatrix 0
+    rt 0    2*pi/3     0 xyz 0.03241 0 -0.09737
+    rotations z
+    ranges 	 -pi/6 pi/6
+    mass 0.51119
+    inertia
+        0.00012720  0.00004075 0.00002027
+        0.00004075  0.00699905 0.00000272
+        0.00002027  0.00000272 0.00700564
+    com  -0.15598555  0.00004919  0.01509296
+    meshfile geometry\Piece7_right_reduced.stl
+    meshcolor 0.2 0.2 0.2
+endsegment
+
+// comment a section as in c++ with /* ... */
+
+// INITIAL MARKER POSITIONS
+/* marker Table
+    parent part1
+    position 0 0 0.025
+endmarker
+
+marker First_link_end
+    parent part2
+    position 0 0 0.02
+endmarker
+
+marker second_link_end
+    parent part3
+    position 0 0 0.02
+endmarker
+
+marker third_end
+    parent part4
+    position 0.005 0 0.05
+endmarker
+
+marker fourth_link_right
+    parent part4
+    position 0.0014 0.03 0.142
+endmarker
+
+marker fourth_link_left
+    parent part4
+    position 0.0014 -0.03 0.142
+endmarker
+
+marker fifth_link_start_right
+    parent part5
+    position -0.08 0.02 0.02
+endmarker
+
+marker fifth_link_top
+    parent part5
+    position 0.253 0.01625 0.013
+endmarker
+
+marker fifth_link_start_left
+    parent part5
+    position -0.08 0.02 -0.02
+endmarker
+
+marker sixth_link_end
+    parent part6
+    position 0.033 0 -0.100
+endmarker
+
+marker seventh_link_start
+    parent part7
+    position 0.0520 -0.0587 -0.020
+endmarker
+
+
+marker seventh_link_second
+    parent part7
+    position -0.010 0.050 0.015
+endmarker
+*/
+// END INITIAL POSITION
+
+marker	Table
+	parent	part1
+	position	-0.0006024105088947693	0.00046495903923632397	0.022851712774684348
+endmarker
+
+
+marker	First_link_end
+	parent	part2
+	position	-0.0002083707488376305	0.003037332319208344	0.023806709043735698
+endmarker
+
+/*
+marker	second_link_end
+	parent	part3
+	position	0.015000008765363086	-0.009999997371330943	0.02999999309880067
+endmarker
+
+
+marker	third_end
+	parent	part4
+	position	0.002000001056507838	0.03483957853300707	0.09999999040168296
+endmarker
+
+
+marker	fourth_link_right
+	parent	part4
+	position	0.0018649442186676377	-0.019999991217752415	0.1342851529189004
+endmarker
+
+
+marker	fourth_link_left
+	parent	part4
+	position	-0.049999990287848295	0.03000000941407869	0.030000009789818326
+endmarker
+
+
+marker	fifth_link_start_right
+	parent	part5
+	position	0.24999999006725399	0.01599999042452638	0.011999990499743544
+endmarker
+
+
+marker	fifth_link_top
+	parent	part5
+	position	-0.04999999008892467	0.030000009786043124	-0.009999990297737555
+endmarker
+
+
+marker	fifth_link_start_left
+	parent	part5
+	position	0.029999990241636822	-0.010000008866911282	-0.08999999208055302
+endmarker
+
+
+marker	seventh_link_start
+	parent	part7
+	position	0.049999990233758417	-0.05499999464463835	-0.03000000971864211
+endmarker
+
+
+marker	sixth_link_end
+	parent	part6
+	position	-0.030000006048437458	0.0399999904819284	0.004999990610520744
+endmarker
+
+
+marker seventh_link_second
+    parent part7
+    position -0.010 0.050 0.015
+endmarker
+*/
+
+
+   ligament    linear_spring
+        Type    linearspring
+        stiffness	6380
+        origin	part4
+        insertion	part5
+        OriginPosition    0.06 0 0.035
+        InsertionPosition    -0.075 0.02 0
+//        ligamentslacklength    0.125
+        ligamentslacklength    0.0
+//        dampingfactor	0
+//        maxshorteningspeed	10
+    endligament

@@ -124,7 +124,7 @@ endsegment
         position 0.01 0.01 0.01
     endmarker
 
-     marker      contact_dot_1
+    marker      contact_dot_1
         parent part7
         position 0.01 0.1 -0.01
     endmarker

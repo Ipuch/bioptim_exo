@@ -1,10 +1,7 @@
-from biorbd import marker_index
-from casadi import sumsqr, vertcat, MX, norm_1, horzcat, transpose, cross, sqrt
-import numpy as np
-
 from bioptim.limits.penalty import PenaltyFunctionAbstract
-from bioptim.limits.penalty_option import PenaltyOption
 from bioptim.limits.penalty_controller import PenaltyController
+from biorbd import marker_index
+from casadi import sumsqr, vertcat, MX, horzcat, transpose, cross, sqrt
 
 
 def superimpose_matrix(
@@ -47,15 +44,15 @@ def superimpose_matrix(
     R = transpose(rotation_matrix) @ rotation_matrix_ref
 
     rot_matrix_list_model = [
-        (R[0,0] - 1),
-        R[0,1],
-        R[0,2],
-        R[1,0],
-        (R[1,1] - 1),
-        R[1,2],
-        R[2,0],
-        R[2,1],
-        (R[2,2] - 1),
+        (R[0, 0] - 1),
+        R[0, 1],
+        R[0, 2],
+        R[1, 0],
+        (R[1, 1] - 1),
+        R[1, 2],
+        R[2, 0],
+        R[2, 1],
+        (R[2, 2] - 1),
     ]
 
     return controller.mx_to_cx(
@@ -93,15 +90,16 @@ def superimpose_markers(
         controller.model.extra_models[0].marker_index(second_model_marker)
     )
     PenaltyFunctionAbstract._check_idx(
-        "marker", [first_marker_idx[0], second_marker_idx], controller.model.nb_markers
+        "marker", [first_marker_idx[0], second_marker_idx], controller.model.nb_markers_model
     )
-    mean_first_marker = 1/2 * (
+    mean_first_marker = 1 / 2 * (
             controller.model.marker(
-            controller.states["q"].mx, first_marker_idx[0]) + controller.model.marker(
-            controller.states["q"].mx, first_marker_idx[1])
-        )
+                controller.states["q"].mx, first_marker_idx[0]) + controller.model.marker(
+        controller.states["q"].mx, first_marker_idx[1])
+    )
 
-    diff_markers = mean_first_marker - controller.model.extra_models[0].marker(controller.controls["q_k"].mx, second_marker_idx)
+    diff_markers = mean_first_marker - controller.model.extra_models[0].marker(controller.controls["q_k"].mx,
+                                                                               second_marker_idx)
 
     return controller.mx_to_cx(
         f"diff_markers",
@@ -137,7 +135,6 @@ def create_frame_from_three_points(p1, p2, p3) -> MX:
     t1 = vertcat(mid_p1_p2, 1)
 
     return horzcat(x0, y0, z0, t1)
-
 
 # NOTE : no need as polar coordinates i think so.
 # def distance_constraints(

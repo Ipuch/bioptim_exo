@@ -1,20 +1,16 @@
-from typing import Union, Tuple
-from enum import Enum
 import random
 import time
+from enum import Enum
+from typing import Union
 
-import matplotlib.pyplot as plt
-from scipy import optimize
-import numpy as np
-from casadi import MX, Function, vertcat, nlpsol, if_else, norm_2, sumsqr, fabs, qpsol
-
-from casadi import MX, Function, vertcat, nlpsol, if_else, norm_2, sumsqr
-
-import biorbd_casadi as biorbd
 import biorbd as biorbd_eigen
+import biorbd_casadi as biorbd
+import matplotlib.pyplot as plt
+import numpy as np
+from casadi import MX, Function, vertcat, nlpsol, if_else, sumsqr
+from casadi import fabs
 
 from utils import get_range_q
-
 
 
 class ObjectivesFunctions(Enum):
@@ -67,7 +63,7 @@ class KinematicChainCalibration:
             self,
             biorbd_model: biorbd.Model,
             markers_model: list[str],
-            markers: np.array,  # [3 x nb_markers x nb_frames]
+            markers: np.array,  # [3 x nb_markers_model x nb_frames]
             closed_loop_markers: list[str],
             tracked_markers: list[str],
             parameter_dofs: list[str],
@@ -94,7 +90,6 @@ class KinematicChainCalibration:
 
         self.nb_markers = self.biorbd_model.nbMarkers()
         self.nb_frames = markers.shape[2]
-
 
         # check if markers_model are in model
         # otherwise raise error
@@ -143,9 +138,8 @@ class KinematicChainCalibration:
         self.param_solver = param_solver
         self.ik_solver = ik_solver
 
-
         # check if q_ik_initial_guess has the right size
-        self. x_ik_initial_guess = x_ik_initial_guess
+        self.x_ik_initial_guess = x_ik_initial_guess
         self.q_ik_initial_guess = self.x_ik_initial_guess[self.q_kinematic_index, :]
         self.p_ik_initial_guess = self.x_ik_initial_guess[self.q_parameter_index, 0]
         self.nb_frames_ik_step = nb_frames_ik_step
@@ -158,7 +152,6 @@ class KinematicChainCalibration:
         self.bounds_p_list = [list(self.bounds[0][self.q_parameter_index]),
                               list(self.bounds[1][self.q_parameter_index])]
         self.bound_constraint = np.zeros(6)
-
 
         self.list_frames_param_step = self.frame_selector(self.nb_frames_param_step, self.nb_frames_ik_step)
 
@@ -194,7 +187,6 @@ class KinematicChainCalibration:
         self.x_sym_prev = MX.zeros(self.nb_total_dofs)
         self.x_sym = self.build_x(self.q_sym, self.p_sym)
         self.x_sym_prev = self.build_x(self.q_sym_prev, self.p_sym)
-
 
         # symbolic xp data
         self.m_model_sym = MX.sym("markers_model", self.nb_markers_model * 3)
@@ -354,7 +346,7 @@ class KinematicChainCalibration:
 
         return if_else(
             theta_part1_3 > theta_part1_3_lim,  # cond
-            (theta_part1_3-theta_part1_3_lim) ** 2,  # if true
+            (theta_part1_3 - theta_part1_3_lim) ** 2,  # if true
             0  # if false
         )
 
@@ -390,10 +382,10 @@ class KinematicChainCalibration:
 
         obj_pivot = self.penalty_theta(self.x_sym)
 
-        output = obj_open_loop * self.weights_param[0]\
-                 + obj_rotation * self.weights_param[1]\
-                 + obj_pivot * self.weights_param[2]\
-
+        output = obj_open_loop * self.weights_param[0] \
+                 + obj_rotation * self.weights_param[1] \
+                 + obj_pivot * self.weights_param[2] \
+ \
         return Function("f", [self.q_sym, self.p_sym, self.m_model_sym, self.m_table_sym], [output],
                         ["q_sym", "p_sym", "markers_model", "markers_table"], ["obj_function"])
 
@@ -421,16 +413,15 @@ class KinematicChainCalibration:
         start_param = time.time()
 
         for f in self.list_frames_param_step:
-
             objective += obj_func(q_init_all[:, f],
-                                 self.p_sym,
-                                 self.markers[:, self.model_markers_idx, f].flatten("F"),
-                                 self.markers[:, self.table_markers_idx, f].flatten("F")[:],
-                                 )
+                                  self.p_sym,
+                                  self.markers[:, self.model_markers_idx, f].flatten("F"),
+                                  self.markers[:, self.table_markers_idx, f].flatten("F")[:],
+                                  )
 
         # Create a NLP solver
         prob = {"f": objective, "x": self.p_sym}
-        opts = {"ipopt":{"max_iter": 5000, "linear_solver": "ma57"}}
+        opts = {"ipopt": {"max_iter": 5000, "linear_solver": "ma57"}}
         solver = nlpsol('solver', 'ipopt', prob, opts)  # no constraint yet
 
         # Solve the NLP
@@ -442,7 +433,7 @@ class KinematicChainCalibration:
         param_opt = sol["x"].full().flatten()
 
         end_param = time.time()
-        self.time_param.append(end_param-start_param)
+        self.time_param.append(end_param - start_param)
         return param_opt
 
     def objective_ik(self) -> Function:
@@ -472,16 +463,18 @@ class KinematicChainCalibration:
 
         obj_rotation = self.penalty_rotation_matrix_cas(self.x_sym)
 
-        obj_q_continuity = self.penalty_q_continuity(self.q_sym, self.q_ik_initial_guess[self.q_kinematic_index, self.frame])
+        obj_q_continuity = self.penalty_q_continuity(self.q_sym,
+                                                     self.q_ik_initial_guess[self.q_kinematic_index, self.frame])
 
         obj_pivot = self.penalty_theta(self.x_sym)
 
-        output = obj_open_loop * self.weights_ik[0]\
-                + obj_rotation * self.weights_ik[1]\
-                + obj_pivot * self.weights_ik[2]\
-                + obj_q_continuity * self.weights_ik[3]
+        output = obj_open_loop * self.weights_ik[0] \
+                 + obj_rotation * self.weights_ik[1] \
+                 + obj_pivot * self.weights_ik[2] \
+                 + obj_q_continuity * self.weights_ik[3]
 
-        return Function("f", [self.q_sym, self.p_sym, self.m_model_sym, self.m_table_sym], [output], ["q_sym", "p_sym", "markers_model", "markers_table"], ["obj_function"])
+        return Function("f", [self.q_sym, self.p_sym, self.m_model_sym, self.m_table_sym], [output],
+                        ["q_sym", "p_sym", "markers_model", "markers_table"], ["obj_function"])
 
     def inverse_kinematics(self,
                            q_init: np.ndarray,
@@ -512,7 +505,6 @@ class KinematicChainCalibration:
             x_output[self.q_parameter_index, f] = p_init
             self.frame = f
 
-
             objective = obj_func(self.q_sym,
                                  p_init,
                                  self.markers[:, self.model_markers_idx, f].flatten("F"),
@@ -520,14 +512,14 @@ class KinematicChainCalibration:
 
                                  )
 
-            #constraint_func = self.build_constraint_2(q_sym=self.q_sym, p_sym=p_init, f=f)
+            # constraint_func = self.build_constraint_2(q_sym=self.q_sym, p_sym=p_init, f=f)
             constraint_func = self.build_constraint_1()
 
             # Create a NLP solver
             prob = {"f": objective,
                     "x": self.q_sym,
                     "g": constraint_func(q_sym=self.q_sym, p_sym=p_init)
-            }
+                    }
 
             # can add "hessian_approximation":  "limited-memory" ( or "exact") in opts
             if f == 0:
@@ -549,7 +541,6 @@ class KinematicChainCalibration:
             )
 
             if solver.stats()['success'] == False:
-
                 print("#########################################################")
                 print("#########################################################")
                 print("#########################################################")
@@ -570,12 +561,12 @@ class KinematicChainCalibration:
             # sum of squared norm of difference of markers
             c = 0
             for j in range(self.nb_markers):
-                mark = np.linalg.norm(markers_model[j].to_array()- markers_to_compare[:, j]) ** 2
+                mark = np.linalg.norm(markers_model[j].to_array() - markers_to_compare[:, j]) ** 2
                 espilon_markers += mark
                 c += 1
 
         end_ik = time.time()
-        self.time_ik.append(end_ik-start_ik)
+        self.time_ik.append(end_ik - start_ik)
         return q_output, espilon_markers
 
     def objective_ik_1step(self):
@@ -620,7 +611,7 @@ class KinematicChainCalibration:
                  + obj_q_continuity * self.weights_ik[3]
 
         return Function("f", [self.q_sym, self.p_sym, self.q_sym_prev, self.m_model_sym], [output],
-                               ["q_sym", "p_sym", "q_sym_prev", "markers_model"], ["obj_function"])
+                        ["q_sym", "p_sym", "q_sym_prev", "markers_model"], ["obj_function"])
 
     def build_constraint_1(self):
         """
@@ -791,7 +782,7 @@ class KinematicChainCalibration:
             The optimized Generalized coordinates and parameters
         """
         print(" | You choose 2_step |")
-        # get the bounds of the model for all dofs
+        # get the q_bounds of the model for all dofs
         bounds = [
             (mini, maxi) for mini, maxi in zip(get_range_q(self.biorbd_model)[0], get_range_q(self.biorbd_model)[1])
         ]
@@ -800,7 +791,7 @@ class KinematicChainCalibration:
         idx_zeros = np.where(np.sum(self.q_ik_initial_guess, axis=1) == 0)[0]
         kinematic_idx_zeros = [idx for idx in idx_zeros if idx in self.q_kinematic_index]
 
-        # initialize q_ik with in the half-way between bounds
+        # initialize q_ik with in the half-way between q_bounds
         bounds_kinematic_idx_zeros = [b for i, b in enumerate(bounds) if i in kinematic_idx_zeros]
         kinova_q0 = np.array([(b[0] + b[1]) / 2 for b in bounds_kinematic_idx_zeros])
 
@@ -811,11 +802,10 @@ class KinematicChainCalibration:
 
         # initialized q qnd p for the whole algorithm.
 
-        p_init_global = np.zeros( self.nb_parameters_dofs)
+        p_init_global = np.zeros(self.nb_parameters_dofs)
         q_init_global = self.q_ik_initial_guess[self.q_kinematic_index, :]
 
         print(" #######  Initialisation beginning  ########")
-
 
         # First IK step - INITIALIZATION
 
@@ -836,7 +826,6 @@ class KinematicChainCalibration:
         print("#####   Starting the while loop   #####")
 
         while fabs(delta_epsilon_markers) > threshold:
-
             epsilon_markers_n_minus_1 = epsilon_markers_n
 
             param_opt = self.parameters_optimization(
@@ -844,7 +833,6 @@ class KinematicChainCalibration:
                 p_init=p_init,
             )
             print(" param opt =", param_opt)
-
 
             # step 2 - ik step
             q_all_frames, epsilon_markers_n = self.inverse_kinematics(
@@ -1016,8 +1004,8 @@ class KinematicChainCalibration:
         """
         rotation_value = []
         for i in range(self.nb_frames):
-
-            rotation_matrix = self.biorbd_model_eigen.globalJCS(self.x_all_frames[:, i], self.biorbd_model.nbSegment() - 1).rot().to_array()
+            rotation_matrix = self.biorbd_model_eigen.globalJCS(self.x_all_frames[:, i],
+                                                                self.biorbd_model.nbSegment() - 1).rot().to_array()
             rot_matrix_list_model = [
                 rotation_matrix[2, 0],
                 rotation_matrix[2, 1],
@@ -1048,7 +1036,7 @@ class KinematicChainCalibration:
     def plot_pivot(self):
         pivot_value_list = []
         for f in range(self.nb_frames):
-            if self.x_all_frames[-2, f] + self.x_all_frames[-1, f] > 7 * np.pi /10 :
+            if self.x_all_frames[-2, f] + self.x_all_frames[-1, f] > 7 * np.pi / 10:
                 pivot_value_list.append(self.x_all_frames[-2, f] + self.x_all_frames[-1, f])
             else:
                 pivot_value_list.append(0)
@@ -1072,15 +1060,15 @@ class KinematicChainCalibration:
         param_value = self.parameters
         for i in range(self.nb_parameters_dofs):
             if param_value[i] == bound_param[0][i] or param_value[i] == bound_param[1][0]:
-                print("parameters number %r reach a bound value " %i )
+                print("parameters number %r reach a bound value " % i)
         plt.figure("param value")
-        plt.plot([k for k in range(self.nb_parameters_dofs)],[bound_param[0][u] for u in range(self.nb_parameters_dofs)],label="lower bound")
-        plt.plot([k for k in range(self.nb_parameters_dofs)],[bound_param[1][u] for u in range(self.nb_parameters_dofs)],label="upper bound")
-        plt.plot([k for k in range(self.nb_parameters_dofs)],param_value,label="parameters values")
+        plt.plot([k for k in range(self.nb_parameters_dofs)],
+                 [bound_param[0][u] for u in range(self.nb_parameters_dofs)], label="lower bound")
+        plt.plot([k for k in range(self.nb_parameters_dofs)],
+                 [bound_param[1][u] for u in range(self.nb_parameters_dofs)], label="upper bound")
+        plt.plot([k for k in range(self.nb_parameters_dofs)], param_value, label="parameters values")
         plt.xlabel(" number of parameter")
         plt.ylabel("value of parameter")
         plt.legend()
         plt.show()
         print("parameters values = ", param_value)
-
-

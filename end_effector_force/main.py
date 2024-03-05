@@ -1,8 +1,7 @@
-import biorbd_casadi as biorbd
 import biorbd as biorbd_eigen
 import numpy as np
+
 from models.enums import Models
-import bioviz
 
 
 def main():
@@ -25,7 +24,7 @@ def main():
     Jtot_T_inv = np.linalg.inv(Jtot_T)
     print(Jtot_T_inv)
 
-    tau = model_eigen_kinova.ligamentsJointTorque(q_kinova, np.zeros((6, ))).to_array()
+    tau = model_eigen_kinova.ligamentsJointTorque(q_kinova, np.zeros((6,))).to_array()
     print("Tau", tau)
 
     end_effector_force = Jtot_T_inv @ tau
@@ -44,13 +43,8 @@ def main():
     total_torque_in_1 = np.cross(lever_arm, end_effector_force[3:6])
     print("Torque in 1", total_torque_in_1)
 
-    viz = bioviz.Viz(model_path_kinova)
-    viz.load_movement(q_kinova[:, None])
-    viz.exec()
-
 
 if __name__ == "__main__":
     main()
-
 
 # ligament_joint_torque(q,qdot)

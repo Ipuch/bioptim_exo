@@ -1,7 +1,7 @@
 version 4
 variables
 	$KinovaLocationX -0.2985296942052707
-	$KinovaLocationY 0.057412643953780054
+	$KinovaLocationY 0.03741264395378005
 	$KinovaLocationZ 0.05921525359892509
 endvariables
 

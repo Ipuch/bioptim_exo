@@ -2,18 +2,16 @@
 converged, like this!
 """
 
-import bioviz
 import time
+from pathlib import Path
 
-import calibration
+import biorbd
 import numpy as np
 from ezc3d import c3d
-import biorbd
-from models.utils import add_header, thorax_variables
-from utils import get_range_q, get_unit_division_factor
-import random
-from pathlib import Path
+
+import bioviz
 from kinematic_chain_calibration import KinematicChainCalibration
+from utils import get_range_q, get_unit_division_factor
 
 # todo: make this script as a class
 
@@ -50,9 +48,11 @@ for file in file_list:
     for i, name in enumerate(markers_names):
         if name in labels_markers:
             if name == "Table:Table6":
-                markers[:, i, :] = points[:3, labels_markers.index("Table:Table5"), :] / get_unit_division_factor(c3d_)  #todo: use get_unit_division_factor
+                markers[:, i, :] = points[:3, labels_markers.index("Table:Table5"), :] / get_unit_division_factor(
+                    c3d_)  # todo: use get_unit_division_factor
             else:
-                markers[:, i, :] = points[:3, labels_markers.index(name), :] / get_unit_division_factor(c3d_)  #todo: use get_unit_division_factor
+                markers[:, i, :] = points[:3, labels_markers.index(name), :] / get_unit_division_factor(
+                    c3d_)  # todo: use get_unit_division_factor
 
     markers[2, markers_names.index("Table:Table6"), :] = markers[2, markers_names.index("Table:Table6"), :] + 0.1
 
@@ -75,15 +75,15 @@ for file in file_list:
     # initialize human dofs with previous results of inverse kinematics
     q_first_ik = my_ik.q  # human
 
-    # get the bounds of the model for all dofs
+    # get the q_bounds of the model for all dofs
     bounds = [
         (mini, maxi) for mini, maxi in zip(get_range_q(new_model)[0], get_range_q(new_model)[1])
     ]
     kinova_q0 = np.array([(i[0] + i[1]) / 2 for i in bounds[nb_dof_wu_model + nb_parameters:]])
 
     # initialized q trajectories for each frames for dofs without a priori knowledge of the q (kinova arm here)
-    for j in range((q_first_ik[nb_dof_wu_model + nb_parameters :, :].shape[1])):
-        q_first_ik[nb_dof_wu_model + nb_parameters :, j] = kinova_q0
+    for j in range((q_first_ik[nb_dof_wu_model + nb_parameters:, :].shape[1])):
+        q_first_ik[nb_dof_wu_model + nb_parameters:, j] = kinova_q0
 
     # initialized parameters values
     p = np.zeros(nb_parameters)

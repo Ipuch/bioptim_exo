@@ -32,7 +32,7 @@ segment part4
         0.00002960  0.00084184  0
         0.00002960           0  0.00025806
     com 0.03208716 0  0.07885968
-    meshfile geometry\Piece4_reduced.stl
+    meshfile geometry/Piece4_reduced.stl
     meshcolor 0.2 0.2 0.2
 endsegment
 
@@ -65,7 +65,7 @@ segment part6
         0.00000247 0.00015371 0.00000945
         0.00005709 0.00000945 0.00006956
     com  0.05369029 0.00776230 -0.03169498
-    meshfile geometry\Piece6_right_reduced.stl
+    meshfile geometry/Piece6_right_reduced.stl
     meshcolor 0.2 0.2 0.2
 endsegment
 
@@ -81,7 +81,7 @@ segment part7
         0.00004075  0.00699905 0.00000272
         0.00002027  0.00000272 0.00700564
     com  -0.15598555  0.00004919  0.01509296
-    meshfile geometry\Piece7_right_reduced.stl
+    meshfile geometry/Piece7_right_reduced.stl
     meshcolor 0.2 0.2 0.2
 endsegment
 

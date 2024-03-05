@@ -1,4 +1,9 @@
+import os
+from datetime import datetime
+
 import biorbd_casadi as biorbd
+import numpy as np
+import plotly.graph_objects as go
 from bioptim import (
     OptimalControlProgram,
     DynamicsFcn,
@@ -14,31 +19,28 @@ from bioptim import (
     InterpolationType,
     Node,
 )
-import os
-import numpy as np
-from datetime import datetime
-import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from quat import eul2quat, quat2eul
-from data.enums import Tasks
+
 import data.load_events as load_events
 import models.utils as utils
-from models.enums import Models
 import tracking.load_experimental_data as load_experimental_data
+from data.enums import Tasks
+from models.enums import Models
+from quat import eul2quat, quat2eul
 
 
 def prepare_ocp(
-    biorbd_model_path: str,
-    task: any,
-    track_markers: bool,
-    n_shooting: int,
-    x_init_ref: np.array,
-    u_init_ref: np.array,
-    target: any,
-    ode_solver: OdeSolver = OdeSolver.RK4(),
-    use_sx: bool = False,
-    n_threads: int = 4,
-    phase_time: float = 1,
+        biorbd_model_path: str,
+        task: any,
+        track_markers: bool,
+        n_shooting: int,
+        x_init_ref: np.array,
+        u_init_ref: np.array,
+        target: any,
+        ode_solver: OdeSolver = OdeSolver.RK4(),
+        use_sx: bool = False,
+        n_threads: int = 4,
+        phase_time: float = 1,
 ) -> object:
     biorbd_model = biorbd.Model(biorbd_model_path), biorbd.Model(biorbd_model_path)
     n_q = biorbd_model[0].nbQ()
@@ -167,7 +169,7 @@ def prepare_ocp(
         x_init.add(x_init_ref[i], interpolation=InterpolationType.EACH_FRAME)
         u_init.add(u_init_ref[i], interpolation=InterpolationType.EACH_FRAME)
 
-        # Define state bounds
+        # Define state q_bounds
 
         x_bounds_i = QAndQDotBounds(biorbd_model[i])
         x_bounds_i[:n_q, 0] = x_init_ref[i][:n_q, 0]
@@ -186,7 +188,7 @@ def prepare_ocp(
         x_bounds_i.max[8:10, 1], x_bounds_i.max[10, 1] = x_bounds_i.max[9:11, 1], 1
         x_bounds.add(bounds=x_bounds_i)
 
-        # define control bounds
+        # define control q_bounds
         u_bounds.add([tau_min] * n_tau, [tau_max] * n_tau)
 
     return OptimalControlProgram(
@@ -206,8 +208,8 @@ def prepare_ocp(
 
 
 def main(
-    task: Tasks = None,
-    track_markers: bool = False,
+        task: Tasks = None,
+        track_markers: bool = False,
 ):
     """
     Get data, then create a tracking problem, and finally solve it and plot some relevant information

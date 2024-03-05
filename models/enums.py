@@ -9,6 +9,7 @@ class Models(Enum):
     KINOVA_DEPRECATED = Path(__file__).parent.__str__() + "/KINOVA_arm_deprecated.bioMod"
 
     KINOVA_RIGHT = Path(__file__).parent.__str__() + "/KINOVA_arm_right.bioMod"
+    KINOVA_RIGHT_COMPLETE = Path(__file__).parent.__str__() + "/KINOVA_arm_right_complete.bioMod"
     KINOVA_RIGHT_SLIDE = Path(__file__).parent.__str__() + "/KINOVA_arm_right_plus_slide.bioMod"
     KINOVA_RIGHT_SLIDE_POLAR_BASE = Path(__file__).parent.__str__() + "/KINOVA_arm_right_plus_slide_polar_base.bioMod"
     KINOVA_RIGHT_SLIDE_POLAR_BASE_TEMPLATE = Path(__file__).parent.__str__() + "/KINOVA_arm_right_plus_slide_polar_base_template.bioMod"

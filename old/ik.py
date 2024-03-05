@@ -1,6 +1,5 @@
 import biorbd
 import bioviz
-from bioptim import ObjectiveFcn, BiMapping
 from scipy import optimize
 import numpy as np
 
@@ -33,7 +32,6 @@ target = np.zeros((1, 3))
 q0 = np.array((0.0, 0.0, 0.0, 0.0, -0.1709, 0.0515, -0.2892, 0.6695, 0.721, 0.0, 0.0, 0.0))
 T = m.globalJCS(q0, m.nbSegment() - 1).to_array()
 
-
 pos = optimize.least_squares(
     objective_function,
     args=(m, target),
@@ -58,4 +56,4 @@ biorbd_viz = bioviz.Viz(model_path)
 biorbd_viz.load_movement(q)
 biorbd_viz.exec()
 
-# TODO: without six dof & add plausible bounds
+# TODO: without six dof & add plausible q_bounds
